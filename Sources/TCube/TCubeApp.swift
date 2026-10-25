@@ -25,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var panel: CubePanel!
     private var cubeView: CubeView!
     private var surface: CubeSurfaceView!
+    private var faceExpansion: FaceExpansionController!
     private var statusItem: NSStatusItem!
     private var editor: NSWindow?
     private var screenObserver: NSObjectProtocol?
@@ -41,12 +42,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         panel.level = .floating
         panel.hidesOnDeactivate = false
         panel.becomesKeyOnlyIfNeeded = true
+        panel.isMovable = true
+        panel.isMovableByWindowBackground = false
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .canJoinAllApplications, .fullScreenAuxiliary, .ignoresCycle]
         panel.acceptsMouseMovedEvents = true
         panel.contentView = surface
         surface.autoresizingMask = [.width, .height]
         cubeView.editRequested = { [weak self] in self?.showEditor() }
+        faceExpansion = FaceExpansionController(model: model)
+        cubeView.faceRequested = { [weak self] face, rect in
+            guard let self else { return }
+            self.faceExpansion.show(face: face, from: self.cubeView, rect: rect)
+        }
         model.onChange = { [weak self] in
             self?.cubeView.refreshTextures()
             self?.applySize()
@@ -105,7 +113,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             submenu.addItem(option)
         }
         size.submenu = submenu; menu.addItem(size)
-        let help = NSMenuItem(title: "双指左右／上下旋转 · 右键拖动位置", action: nil, keyEquivalent: "")
+        let help = NSMenuItem(title: "滚动旋转 · 按住拖动 · 单击面展开入口", action: nil, keyEquivalent: "")
         menu.addItem(help)
         menu.addItem(.separator())
         _ = item("退出 T-Cube", #selector(quit), key: "q")
@@ -140,6 +148,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
     @objc private func toggleCube() {
+        faceExpansion.close()
         if panel.isVisible { cubeView.setHovered(false); panel.orderOut(nil) }
         else { panel.ignoresMouseEvents = false; panel.orderFrontRegardless() }
     }
@@ -151,6 +160,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func quit() { NSApp.terminate(nil) }
 
     private func showEditor() {
+        faceExpansion?.close()
         if editor == nil {
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 580), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
             window.title = "T-Cube · 设置"

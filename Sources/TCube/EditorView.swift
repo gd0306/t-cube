@@ -6,13 +6,24 @@ struct EditorView: View {
     @ObservedObject var model: AppModel
 
     var body: some View {
-        TabView {
-            FaceSettingsView(model: model)
-                .tabItem { Label("立方体入口", systemImage: "cube") }
-            AppearanceSettingsView(model: model)
-                .tabItem { Label("外观", systemImage: "paintpalette") }
+        VStack(spacing: 0) {
+            TabView {
+                FaceSettingsView(model: model)
+                    .tabItem { Label("立方体入口", systemImage: "cube") }
+                AppearanceSettingsView(model: model)
+                    .tabItem { Label("外观", systemImage: "paintpalette") }
+            }
+            .padding(16)
+            Divider()
+            HStack {
+                Text("按住立方体拖动位置 · 单击面展开入口")
+                    .font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Button("退出 T-Cube", systemImage: "power") { NSApp.terminate(nil) }
+                    .help("退出应用并移除悬浮立方体")
+            }
+            .padding(.horizontal, 24).padding(.vertical, 12)
         }
-        .padding(16)
         .frame(minWidth: 760, idealWidth: 800, minHeight: 520, idealHeight: 580)
     }
 }
@@ -230,7 +241,8 @@ private struct AppearanceSettingsView: View {
                     }
                 }
                 Section("操作方式") {
-                    Label("右键拖动立方体，调整桌面位置", systemImage: "cursorarrow.motionlines")
+                    Label("鼠标左键、右键或触控板按住拖动，调整桌面位置", systemImage: "cursorarrow.motionlines")
+                    Label("单击面立即展开；右键单击或从状态栏打开设置", systemImage: "square.on.square")
                     Label("触控板横向或纵向滚动，沿对应方向旋转", systemImage: "hand.draw")
                 }
                 .font(.callout).foregroundStyle(.secondary)
