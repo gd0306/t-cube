@@ -29,7 +29,8 @@ Native app renders with sample system icons, enlarged for detail. All previews s
 ## Features
 
 - **Six faces, four shortcuts each.** Add local apps or folders; empty slots stay blank.
-- **Free rotation and positioning.** Scroll in either direction; the cube stays where you stop. Drag with either mouse button to move it.
+- **Free rotation and positioning.** Scroll in either direction; the cube stays where you stop while hovered. Drag with either mouse button to move it.
+- **Wandering idle rotation.** Slowly drift through changing directions; hover to stop instantly and leave to resume. Disable it under **Appearance → Dynamic rotation (动态旋转)**. Reduce Motion pauses it automatically.
 - **Hover to enlarge.** Return to the resting size when the pointer leaves; zoom is adjustable from 1.1× to 4×.
 - **Two launch modes.** Expand a face before choosing an icon, or launch directly from icons on the cube.
 - **Personalized glass.** Nine presets, custom two-color gradients, glass materials, and automatic theme cycling every 10 or 20 seconds.
@@ -37,7 +38,7 @@ Native app renders with sample system icons, enlarged for detail. All previews s
 
 ## Install and run
 
-Current version: **0.9.0**. Use the **master** branch.
+Current version: **0.10.0**. Use the **master** branch.
 
 Running requires macOS 15+. Building requires full Xcode with Swift 6 and the **macOS 27 SDK**. Current local packages target Apple Silicon and use ad-hoc signing; they are not notarized.
 
@@ -48,7 +49,7 @@ bash scripts/build-app.sh
 open build/T-Cube.app
 ```
 
-For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.9.0.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are not included in the repository; macOS security approvals remain with the user.
+For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.10.0.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are not included in the repository; macOS security approvals remain with the user.
 
 ### Let an agent install it
 

@@ -136,6 +136,7 @@ public struct CubeConfiguration: Codable, Equatable, Sendable {
     public var themeCycle: CubeThemeCycle
     public var hover: CubeHoverSettings
     public var expandsFacesOnClick: Bool
+    public var autoRotatesWhenIdle: Bool
     public var scale: Double
     /// AppKit screen coordinates, at the panel's bottom-left corner. Nil means center on first launch.
     public var windowPosition: WindowPosition?
@@ -150,6 +151,7 @@ public struct CubeConfiguration: Codable, Equatable, Sendable {
         themeCycle = CubeThemeCycle()
         hover = CubeHoverSettings()
         expandsFacesOnClick = true
+        autoRotatesWhenIdle = true
         scale = 1
         windowPosition = nil
     }
@@ -180,7 +182,7 @@ public struct CubeConfiguration: Codable, Equatable, Sendable {
         }
     }
 
-    private enum CodingKeys: String, CodingKey { case version, groups, themeID, appearance, themeCycle, hover, expandsFacesOnClick, scale, windowPosition }
+    private enum CodingKeys: String, CodingKey { case version, groups, themeID, appearance, themeCycle, hover, expandsFacesOnClick, autoRotatesWhenIdle, scale, windowPosition }
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         version = try container.decode(Int.self, forKey: .version)
@@ -191,6 +193,7 @@ public struct CubeConfiguration: Codable, Equatable, Sendable {
         themeCycle = try container.decodeIfPresent(CubeThemeCycle.self, forKey: .themeCycle) ?? CubeThemeCycle()
         hover = try container.decodeIfPresent(CubeHoverSettings.self, forKey: .hover) ?? CubeHoverSettings()
         expandsFacesOnClick = try container.decodeIfPresent(Bool.self, forKey: .expandsFacesOnClick) ?? true
+        autoRotatesWhenIdle = try container.decodeIfPresent(Bool.self, forKey: .autoRotatesWhenIdle) ?? true
         scale = try container.decode(Double.self, forKey: .scale)
         windowPosition = try container.decodeIfPresent(WindowPosition.self, forKey: .windowPosition)
         try validate()

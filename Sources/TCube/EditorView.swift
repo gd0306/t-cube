@@ -181,6 +181,7 @@ private struct AppearanceSettingsView: View {
     @State private var hoverEnabled = true
     @State private var hoverMultiplier = 4.0
     @State private var expandsFacesOnClick = true
+    @State private var autoRotatesWhenIdle = true
 
     private var stagedAppearance: CubeAppearance {
         CubeAppearance(primaryHex: NSColor(primary).hexRGB,
@@ -209,7 +210,8 @@ private struct AppearanceSettingsView: View {
     private var hasChanges: Bool {
         stagedAppearance != model.configuration.appearance || abs(scale - model.configuration.scale) > 0.001 ||
         stagedCycle != model.configuration.themeCycle || stagedHover != model.configuration.hover ||
-        expandsFacesOnClick != model.configuration.expandsFacesOnClick
+        expandsFacesOnClick != model.configuration.expandsFacesOnClick ||
+        autoRotatesWhenIdle != model.configuration.autoRotatesWhenIdle
     }
 
     var body: some View {
@@ -295,6 +297,13 @@ private struct AppearanceSettingsView: View {
                     .disabled(!hoverEnabled)
                 }
                 Section {
+                    Toggle("空闲时自动旋转", isOn: $autoRotatesWhenIdle)
+                } header: {
+                    Text("动态旋转")
+                } footer: {
+                    Text("缓慢、不规则地变换旋转方向；鼠标移入立即停止，移出继续。系统开启「减少动态效果」时暂停。")
+                }
+                Section {
                     Toggle("点击面展开放大", isOn: $expandsFacesOnClick)
                 } header: {
                     Text("打开方式")
@@ -370,6 +379,7 @@ private struct AppearanceSettingsView: View {
         hoverEnabled = model.configuration.hover.isEnabled
         hoverMultiplier = model.configuration.hover.multiplier
         expandsFacesOnClick = model.configuration.expandsFacesOnClick
+        autoRotatesWhenIdle = model.configuration.autoRotatesWhenIdle
     }
 
     private func applyAppearance() {
@@ -385,6 +395,7 @@ private struct AppearanceSettingsView: View {
             $0.themeCycle = cycle
             $0.hover = hover
             $0.expandsFacesOnClick = expandsFacesOnClick
+            $0.autoRotatesWhenIdle = autoRotatesWhenIdle
         }
     }
 }

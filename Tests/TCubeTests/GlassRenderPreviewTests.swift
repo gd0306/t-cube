@@ -16,6 +16,7 @@ struct GlassRenderPreviewTests {
         let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let store = ConfigurationStore(url: temporary.appendingPathComponent("configuration.json"))
         var configuration = CubeConfiguration()
+        configuration.autoRotatesWhenIdle = false
         configuration.appearance = CubeThemePreset.prism.appearance(glowIntensity: 1)
         let apps = ["/System/Applications/Messages.app", "/System/Applications/Calendar.app", "/System/Applications/Music.app", "/System/Applications/Notes.app"]
         for face in CubeFace.allCases {
@@ -138,5 +139,36 @@ struct GlassRenderPreviewTests {
             #expect(abs(endingMaterial.textureCoordinateTransform.offset.x - startingPhase) > 0.005, "The visible scene must actually advance the light")
         }
         #expect(abs(simd_dot(pose.vector, view.cube.orientation.vector)) > 0.99999, "Light animation must not move the user's chosen pose")
+
+        // A separate preview exercises the real idle rotation, hover pause and
+        // resume. Keep README material comparisons pinned above.
+        model.change { $0.autoRotatesWhenIdle = true }
+        let rotationURL = output.appendingPathComponent("idle-rotation-hover.gif")
+        let rotationGIF = try #require(CGImageDestinationCreateWithURL(rotationURL as CFURL, UTType.gif.identifier as CFString, 36, nil))
+        CGImageDestinationSetProperties(rotationGIF, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFLoopCount: 0]] as CFDictionary)
+        let initialRotation = view.cube.orientation
+        var hoverRotation = initialRotation
+        for index in 0..<36 {
+            view.setHovered(index >= 12 && index < 24)
+            if index == 12 { hoverRotation = view.cube.orientation }
+            try await Task.sleep(for: .milliseconds(200))
+            if index >= 12 && index < 24 {
+                #expect(simd_length(view.cube.orientation.vector - hoverRotation.vector) < 0.00001)
+            }
+            let frame: NSImage? = await withCheckedContinuation { continuation in
+                view.snapshot(saveToHDR: false) { continuation.resume(returning: $0) }
+            }
+            let cgImage = try #require(frame?.cgImage(forProposedRect: nil, context: nil, hints: nil))
+            if [11, 23, 35].contains(index) {
+                let still = NSBitmapImageRep(cgImage: cgImage)
+                try #require(still.representation(using: .png, properties: [:])).write(to: output.appendingPathComponent("idle-rotation-\(index).png"))
+            }
+            CGImageDestinationAddImage(rotationGIF, cgImage, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFDelayTime: 0.2]] as CFDictionary)
+        }
+        #expect(CGImageDestinationFinalize(rotationGIF))
+        if !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            #expect(simd_length(hoverRotation.vector - initialRotation.vector) > 0.005)
+            #expect(simd_length(view.cube.orientation.vector - hoverRotation.vector) > 0.005)
+        }
     }
 }

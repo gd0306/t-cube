@@ -16,7 +16,7 @@ final class CubeView: ARView {
     private var leftTracker = PointerDragTracker()
     private var leftMoveOnly = false
     private var rightTracker = PointerDragTracker()
-    private var rotation = CubeRotation.snapped(to: .front)
+    private var idleRotation = CubeIdleRotation()
     private var panelOrigin = NSPoint.zero
     private(set) var isHovered = false
     var editRequested: (() -> Void)?
@@ -45,7 +45,7 @@ final class CubeView: ARView {
         fill.look(at: .zero, from: [3, -2, 1], relativeTo: nil)
         anchor.addChild(fill)
         anchor.addChild(cube)
-        cube.orientation = rotation
+        cube.orientation = CubeRotation.snapped(to: .front)
         let collider = Entity()
         collider.name = "body"
         collider.components.set(CollisionComponent(shapes: [.generateBox(size: SIMD3<Float>(repeating: 1))]))
@@ -65,12 +65,7 @@ final class CubeView: ARView {
         setAccessibilityLabel("T-Cube 透明立方体")
         lightUpdates = scene.subscribe(to: SceneEvents.Update.self) { [weak self] event in
             MainActor.assumeIsolated {
-                guard let self else { return }
-                guard self.window?.isVisible == true else { self.lightElapsed = 0; return }
-                self.lightElapsed += event.deltaTime
-                guard self.lightElapsed >= 1.0 / 30 else { return }
-                self.aura.advance(deltaTime: self.lightElapsed, hovered: self.isHovered, reducedMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
-                self.lightElapsed = 0
+                self?.advanceAnimations(deltaTime: event.deltaTime, reducedMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
             }
         }
     }
@@ -103,6 +98,18 @@ final class CubeView: ARView {
     }
 
     func refreshAppearance() { aura.update(appearance: model.displayedAppearance) }
+
+    func advanceAnimations(deltaTime: TimeInterval, reducedMotion: Bool) {
+        guard window?.isVisible == true else { lightElapsed = 0; return }
+        guard deltaTime.isFinite, deltaTime > 0 else { return }
+        lightElapsed += min(deltaTime, 0.1)
+        guard lightElapsed >= 1.0 / 30 else { return }
+        let paused = isHovered || leftTracker.origin != nil || rightTracker.origin != nil ||
+            !model.configuration.autoRotatesWhenIdle || reducedMotion
+        cube.orientation = idleRotation.advance(from: cube.orientation, deltaTime: lightElapsed, paused: paused)
+        aura.advance(deltaTime: lightElapsed, hovered: isHovered, reducedMotion: reducedMotion)
+        lightElapsed = 0
+    }
 
     func setHovered(_ hovered: Bool) {
         guard hovered != isHovered else { return }
@@ -232,7 +239,7 @@ final class CubeView: ARView {
 
     func rotate(with delta: SIMD2<Float>, precise: Bool, inverted: Bool) {
         guard delta != .zero else { return }
-        rotation = CubeScrollMotion.rotated(from: cube.orientation, delta: delta, precise: precise, inverted: inverted)
+        let rotation = CubeScrollMotion.rotated(from: cube.orientation, delta: delta, precise: precise, inverted: inverted)
         cube.orientation = rotation
         model.selectedFace = CubeScrollMotion.targetFace(for: rotation)
     }
@@ -244,7 +251,7 @@ final class CubeView: ARView {
     override func prepareForDragOperation(_ sender: any NSDraggingInfo) -> Bool { leftTracker.origin == nil && rightTracker.origin == nil }
     override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
         guard let urls = sender.draggingPasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL], !urls.isEmpty else { return false }
-        let face = CubeRotation.nearestFace(to: rotation)
+        let face = CubeRotation.nearestFace(to: cube.orientation)
         Task { @MainActor [weak self] in self?.model.add(urls, to: face) }
         return true
     }
