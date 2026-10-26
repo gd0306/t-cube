@@ -1,0 +1,46 @@
+name: Windows source client
+on:
+  push:
+    branches: [master, feat/windows-support]
+    paths: ['windows/**', '.github/workflows/windows.yml']
+  pull_request:
+    paths: ['windows/**', '.github/workflows/windows.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, windows-2025]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: windows
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Install source client in isolated per-user directory
+        run: ./scripts/install.ps1 -InstallDirectory "$env:RUNNER_TEMP/T-Cube" -NoLaunch -NoShortcut
+      - name: Exercise installed application
+        run: |
+          $env:TCUBE_SMOKE_EXECUTABLE = "$env:RUNNER_TEMP/T-Cube/electron.exe"
+          npm run smoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-smoke-${{ matrix.os }}
+          path: windows/.cache/smoke/
+          if-no-files-found: warn

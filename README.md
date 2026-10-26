@@ -2,9 +2,9 @@
 
 **English** | [简体中文](README-CN.md)
 
-A transparent glass launcher that floats on your Mac desktop. Keep favorite apps and folders in one softly rounded shape. Scroll to turn it, hover to reveal your icons, and click to launch.
+A transparent glass launcher that floats on your desktop. Keep favorite apps and folders in one softly rounded shape. Scroll to turn it, hover to reveal your icons, and click to launch.
 
-**macOS 15+ · Swift 6 · AppKit / SwiftUI / RealityKit · No third-party dependencies**
+**macOS 15+ (native Swift) · Windows 10/11 (Electron + Three.js)**
 
 ## Preview
 
@@ -40,7 +40,17 @@ Native app renders with sample system icons, enlarged for detail. All previews s
 - **Personalized glass.** Nine presets, custom two-color gradients, glass materials, and automatic theme cycling every 10 or 20 seconds.
 - **Menu-bar access.** Configure, show, hide, or quit without a Dock icon. Motion respects macOS Reduce Motion.
 
-## Install and run
+## Windows source installation
+
+Windows 10 22H2 / Windows 11 (x64) have a separate client with the same six shortcut groups, curved icons, theme cycling, hover zoom, dragging, rotation and tray controls. No installer download is needed; see the [Windows guide](windows/README.md). The previews above show the native macOS client.
+
+Give a local AI agent this prompt:
+
+```text
+Install https://github.com/gd0306/t-cube (master) on Windows. Follow windows/README.md, prepare Node.js 22 LTS, and run windows/scripts/install.ps1. Quit the old app first, preserve settings, create shortcuts, launch, and report test results.
+```
+
+## macOS install and run
 
 Current version: **0.12.3**. Use the **master** branch.
 

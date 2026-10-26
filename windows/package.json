@@ -8,12 +8,14 @@
   "type": "module",
   "main": "dist/main.cjs",
   "scripts": {
+    "postinstall": "node node_modules/electron/install.js",
     "test": "node scripts/test.mjs",
     "typecheck": "tsc --noEmit",
     "build": "node scripts/build.mjs",
     "start": "npm run build && electron .",
     "smoke": "tsx scripts/smoke.ts"
   },
+  "engines": { "node": ">=22.12.0" },
   "dependencies": {
     "koffi": "3.3.4",
     "three": "0.186.1"

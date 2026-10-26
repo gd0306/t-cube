@@ -25,4 +25,4 @@ Use Node behavior tests and strict TypeScript checks; build the renderer on macO
 - [Electron windows](https://www.electronjs.org/docs/latest/api/browser-window)
 - [Electron file icons](https://www.electronjs.org/docs/latest/api/app#appgetfileiconpath-options)
 - [Koffi native calls](https://koffi.dev/)
-- [NSIS packaging](https://www.electron.build/docs/nsis/)
+- [Electron source distribution](https://www.electronjs.org/docs/latest/tutorial/application-distribution)

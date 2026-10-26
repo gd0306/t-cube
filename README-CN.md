@@ -4,7 +4,7 @@
 
 把常用 App 和文件夹放进一个悬浮在桌面的通透玻璃体。滚动切换六组入口，悬停显示图标，点击打开。
 
-**macOS 15+ · Swift 6 · AppKit / SwiftUI / RealityKit · 无第三方依赖**
+**macOS 15+（原生 Swift） · Windows 10/11（Electron + Three.js）**
 
 ## 效果预览
 
@@ -40,7 +40,17 @@
 - **个性化玻璃**：九种预设、自定义双色渐变、玻璃材质，以及 10 秒／20 秒主题轮换。
 - **状态栏常驻**：设置、显示、隐藏与退出集中管理，不占 Dock；光效支持系统「减少动态效果」。
 
-## 安装与运行
+## Windows 源码安装
+
+Windows 10 22H2 / Windows 11（x64）使用独立客户端，支持同样的六组入口、曲面图标、主题轮换、悬停放大、拖动、旋转与托盘设置。无需下载安装包，具体步骤见 [Windows 指南](windows/README.md)。上面的效果图来自 macOS 原生版。
+
+给本地 AI agent 的简短提示词：
+
+```text
+在 Windows 上安装 https://github.com/gd0306/t-cube 的 master 分支。按 windows/README.md 准备 Node.js 22 LTS，运行 windows/scripts/install.ps1。先退出旧版、保留配置，创建快捷方式并启动；报告自测结果。
+```
+
+## macOS 安装与运行
 
 当前版本为 **0.12.3**，使用 **master** 分支。
 
