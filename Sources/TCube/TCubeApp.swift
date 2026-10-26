@@ -66,6 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         applySize(restoring: true)
         let hover = CubeHoverController(window: panel, settings: model.configuration.hover)
         hoverController = hover
+        model.onPlacementRequested = { [weak self] in self?.placeCube(at: $0) }
         hover.onHoverChange = { [weak self] in self?.cubeView.setHovered($0) }
         hover.onRestingPositionChange = { [weak self] in self?.model.savePosition($0) }
         surface.input.hoverChanged = { [weak hover] _ in hover?.checkPointer() }
@@ -124,6 +125,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         _ = item("隐藏立方体", #selector(toggleCube))
         _ = item("设置…", #selector(openEditor), key: ",")
+        let placement = NSMenuItem(title: "快捷位置", action: nil, keyEquivalent: "")
+        placement.submenu = CubePlacementMenu { [weak self] in self?.placeCube(at: $0) }
+        menu.addItem(placement)
         menu.addItem(.separator())
         let size = NSMenuItem(title: "尺寸", action: nil, keyEquivalent: "")
         let submenu = NSMenu()
@@ -178,6 +182,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         model.change { $0.scale = scale }
     }
     @objc private func openEditor() { showEditor() }
+
+    private func placeCube(at placement: CubePlacement) {
+        faceExpansion.close()
+        panel.ignoresMouseEvents = false
+        panel.orderFrontRegardless()
+        hoverController?.place(at: placement)
+        hoverController?.checkPointer()
+    }
+
     @objc private func quit() { NSApp.terminate(nil) }
 
     func applicationWillTerminate(_ notification: Notification) {

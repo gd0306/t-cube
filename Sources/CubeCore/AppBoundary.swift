@@ -28,16 +28,42 @@ public enum FaceLayout {
     }
 }
 
+public enum CubePlacement: String, CaseIterable, Identifiable, Sendable {
+    case topLeft, topRight, bottomLeft, bottomRight, center
+    public var id: String { rawValue }
+}
+
 public enum WindowPlacement {
-    public static func clamp(_ origin: CGPoint, size: CGSize, screens: [CGRect]) -> CGPoint {
-        guard !screens.isEmpty else { return origin }
-        let center = CGPoint(x: origin.x + size.width / 2, y: origin.y + size.height / 2)
+    public static func origin(for placement: CubePlacement, size: CGSize, in screen: CGRect, margin: CGFloat = 24) -> CGPoint {
+        let availableX = max(0, screen.width - size.width)
+        let availableY = max(0, screen.height - size.height)
+        let insetX = min(max(0, margin), availableX / 2)
+        let insetY = min(max(0, margin), availableY / 2)
+        let left = screen.minX + insetX
+        let right = screen.minX + availableX - insetX
+        let bottom = screen.minY + insetY
+        let top = screen.minY + availableY - insetY
+        switch placement {
+        case .topLeft: return CGPoint(x: left, y: top)
+        case .topRight: return CGPoint(x: right, y: top)
+        case .bottomLeft: return CGPoint(x: left, y: bottom)
+        case .bottomRight: return CGPoint(x: right, y: bottom)
+        case .center: return CGPoint(x: screen.minX + availableX / 2, y: screen.minY + availableY / 2)
+        }
+    }
+
+    public static func visibleScreen(for frame: CGRect, screens: [CGRect]) -> CGRect? {
+        let center = CGPoint(x: frame.midX, y: frame.midY)
         func distance(_ rect: CGRect) -> CGFloat {
             let x = max(rect.minX, min(center.x, rect.maxX))
             let y = max(rect.minY, min(center.y, rect.maxY))
             return (center.x - x) * (center.x - x) + (center.y - y) * (center.y - y)
         }
-        let screen = screens.min { distance($0) < distance($1) }!
+        return screens.min { distance($0) < distance($1) }
+    }
+
+    public static func clamp(_ origin: CGPoint, size: CGSize, screens: [CGRect]) -> CGPoint {
+        guard let screen = visibleScreen(for: CGRect(origin: origin, size: size), screens: screens) else { return origin }
         return CGPoint(x: max(screen.minX, min(origin.x, screen.maxX - size.width)),
                        y: max(screen.minY, min(origin.y, screen.maxY - size.height)))
     }

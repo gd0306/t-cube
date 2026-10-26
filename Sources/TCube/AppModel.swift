@@ -9,6 +9,7 @@ final class AppModel: ObservableObject {
     @Published var selectedFace: CubeFace = .front
     var onChange: (() -> Void)?
     var onAppearanceChange: (() -> Void)?
+    var onPlacementRequested: ((CubePlacement) -> Void)?
     private let store: ConfigurationStore
     private var themeCycleTask: Task<Void, Never>?
     let isFirstLaunch: Bool

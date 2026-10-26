@@ -85,6 +85,19 @@ final class CubeHoverController {
         if !interactionActive { applyFrame() }
     }
 
+    func place(at placement: CubePlacement) {
+        guard let window, !interactionActive,
+              let screen = WindowPlacement.visibleScreen(for: restingFrame, screens: screens()) else { return }
+        restingFrame.origin = WindowPlacement.origin(for: placement, size: restingFrame.size, in: screen)
+        controlFrame = nil
+        // Start from the resting geometry even if a corner-clamped hover or
+        // Control shrink has temporarily moved the visible panel elsewhere.
+        window.setFrame(restingFrame, display: true)
+        desiredHovered = window.isVisible && restingFrame.contains(lastPointer ?? NSEvent.mouseLocation)
+        applyHover()
+        onRestingPositionChange?(restingFrame.origin)
+    }
+
     func startTrackingPointer() {
         stopTrackingPointer()
         trackingPointer = true

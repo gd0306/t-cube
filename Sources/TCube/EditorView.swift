@@ -297,6 +297,21 @@ private struct AppearanceSettingsView: View {
                     .disabled(!hoverEnabled)
                 }
                 Section {
+                    HStack(spacing: 8) {
+                        ForEach(CubePlacement.allCases) { placement in
+                            Button(placement.title, systemImage: placement.symbol) {
+                                model.onPlacementRequested?(placement)
+                            }
+                            .help("将立方体放到所在屏幕的\(placement.title)")
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                } header: {
+                    Text("快捷位置")
+                } footer: {
+                    Text("立即放置并保存，无需点击应用设置。四角保留边距，避开菜单栏和 Dock；也可从状态栏菜单操作。")
+                }
+                Section {
                     Toggle("空闲时自动旋转", isOn: $autoRotatesWhenIdle)
                 } header: {
                     Text("动态旋转")
