@@ -4,3 +4,7 @@ build/
 DerivedData/
 .DS_Store
 .superpowers/
+windows/node_modules/
+windows/dist/
+windows/release/
+windows/.cache/
