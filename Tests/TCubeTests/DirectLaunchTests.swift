@@ -8,6 +8,26 @@ import simd
 @MainActor
 @Suite(.serialized)
 struct DirectLaunchTests {
+    @Test func curvedIconOuterEdgesOpenCorrectAppsAtObliqueDisplayAngles() async throws {
+        let (view, window, _, directory) = try fixture()
+        defer { window.orderOut(nil); try? FileManager.default.removeItem(at: directory) }
+        try await Task.sleep(for: .milliseconds(150))
+        let edges: [SIMD2<Float>] = [[-0.272, 0.14273438], [0.272, 0.14273438], [-0.272, -0.16078125], [0.272, -0.16078125]]
+        var launched: [String] = []
+        var expected: [String] = []
+        view.launchRequested = { slot, face in launched.append("\(face.rawValue):\(slot)") }
+        for face in CubeFace.allCases {
+            for angle: Float in [-0.55, 0.55] {
+                view.cube.orientation = simd_quatf(angle: angle, axis: [0, 1, 0]) * CubeRotation.snapped(to: face)
+                for (slot, point) in edges.enumerated() {
+                    try click(projected(point, face: face, view: view), view: view, window: window)
+                    expected.append("\(face.rawValue):\(slot)")
+                }
+            }
+        }
+        #expect(launched == expected)
+    }
+
     @Test func directClicksLaunchEverySlotOnEveryRotatedFace() async throws {
         let (view, window, _, directory) = try fixture()
         defer { window.orderOut(nil); try? FileManager.default.removeItem(at: directory) }
@@ -88,7 +108,7 @@ struct DirectLaunchTests {
     }
 
     private func projected(_ local: SIMD2<Float>, face: CubeFace, view: CubeView) throws -> CGPoint {
-        let world = view.cube.convert(position: face.orientation.act([local.x, local.y, 0.501]), to: nil)
+        let world = view.cube.convert(position: face.orientation.act(FaceLayout.surfacePoint(at: local)), to: nil)
         let point = try #require(view.project(world))
         return view.convert(point, to: nil)
     }

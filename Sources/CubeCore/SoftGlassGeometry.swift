@@ -1,7 +1,7 @@
 import simd
 
 /// A closed cubic superellipsoid: the silhouette bends continuously instead of
-/// meeting at twelve edges. Logical launcher planes remain independent of it.
+/// meeting at twelve edges. Icon decals use the same surface projection.
 public struct SoftGlassGeometry: Sendable {
     public let positions: [SIMD3<Float>]
     public let normals: [SIMD3<Float>]
@@ -17,11 +17,10 @@ public struct SoftGlassGeometry: Sendable {
         var textureCoordinates: [SIMD2<Float>] = []
         var indices: [UInt32] = []
         func vertex(_ direction: SIMD3<Float>) {
-            let absolute = simd_abs(direction)
-            let denominator = pow(absolute.x * absolute.x * absolute.x + absolute.y * absolute.y * absolute.y + absolute.z * absolute.z * absolute.z, Float(1.0 / 3))
-            let point = direction / denominator
-            positions.append(point * halfExtent)
-            normals.append(simd_normalize(point * simd_abs(point)))
+            let position = SoftGlassSurface.project(direction, halfExtent: halfExtent)
+            let point = position / halfExtent
+            positions.append(position)
+            normals.append(SoftGlassSurface.normal(at: point))
             // One continuous spatial projection avoids per-face reflection seams.
             textureCoordinates.append(SIMD2((point.x + 0.35 * point.z) / 2.7 + 0.5,
                                            (point.y + 0.25 * point.z) / 2.5 + 0.5))
@@ -59,5 +58,17 @@ public struct SoftGlassGeometry: Sendable {
         self.normals = normals
         self.textureCoordinates = textureCoordinates
         self.indices = indices
+    }
+}
+
+enum SoftGlassSurface {
+    static func project(_ direction: SIMD3<Float>, halfExtent: Float = 0.5) -> SIMD3<Float> {
+        let absolute = simd_abs(direction)
+        let denominator = pow(absolute.x * absolute.x * absolute.x + absolute.y * absolute.y * absolute.y + absolute.z * absolute.z * absolute.z, Float(1.0 / 3))
+        return halfExtent * direction / denominator
+    }
+
+    static func normal(at point: SIMD3<Float>) -> SIMD3<Float> {
+        simd_normalize(point * simd_abs(point))
     }
 }

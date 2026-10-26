@@ -19,6 +19,15 @@ final class CubeView: ARView {
     private var idleRotation = CubeIdleRotation()
     private var panelOrigin = NSPoint.zero
     private(set) var isHovered = false
+    private static let curvedIconMesh: MeshResource? = {
+        let geometry = CurvedFaceGeometry()
+        var descriptor = MeshDescriptor(name: "curved-launcher-icons")
+        descriptor.positions = .init(geometry.positions)
+        descriptor.normals = .init(geometry.normals)
+        descriptor.textureCoordinates = .init(geometry.textureCoordinates)
+        descriptor.primitives = .triangles(geometry.indices)
+        return try? MeshResource.generate(from: [descriptor])
+    }()
     var editRequested: (() -> Void)?
     var faceRequested: ((CubeFace, NSRect) -> Void)?
     var launchRequested: ((Int, CubeFace) -> Void)?
@@ -51,14 +60,14 @@ final class CubeView: ARView {
         collider.components.set(CollisionComponent(shapes: [.generateBox(size: SIMD3<Float>(repeating: 1))]))
         cube.addChild(collider)
         aura = CubeAura(parent: cube, appearance: model.displayedAppearance)
-        for face in CubeFace.allCases {
-            let panel = ModelEntity(mesh: .generatePlane(width: FaceLayout.panelSide, height: FaceLayout.panelSide, cornerRadius: 0.012))
-            panel.name = face.rawValue
-            panel.orientation = face.orientation
-            panel.position = face.normal * FaceLayout.panelDistance
-            panel.collision = CollisionComponent(shapes: [.generateBox(width: 0.84, height: 0.84, depth: 0.004)])
-            panels[face] = panel
-            cube.addChild(panel)
+        if let mesh = Self.curvedIconMesh {
+            for face in CubeFace.allCases {
+                let panel = ModelEntity(mesh: mesh)
+                panel.name = face.rawValue
+                panel.orientation = face.orientation
+                panels[face] = panel
+                cube.addChild(panel)
+            }
         }
         refreshTextures()
         registerForDraggedTypes([.fileURL])

@@ -1,11 +1,17 @@
 import Foundation
 import CoreGraphics
+import simd
 
 /// Texture coordinates and hit regions share one layout, measured from the top left.
 public enum FaceLayout {
     public static let textureSize: CGFloat = 1024
     public static let panelSide: Float = 0.84
     public static let panelDistance: Float = 0.501
+    /// Front-facing decal position. Other groups rotate this point by their face orientation.
+    public static func surfacePoint(at local: SIMD2<Float>) -> SIMD3<Float> {
+        let point = SoftGlassSurface.project([local.x, local.y, 0.5])
+        return point + 0.0015 * SoftGlassSurface.normal(at: point)
+    }
     public static func slotRect(_ index: Int) -> CGRect {
         CGRect(x: index % 2 == 0 ? 90 : 548, y: index < 2 ? 224 : 594, width: 386, height: 330)
     }
