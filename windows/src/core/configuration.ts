@@ -41,16 +41,23 @@ function name(value: unknown): string {
     if (typeof value !== 'string' || !value.trim()) throw new Error('Invalid name');
     return value.trim();
 }
-// Windows targets are case insensitive; resolve separators and dot components without
-// importing node:path into the renderer's pure configuration module.
+// Lexical Windows keys keep drive/UNC roots intact without a node:path dependency.
 function targetKey(path: string): string {
+    // This exact namespace prefix disables Win32 separator/dot expansion. Its
+    // components must not be merged with ordinary paths by lexical guessing.
+    if (path.startsWith('\\\\?\\')) return path.toLowerCase();
+    const normalized = path.replaceAll('/', '\\');
+    const drive = /^([a-z]:)\\+/i.exec(normalized);
+    const unc = /^\\\\([^\\]+)\\+([^\\]+)(?:\\+|$)/.exec(normalized);
+    const root = drive ? `${drive[1]}\\` : unc ? `\\\\${unc[1]}\\${unc[2]}\\` : '';
+    const rootLength = drive?.[0].length ?? unc?.[0].length ?? 0;
     const parts: string[] = [];
-    for (const component of path.replaceAll('/', '\\').split('\\')) {
+    for (const component of normalized.slice(rootLength).split('\\')) {
         if (component === '.' || !component) continue;
-        if (component === '..' && parts.length > 1) parts.pop();
+        if (component === '..') parts.pop();
         else parts.push(component);
     }
-    return parts.join('\\').toLowerCase();
+    return (root + parts.join('\\')).toLowerCase();
 }
 function launcherItem(value: unknown): LauncherItem {
     const item = object(value, 'item');

@@ -66,3 +66,26 @@ test('replacing a requested slot is atomic and rejected duplicate ids leave the 
     assert.throws(() => removeTarget(original, 'front', 0), /empty/i);
     assert.throws(() => moveTarget(original, 'front', -1, 2), /invalid slot/i);
 });
+
+test('drive-root parent traversal cannot bypass duplicate detection', () => {
+    const original = addTarget(defaultConfiguration(), 'front', item('first', 'C:\\Apps\\A.exe'));
+    for (const path of ['C:\\..\\Apps\\A.exe', 'c:/../../Apps/./A.exe', 'C:\\Temp\\..\\..\\Apps\\A.exe']) {
+        assert.throws(() => addTarget(original, 'front', item('second', path)), /duplicate/i, path);
+    }
+});
+
+test('UNC parent traversal clamps at the share root and keeps shares distinct', () => {
+    const original = addTarget(defaultConfiguration(), 'front', item('first', '\\\\server\\share\\Apps\\A.exe'));
+    for (const path of ['\\\\server\\share\\..\\Apps\\A.exe', '\\\\SERVER\\SHARE\\..\\..\\Apps\\A.exe', '\\\\server\\share\\Temp\\..\\..\\Apps\\A.exe']) {
+        assert.throws(() => addTarget(original, 'front', item('second', path)), /duplicate/i, path);
+    }
+    const distinct = addTarget(original, 'front', item('otherShare', '\\\\server\\other\\Apps\\A.exe'));
+    assert.equal(distinct.groups.front.slots[1]?.id, 'otherShare');
+});
+
+test('verbatim namespace paths preserve literal dot components rather than applying ordinary Win32 parsing', () => {
+    const original = addTarget(defaultConfiguration(), 'front', item('first', '\\\\?\\C:\\Apps\\A.exe'));
+    const literal = addTarget(original, 'front', item('literal', '\\\\?\\C:\\Apps\\.\\A.exe'));
+    assert.equal(literal.groups.front.slots[1]?.id, 'literal');
+    assert.throws(() => addTarget(original, 'front', item('second', '\\\\?\\c:\\apps\\a.exe')), /duplicate/i);
+});
