@@ -35,6 +35,7 @@ struct GlassRenderPreviewTests {
         window.orderFrontRegardless()
         let output = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(".build/glass-previews", isDirectory: true)
         try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        let galleryBackground = NSColor(red: 0.065, green: 0.075, blue: 0.095, alpha: 1)
 
         let poses: [(String, simd_quatf, NSColor)] = [
             ("thin-prism-dark", CubeRotation.snapped(to: .front), NSColor(red: 0.065, green: 0.075, blue: 0.095, alpha: 1)),
@@ -66,12 +67,29 @@ struct GlassRenderPreviewTests {
             let bitmap = try #require(NSBitmapImageRep(data: data))
             try #require(bitmap.representation(using: .png, properties: [:])).write(to: output.appendingPathComponent("thin-\(preset.rawValue).png"))
         }
+        // Documentation uses one background, viewport and pose across every
+        // state. Keep the varied-background QA captures above as well.
+        let gallerySize = NSSize(width: 560, height: 420)
+        window.setContentSize(gallerySize)
+        view.frame = NSRect(origin: .zero, size: gallerySize)
+        view.cube.orientation = CubeRotation.snapped(to: .front)
+        view.environment.background = .color(galleryBackground)
+        for (preset, name) in [(CubeThemePreset.prism, "readme-hover"), (.auroraFlow, "readme-aurora")] {
+            model.change { $0.appearance = preset.appearance(glowIntensity: 1) }
+            view.refreshAppearance()
+            view.setHovered(true)
+            try await Task.sleep(for: .milliseconds(350))
+            let image: NSImage? = await withCheckedContinuation { continuation in view.snapshot(saveToHDR: false) { continuation.resume(returning: $0) } }
+            let data = try #require(image?.tiffRepresentation)
+            let bitmap = try #require(NSBitmapImageRep(data: data))
+            try #require(bitmap.representation(using: .png, properties: [:])).write(to: output.appendingPathComponent("\(name).png"))
+        }
         model.change { $0.appearance = CubeThemePreset.prism.appearance(glowIntensity: 1) }
         view.refreshAppearance()
         view.setHovered(false)
         view.cube.orientation = CubeRotation.snapped(to: .front)
-        view.environment.background = .color(NSColor(red: 0.27, green: 0.24, blue: 0.22, alpha: 1))
-        try await Task.sleep(for: .milliseconds(450))
+        view.environment.background = .color(galleryBackground)
+        try await Task.sleep(for: .milliseconds(1300))
         let idle: NSImage? = await withCheckedContinuation { continuation in
             view.snapshot(saveToHDR: false) { continuation.resume(returning: $0) }
         }
@@ -88,9 +106,11 @@ struct GlassRenderPreviewTests {
             }
         }
         #expect(visibleEdgeSamples > 100, "Idle glass edges must remain visible without icons")
-        try #require(idleBitmap.representation(using: .png, properties: [:])).write(to: output.appendingPathComponent("thin-glass-idle.png"))
+        let idlePNG = try #require(idleBitmap.representation(using: .png, properties: [:]))
+        try idlePNG.write(to: output.appendingPathComponent("thin-glass-idle.png"))
+        try idlePNG.write(to: output.appendingPathComponent("readme-idle.png"))
 
-        view.environment.background = .color(NSColor(red: 0.065, green: 0.075, blue: 0.095, alpha: 1))
+        view.environment.background = .color(galleryBackground)
         let flow = try #require(view.cube.findEntity(named: "prism-flow") as? ModelEntity)
         let startingMaterial = try #require(flow.model?.materials.first as? UnlitMaterial)
         let startingPhase = startingMaterial.textureCoordinateTransform.offset.x
@@ -112,6 +132,7 @@ struct GlassRenderPreviewTests {
             CGImageDestinationAddImage(destination, cgImage, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFDelayTime: 0.1]] as CFDictionary)
         }
         #expect(CGImageDestinationFinalize(destination))
+        try Data(contentsOf: gifURL).write(to: output.appendingPathComponent("readme-motion.gif"))
         if !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
             let endingMaterial = try #require(flow.model?.materials.first as? UnlitMaterial)
             #expect(abs(endingMaterial.textureCoordinateTransform.offset.x - startingPhase) > 0.005, "The visible scene must actually advance the light")
