@@ -22,6 +22,8 @@ final class CubeAura {
 
     init(parent: Entity, appearance: CubeAppearance) {
         root.name = "cube-aura"
+        // Fade only optical layers; launcher decals are siblings and stay crisp.
+        root.components.set(OpacityComponent(opacity: 0.25))
         parent.addChild(root)
         if let mesh = Self.mesh {
             var glass = PhysicallyBasedMaterial()

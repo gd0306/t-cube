@@ -2,11 +2,13 @@
 
 [English](README.md) | **简体中文**
 
-把常用 App 和文件夹放进一个悬浮在桌面的圆润玻璃体。滚动切换六组入口，悬停显示图标，点击打开。
+把常用 App 和文件夹放进一个悬浮在桌面的通透玻璃体。滚动切换六组入口，悬停显示图标，点击打开。
 
 **macOS 15+ · Swift 6 · AppKit / SwiftUI / RealityKit · 无第三方依赖**
 
 ## 效果预览
+
+玻璃外壳、反光与光晕更轻，让桌面背景清晰透出。悬停后，图标沿曲面显示。
 
 <p align="center">
   <img src="docs/images/cube-hover.png" width="760" alt="深石墨色背景下的 T-Cube，圆润透明玻璃体周围展示应用图标">
@@ -20,15 +22,16 @@
 </table>
 
 <details>
-<summary>查看悬停与流光动效</summary>
-<p align="center"><img src="docs/images/cube-motion.gif" width="760" alt="悬停时显示应用图标，玻璃高光持续流动"></p>
+<summary>查看自动旋转与悬停暂停</summary>
+<p align="center"><img src="docs/images/cube-motion.gif" width="760" alt="静置时自动旋转，悬停暂停并显示图标，移出后继续旋转"></p>
 </details>
 
 以上为应用自身的原生渲染，使用系统示例图标并放大展示细节。所有预览统一使用深石墨色背景、相机角度和画面尺寸。
 
 ## 主要功能
 
-- **六组入口，每组四个快捷方式**：支持本地 App 和文件夹，空位留白。外形采用较平缓的弧面与圆角，不强调棱边或六个面；图标贴合曲面，点击区域同步弯曲。
+- **轻薄通透的玻璃外观**：圆角、平缓弧面和柔和反光，图标清晰地贴合表面。
+- **六组入口，每组四个快捷方式**：支持本地 App 和文件夹，空位留白，点击区域与曲面图标一致。
 - **自由旋转与移动**：双向滚动旋转，悬停时滚哪停哪；左右键均可拖动位置。
 - **快捷放置**：从状态栏菜单或「外观 → 快捷位置」一键移到所在屏幕四角或正中央，立即保存，避开菜单栏与 Dock。
 - **空闲自动旋转**：缓慢、平滑地变换方向；移入立即停转，移出继续。在「外观 → 动态旋转」可关闭；系统开启「减少动态效果」时自动暂停。
@@ -39,7 +42,7 @@
 
 ## 安装与运行
 
-当前版本为 **0.12.2**，使用 **master** 分支。
+当前版本为 **0.12.3**，使用 **master** 分支。
 
 运行需要 macOS 15+；源码构建需要完整 Xcode、Swift 6 和 **macOS 27 SDK**。当前本地打包产物面向 Apple Silicon，使用 ad-hoc 签名，尚未公证。
 
@@ -50,7 +53,7 @@ bash scripts/build-app.sh
 open build/T-Cube.app
 ```
 
-需要拖拽安装时，运行 `bash scripts/build-dmg.sh`，打开 `build/T-Cube-0.12.2.dmg`，将应用拖入 **Applications**。更新前先退出旧版，保留原配置。构建产物不随源码提交；系统安全授权由用户确认。
+需要拖拽安装时，运行 `bash scripts/build-dmg.sh`，打开 `build/T-Cube-0.12.3.dmg`，将应用拖入 **Applications**。更新前先退出旧版，保留原配置。构建产物不随源码提交；系统安全授权由用户确认。
 
 ### 让 agent 帮忙安装
 
@@ -66,10 +69,12 @@ open build/T-Cube.app
 
 1. 在「立方体入口」为六个面添加应用或文件夹，也可从 Finder 拖入。
 2. 在「外观」选择主题、材质、轮换与悬停大小，点击「应用设置」保存。
-3. 想直接打开图标：在「打开方式」关闭「点击面展开放大」。空白和空槽不触发操作。
+3. 想直接打开图标：在「打开方式」关闭「点击面展开放大」，再点击「应用设置」保存。空白和空槽不触发操作。
+4. 从状态栏菜单或「外观 → 快捷位置」选择四角或正中央，立即生效并保存。
 
 | 操作 | 效果 |
 | --- | --- |
+| 鼠标移入／移出 | 显示／隐藏图标；自动旋转开启时暂停／继续旋转 |
 | 触控板双指左右／上下滑动 | 沿对应方向旋转，停止后保持姿态 |
 | 鼠标滚轮／Shift＋滚轮 | 上下／左右旋转 |
 | 左键或右键拖动 | 移动悬浮位置并保存 |
@@ -96,9 +101,9 @@ git diff --check
 重新生成原生效果图，包括统一风格的 `readme-*` 图集：
 
 ```bash
-env TCUBE_RENDER_PREVIEWS=1 swift test --scratch-path .build/tests --filter GlassRenderPreviewTests
+env TCUBE_RENDER_PREVIEWS=1 swift test --scratch-path .build/tests --filter 'GlassRenderPreviewTests|IconEdgeRenderingTests'
 ```
 
-输出位于 `.build/glass-previews/`，使用独立临时配置，不改动用户数据。多背景验证图与 README 展示图分别生成。
+输出位于 `.build/glass-previews/`，使用独立临时配置，不改动用户数据。多背景透明度验证、图标边缘检查与 README 展示图分别生成。
 
 `Sources/CubeCore` 管理配置、几何与命中逻辑；`Sources/TCube` 管理窗口、渲染与原生界面。贡献约定见 [AGENTS.md](AGENTS.md)，检查结果与限制见 [验证记录](docs/verification/)。

@@ -123,7 +123,8 @@ struct GlassRenderPreviewTests {
         let darkCenter = try #require(idleBitmap.colorAt(x: idleBitmap.pixelsWide / 2, y: idleBitmap.pixelsHigh / 2)?.usingColorSpace(.sRGB))
         let lightCenter = try #require(lightBitmap.colorAt(x: lightBitmap.pixelsWide / 2, y: lightBitmap.pixelsHigh / 2)?.usingColorSpace(.sRGB))
         let backdropResponse = ((lightCenter.redComponent - darkCenter.redComponent) + (lightCenter.greenComponent - darkCenter.greenComponent) + (lightCenter.blueComponent - darkCenter.blueComponent)) / 3
-        #expect(backdropResponse > 0.45, "The glass must reveal its backdrop instead of becoming an opaque pearl")
+        print("Glass center backdrop response: \(backdropResponse)")
+        #expect(backdropResponse > 0.70, "The glass center must clearly reveal the backdrop while retaining its silhouette")
         try #require(lightBitmap.representation(using: .png, properties: [:])).write(to: output.appendingPathComponent("soft-body-idle-light.png"))
 
         view.environment.background = .color(galleryBackground)

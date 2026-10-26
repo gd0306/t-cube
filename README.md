@@ -2,11 +2,13 @@
 
 **English** | [简体中文](README-CN.md)
 
-A floating, softly rounded glass launcher for your favorite Mac apps and folders. Scroll to turn it, hover to reveal your icons, and click to launch.
+A transparent glass launcher that floats on your Mac desktop. Keep favorite apps and folders in one softly rounded shape. Scroll to turn it, hover to reveal your icons, and click to launch.
 
 **macOS 15+ · Swift 6 · AppKit / SwiftUI / RealityKit · No third-party dependencies**
 
 ## Preview
+
+A lighter glass shell lets the desktop show through. Hover to reveal icons that follow its curved surface.
 
 <p align="center">
   <img src="docs/images/cube-hover.png" width="760" alt="T-Cube showing app icons around a softly rounded glass body against a graphite background">
@@ -20,15 +22,16 @@ A floating, softly rounded glass launcher for your favorite Mac apps and folders
 </table>
 
 <details>
-<summary>Watch the hover and light animation</summary>
-<p align="center"><img src="docs/images/cube-motion.gif" width="760" alt="Icons appear on hover while the glass highlights keep moving"></p>
+<summary>Watch idle rotation pause on hover</summary>
+<p align="center"><img src="docs/images/cube-motion.gif" width="760" alt="The cube rotates at rest, pauses and reveals icons on hover, then resumes when the pointer leaves"></p>
 </details>
 
 Native app renders with sample system icons, enlarged for detail. All previews share the same graphite background, camera, and viewport.
 
 ## Features
 
-- **Six groups, four shortcuts each.** Add local apps or folders; empty slots stay blank. A softly rounded glass body with shallower faces replaces sharp edges and separate face plates; icons wrap around its surface, with matching curved hit areas.
+- **Light, transparent glass.** Soft corners, shallow curved faces, subtle reflections, and crisp icons that wrap around the surface.
+- **Six groups, four shortcuts each.** Add local apps or folders; empty slots stay blank. Click areas follow the curved icons.
 - **Free rotation and positioning.** Scroll in either direction; the cube stays where you stop while hovered. Drag with either mouse button to move it.
 - **Quick placement.** Put the cube in any corner or the center of its screen from the menu bar or Appearance settings. Positions save immediately, with room for the menu bar and Dock.
 - **Wandering idle rotation.** Slowly drift through changing directions; hover to stop instantly and leave to resume. Disable it under **Appearance → Dynamic rotation (动态旋转)**. Reduce Motion pauses it automatically.
@@ -39,7 +42,7 @@ Native app renders with sample system icons, enlarged for detail. All previews s
 
 ## Install and run
 
-Current version: **0.12.2**. Use the **master** branch.
+Current version: **0.12.3**. Use the **master** branch.
 
 Running requires macOS 15+. Building requires full Xcode with Swift 6 and the **macOS 27 SDK**. Current local packages target Apple Silicon and use ad-hoc signing; they are not notarized.
 
@@ -50,7 +53,7 @@ bash scripts/build-app.sh
 open build/T-Cube.app
 ```
 
-For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.12.2.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are not included in the repository; macOS security approvals remain with the user.
+For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.12.3.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are not included in the repository; macOS security approvals remain with the user.
 
 ### Let an agent install it
 
@@ -66,10 +69,12 @@ Settings open on first launch. Reopen them by right-clicking the cube or using i
 
 1. In **Cube entries (立方体入口)**, assign apps or folders to each face. Finder drag-and-drop is also supported.
 2. In **Appearance (外观)**, choose themes, materials, cycling, and hover size. Click **Apply settings (应用设置)** to save.
-3. To launch directly, disable **Expand faces on click (点击面展开放大)** under **Launch behavior (打开方式)**. Blank areas and empty slots do nothing.
+3. To launch directly, disable **Expand faces on click (点击面展开放大)** under **Launch behavior (打开方式)**, then click **Apply settings (应用设置)**. Blank areas and empty slots do nothing.
+4. Use **Quick placement (快捷位置)** in the menu bar or Appearance to move to a corner or the screen center. Placement applies and saves immediately.
 
 | Action | Result |
 | --- | --- |
+| Hover / leave | Reveal / hide icons; pause / resume idle rotation when enabled |
 | Two-finger horizontal / vertical scroll | Rotate along the corresponding axis; stop without snapping |
 | Mouse wheel / Shift + wheel | Rotate vertically / horizontally |
 | Left- or right-button drag | Move and save the floating position |
@@ -96,9 +101,9 @@ git diff --check
 Regenerate the native previews, including the matching `readme-*` gallery:
 
 ```bash
-env TCUBE_RENDER_PREVIEWS=1 swift test --scratch-path .build/tests --filter GlassRenderPreviewTests
+env TCUBE_RENDER_PREVIEWS=1 swift test --scratch-path .build/tests --filter 'GlassRenderPreviewTests|IconEdgeRenderingTests'
 ```
 
-Files are written to `.build/glass-previews/` using an isolated temporary configuration. Multi-background QA captures are generated separately from the README gallery.
+Files are written to `.build/glass-previews/` using an isolated temporary configuration. Multi-background transparency checks and icon-edge checks are generated separately from the README gallery.
 
 `Sources/CubeCore` owns configuration, geometry, and hit testing; `Sources/TCube` owns windows, rendering, and native UI. See [AGENTS.md](AGENTS.md) for contribution guidelines and [verification records](docs/verification/) for checks and limitations.
