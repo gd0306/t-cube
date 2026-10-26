@@ -2,6 +2,7 @@ import AppKit
 import RealityKit
 import CubeCore
 import simd
+import Combine
 
 @MainActor
 final class CubeView: ARView {
@@ -10,13 +11,19 @@ final class CubeView: ARView {
     private let anchor = AnchorEntity(world: .zero)
     private var panels: [CubeFace: ModelEntity] = [:]
     private var aura: CubeAura!
+    private var lightUpdates: (any Cancellable)?
+    private var lightElapsed: TimeInterval = 0
     private var leftTracker = PointerDragTracker()
+    private var leftMoveOnly = false
     private var rightTracker = PointerDragTracker()
     private var rotation = CubeRotation.snapped(to: .front)
     private var panelOrigin = NSPoint.zero
     private(set) var isHovered = false
     var editRequested: (() -> Void)?
     var faceRequested: ((CubeFace, NSRect) -> Void)?
+    var launchRequested: ((Int, CubeFace) -> Void)?
+    var interactionChanged: ((Bool) -> Void)?
+    var positionCommitted: ((NSRect) -> Void)?
 
     init(model: AppModel) {
         self.model = model
@@ -43,12 +50,12 @@ final class CubeView: ARView {
         collider.name = "body"
         collider.components.set(CollisionComponent(shapes: [.generateBox(size: SIMD3<Float>(repeating: 1))]))
         cube.addChild(collider)
-        aura = CubeAura(parent: cube, appearance: model.configuration.appearance)
+        aura = CubeAura(parent: cube, appearance: model.displayedAppearance)
         for face in CubeFace.allCases {
-            let panel = ModelEntity(mesh: .generatePlane(width: 0.84, height: 0.84, cornerRadius: 0.012))
+            let panel = ModelEntity(mesh: .generatePlane(width: FaceLayout.panelSide, height: FaceLayout.panelSide, cornerRadius: 0.012))
             panel.name = face.rawValue
             panel.orientation = face.orientation
-            panel.position = face.normal * 0.501
+            panel.position = face.normal * FaceLayout.panelDistance
             panel.collision = CollisionComponent(shapes: [.generateBox(width: 0.84, height: 0.84, depth: 0.004)])
             panels[face] = panel
             cube.addChild(panel)
@@ -56,7 +63,16 @@ final class CubeView: ARView {
         refreshTextures()
         registerForDraggedTypes([.fileURL])
         setAccessibilityLabel("T-Cube 透明立方体")
-        setAccessibilityHelp("悬停显示入口；滚动旋转；按住拖动位置；单击面立即展开入口；右键单击设置。")
+        lightUpdates = scene.subscribe(to: SceneEvents.Update.self) { [weak self] event in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                guard self.window?.isVisible == true else { self.lightElapsed = 0; return }
+                self.lightElapsed += event.deltaTime
+                guard self.lightElapsed >= 1.0 / 30 else { return }
+                self.aura.advance(deltaTime: self.lightElapsed, hovered: self.isHovered, reducedMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
+                self.lightElapsed = 0
+            }
+        }
     }
 
     @available(*, unavailable)
@@ -67,7 +83,10 @@ final class CubeView: ARView {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     func refreshTextures() {
-        aura.update(appearance: model.configuration.appearance)
+        refreshAppearance()
+        setAccessibilityHelp(model.configuration.expandsFacesOnClick
+            ? "悬停显示入口；滚动旋转；按住拖动位置；单击面展开入口；右键单击设置。"
+            : "悬停显示入口；滚动旋转；按住拖动位置；单击图标直接打开；右键单击设置。")
         for (ordinal, face) in CubeFace.allCases.enumerated() {
             guard let image = CubeTheme.faceImage(group: model.configuration.group(for: face), ordinal: ordinal, appearance: model.configuration.appearance) else { continue }
             do {
@@ -82,6 +101,8 @@ final class CubeView: ARView {
             } catch { model.report(error) }
         }
     }
+
+    func refreshAppearance() { aura.update(appearance: model.displayedAppearance) }
 
     func setHovered(_ hovered: Bool) {
         guard hovered != isHovered else { return }
@@ -101,9 +122,16 @@ final class CubeView: ARView {
     }
 
     override func mouseDown(with event: NSEvent) {
+        let point = window?.convertPoint(toScreen: event.locationInWindow) ?? event.locationInWindow
+        beginPrimaryDrag(atScreenPoint: point)
+    }
+
+    func beginPrimaryDrag(atScreenPoint point: NSPoint, moveOnly: Bool = false) {
         guard rightTracker.origin == nil else { return }
-        leftTracker.start(at: pointer(event))
+        leftMoveOnly = moveOnly
+        leftTracker.start(at: [Float(point.x), Float(point.y)])
         panelOrigin = window?.frame.origin ?? .zero
+        interactionChanged?(true)
     }
     override func mouseDragged(with event: NSEvent) {
         guard leftTracker.update(to: pointer(event)) else { return }
@@ -111,18 +139,28 @@ final class CubeView: ARView {
         NSCursor.closedHand.set()
     }
     override func mouseUp(with event: NSEvent) {
+        guard leftTracker.origin != nil else { return }
+        defer { leftMoveOnly = false; interactionChanged?(false) }
         let outcome = leftTracker.end(at: pointer(event))
         if outcome == .drag {
             finishMove(translation: leftTracker.translation)
             return
         }
-        guard outcome == .click else { return }
+        guard outcome == .click, !leftMoveOnly else { return }
         let point = convert(event.locationInWindow, from: nil)
-        guard let ray = ray(through: point),
-              let face = CubeFacePicking.face(origin: cube.convert(position: ray.origin, from: nil),
-                                               direction: cube.convert(direction: ray.direction, from: nil)) else { return }
-        model.selectedFace = face
-        faceRequested?(face, NSRect(x: point.x - 1, y: point.y - 1, width: 2, height: 2))
+        guard let ray = ray(through: point) else { return }
+        let origin = cube.convert(position: ray.origin, from: nil)
+        let direction = cube.convert(direction: ray.direction, from: nil)
+        if model.configuration.expandsFacesOnClick {
+            guard let face = CubeFacePicking.face(origin: origin, direction: direction) else { return }
+            model.selectedFace = face
+            faceRequested?(face, NSRect(x: point.x - 1, y: point.y - 1, width: 2, height: 2))
+        } else {
+            guard isHovered, let hit = CubeFacePicking.icon(origin: origin, direction: direction),
+                  model.configuration.group(for: hit.face).slots[hit.slot] != nil else { return }
+            model.selectedFace = hit.face
+            launchRequested?(hit.slot, hit.face)
+        }
     }
 
     private func finishMove(translation: SIMD2<Float>) {
@@ -130,24 +168,43 @@ final class CubeView: ARView {
         let origin = NSPoint(x: panelOrigin.x + CGFloat(translation.x), y: panelOrigin.y + CGFloat(translation.y))
         let clamped = WindowPlacement.clamp(origin, size: window.frame.size, screens: NSScreen.screens.map(\.visibleFrame))
         window.setFrameOrigin(clamped)
-        model.savePosition(clamped)
+        if let positionCommitted { positionCommitted(window.frame) }
+        else { model.savePosition(clamped) }
         NSCursor.arrow.set()
     }
 
     func cancelRightDrag() {
+        guard rightTracker.origin != nil else { return }
+        defer { interactionChanged?(false) }
         if rightTracker.isDragging, let window {
             let clamped = WindowPlacement.clamp(window.frame.origin, size: window.frame.size, screens: NSScreen.screens.map(\.visibleFrame))
             window.setFrameOrigin(clamped)
-            model.savePosition(clamped)
+            if let positionCommitted { positionCommitted(window.frame) }
+            else { model.savePosition(clamped) }
         }
         rightTracker = PointerDragTracker()
         NSCursor.arrow.set()
     }
 
+    func cancelPrimaryDrag() {
+        guard leftTracker.origin != nil else { return }
+        if leftTracker.isDragging { finishMove(translation: leftTracker.translation) }
+        leftTracker = PointerDragTracker()
+        leftMoveOnly = false
+        NSCursor.arrow.set()
+        interactionChanged?(false)
+    }
+
     override func rightMouseDown(with event: NSEvent) {
+        let point = window?.convertPoint(toScreen: event.locationInWindow) ?? event.locationInWindow
+        beginSecondaryDrag(atScreenPoint: point)
+    }
+
+    func beginSecondaryDrag(atScreenPoint point: NSPoint) {
         guard leftTracker.origin == nil else { return }
-        rightTracker.start(at: pointer(event))
+        rightTracker.start(at: [Float(point.x), Float(point.y)])
         panelOrigin = window?.frame.origin ?? .zero
+        interactionChanged?(true)
     }
     override func rightMouseDragged(with event: NSEvent) {
         guard rightTracker.update(to: pointer(event)) else { return }
@@ -155,6 +212,8 @@ final class CubeView: ARView {
         NSCursor.closedHand.set()
     }
     override func rightMouseUp(with event: NSEvent) {
+        guard rightTracker.origin != nil else { return }
+        defer { interactionChanged?(false) }
         let outcome = rightTracker.end(at: pointer(event))
         switch outcome {
         case .drag:

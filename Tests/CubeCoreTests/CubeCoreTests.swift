@@ -103,12 +103,13 @@ private func item(_ name: String, kind: LauncherItem.Kind = .application) -> Lau
     }
 }
 
-@Test func snappingMakesEveryFaceUprightWithTheSameSmallDisplayTilt() {
+@Test func snappingMakesEveryFaceUprightWithTheSameBalancedDisplayTilt() {
     for face in CubeFace.allCases {
         let snapped = CubeRotation.snapped(to: face)
         #expect(CubeRotation.nearestFace(to: snapped) == face)
-        #expect(simd_distance(snapped.act(face.normal), [-0.396073, -0.237703, 0.886918]) < 0.001)
-        #expect(simd_distance(snapped.act(face.localUp), [-0.096926, 0.971338, 0.217044]) < 0.001)
+        // Independently calculated yaw -0.66, pitch 0.52; all faces remain upright.
+        #expect(simd_distance(snapped.act(face.normal), [-0.532075, -0.496880, 0.685570]) < 0.001)
+        #expect(simd_distance(snapped.act(face.localUp), [-0.304646, 0.867819, 0.392531]) < 0.001)
     }
     #expect(CubeRotation.nearestFace(to: simd_quatf(angle: .pi / 2, axis: [0, 1, 0])) == .left)
 }

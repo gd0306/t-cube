@@ -19,9 +19,8 @@ enum CubeTheme {
             NSRect(origin: .zero, size: size).fill(using: .copy)
             // All six faces draw icons only; empty slots and surrounding pixels stay clear.
             for slot in 0..<4 {
-                let rect = FaceLayout.slotRect(slot)
                 if let item = group.slots[slot] {
-                    LauncherService.icon(for: item).draw(in: NSRect(x: rect.midX - 108, y: rect.minY + 6, width: 216, height: 216), from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: [.interpolation: NSImageInterpolation.high])
+                    LauncherService.icon(for: item).draw(in: FaceLayout.iconRect(slot), from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: [.interpolation: NSImageInterpolation.high])
                 }
             }
             return true

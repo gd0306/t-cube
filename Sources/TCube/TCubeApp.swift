@@ -26,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var cubeView: CubeView!
     private var surface: CubeSurfaceView!
     private var faceExpansion: FaceExpansionController!
+    private var hoverController: CubeHoverController?
     private var statusItem: NSStatusItem!
     private var editor: NSWindow?
     private var screenObserver: NSObjectProtocol?
@@ -55,12 +56,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             guard let self else { return }
             self.faceExpansion.show(face: face, from: self.cubeView, rect: rect)
         }
-        model.onChange = { [weak self] in
+        cubeView.launchRequested = { [weak self] slot, face in self?.model.launch(slot: slot, face: face) }
+        model.onChange = { [weak self, weak surface] in
             self?.cubeView.refreshTextures()
             self?.applySize()
+            if let self { surface?.input.updateInteractionHelp(expandsFaces: self.model.configuration.expandsFacesOnClick) }
         }
+        model.onAppearanceChange = { [weak self] in self?.cubeView.refreshAppearance() }
         applySize(restoring: true)
+        let hover = CubeHoverController(window: panel, settings: model.configuration.hover)
+        hoverController = hover
+        hover.onHoverChange = { [weak self] in self?.cubeView.setHovered($0) }
+        hover.onRestingPositionChange = { [weak self] in self?.model.savePosition($0) }
+        surface.input.hoverChanged = { [weak hover] _ in hover?.checkPointer() }
+        surface.input.hoverPointChanged = { [weak hover] in hover?.pointerChanged(to: $0) }
+        surface.input.modifierFlagsChanged = { [weak hover] in hover?.modifierFlagsChanged($0, at: $1) }
+        cubeView.interactionChanged = { [weak hover] active in
+            if !active { hover?.checkPointer() }
+            hover?.setInteractionActive(active)
+        }
+        cubeView.positionCommitted = { [weak hover] in hover?.commitMovedFrame($0) }
         panel.orderFrontRegardless()
+        hover.startTrackingPointer()
         createMenu()
         screenObserver = NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.applySize() }
@@ -70,6 +87,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func applySize(restoring: Bool = false) {
         let size = NSSize(width: CubeTheme.windowSize.width * model.configuration.scale, height: CubeTheme.windowSize.height * model.configuration.scale)
+        if let hoverController {
+            hoverController.configure(baseSize: size, settings: model.configuration.hover)
+            return
+        }
         var origin = panel.frame.origin
         if restoring {
             if let stored = model.configuration.windowPosition { origin = NSPoint(x: stored.x, y: stored.y) }
@@ -113,7 +134,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             submenu.addItem(option)
         }
         size.submenu = submenu; menu.addItem(size)
-        let help = NSMenuItem(title: "滚动旋转 · 按住拖动 · 单击面展开入口", action: nil, keyEquivalent: "")
+        let help = NSMenuItem(title: "滚动旋转 · 按住拖动 · 点击使用入口", action: nil, keyEquivalent: "")
         menu.addItem(help)
         menu.addItem(.separator())
         _ = item("退出 T-Cube", #selector(quit), key: "q")
@@ -149,8 +170,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     @objc private func toggleCube() {
         faceExpansion.close()
-        if panel.isVisible { cubeView.setHovered(false); panel.orderOut(nil) }
-        else { panel.ignoresMouseEvents = false; panel.orderFrontRegardless() }
+        if panel.isVisible { hoverController?.resetHover(); cubeView.setHovered(false); panel.orderOut(nil) }
+        else { panel.ignoresMouseEvents = false; panel.orderFrontRegardless(); hoverController?.checkPointer() }
     }
     @objc private func changeSize(_ sender: NSMenuItem) {
         guard let scale = sender.representedObject as? Double else { return }
@@ -158,6 +179,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     @objc private func openEditor() { showEditor() }
     @objc private func quit() { NSApp.terminate(nil) }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        model.stopThemeCycle()
+        hoverController?.stopTrackingPointer()
+        faceExpansion?.close()
+        if let screenObserver { NotificationCenter.default.removeObserver(screenObserver) }
+    }
 
     private func showEditor() {
         faceExpansion?.close()

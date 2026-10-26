@@ -4,8 +4,22 @@ import CoreGraphics
 /// Texture coordinates and hit regions share one layout, measured from the top left.
 public enum FaceLayout {
     public static let textureSize: CGFloat = 1024
+    public static let panelSide: Float = 0.84
+    public static let panelDistance: Float = 0.501
     public static func slotRect(_ index: Int) -> CGRect {
         CGRect(x: index % 2 == 0 ? 90 : 548, y: index < 2 ? 224 : 594, width: 386, height: 330)
+    }
+    /// The same painted icon rectangle is used for rendering and direct clicks.
+    public static func iconRect(_ index: Int) -> CGRect {
+        let slot = slotRect(index)
+        return CGRect(x: slot.midX - 108, y: slot.minY + 6, width: 216, height: 216)
+    }
+
+    public static func iconSlot(at local: SIMD2<Float>) -> Int? {
+        guard local.x.isFinite, local.y.isFinite else { return nil }
+        let point = CGPoint(x: CGFloat(local.x / panelSide + 0.5) * textureSize,
+                            y: CGFloat(0.5 - local.y / panelSide) * textureSize)
+        return (0..<4).first { iconRect($0).contains(point) }
     }
     public static func slot(at local: SIMD2<Float>) -> Int? {
         guard local.x.isFinite, local.y.isFinite else { return nil }

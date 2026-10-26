@@ -5,17 +5,54 @@ import CubeCore
 @MainActor
 final class AppModel: ObservableObject {
     @Published private(set) var configuration = CubeConfiguration()
+    @Published private(set) var activeTheme: CubeThemePreset?
     @Published var selectedFace: CubeFace = .front
     var onChange: (() -> Void)?
+    var onAppearanceChange: (() -> Void)?
     private let store: ConfigurationStore
+    private var themeCycleTask: Task<Void, Never>?
     let isFirstLaunch: Bool
     private(set) var loadFailure: Error?
+
+    var displayedAppearance: CubeAppearance {
+        activeTheme?.appearance(glowIntensity: configuration.appearance.glowIntensity) ?? configuration.appearance
+    }
 
     init(store: ConfigurationStore = ConfigurationStore(url: ConfigurationStore.defaultURL)) {
         self.store = store
         isFirstLaunch = !FileManager.default.fileExists(atPath: store.url.path)
         do { configuration = try store.load() }
         catch { loadFailure = error }
+        restartThemeCycle()
+    }
+
+    deinit { themeCycleTask?.cancel() }
+
+    func advanceTheme() {
+        guard let next = configuration.themeCycle.next(after: activeTheme), next != activeTheme else { return }
+        activeTheme = next
+        onAppearanceChange?()
+    }
+
+    func stopThemeCycle() {
+        themeCycleTask?.cancel()
+        themeCycleTask = nil
+    }
+
+    private func restartThemeCycle() {
+        stopThemeCycle()
+        activeTheme = configuration.themeCycle.next(after: nil)
+        onAppearanceChange?()
+        guard configuration.themeCycle.isEnabled else { return }
+        let interval = configuration.themeCycle.intervalSeconds
+        themeCycleTask = Task { [weak self] in
+            while !Task.isCancelled {
+                do { try await Task.sleep(for: .seconds(interval)) }
+                catch { return }
+                guard !Task.isCancelled else { return }
+                self?.advanceTheme()
+            }
+        }
     }
 
     func recoverIfNeeded() {
@@ -41,7 +78,9 @@ final class AppModel: ObservableObject {
             var candidate = configuration
             try edit(&candidate)
             try store.save(candidate)
+            let cycleChanged = candidate.themeCycle != configuration.themeCycle
             configuration = candidate
+            if cycleChanged { restartThemeCycle() }
             onChange?()
         } catch { report(error) }
     }
