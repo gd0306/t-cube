@@ -8,12 +8,12 @@ struct SoftGlassGeometryTests {
         #expect(body.positions.count == body.normals.count)
         #expect(body.positions.count == body.textureCoordinates.count)
         #expect(!body.positions.isEmpty)
-        // The cubic superellipsoid intersects its xy diagonal at cbrt(1/2)/2.
-        #expect(body.positions.contains { simd_distance($0, [0.39685026, 0.39685026, 0]) < 0.00001 })
+        // The quartic surface intersects its xy diagonal at pow(1/2, 1/4)/2.
+        #expect(body.positions.contains { simd_distance($0, [0.42044821, 0.42044821, 0]) < 0.00001 })
         for point in body.positions {
             #expect(simd_abs(point).max() <= 0.500001)
-            #expect(simd_length(point) < 0.61, "The body must not reach sharp cube corners")
-            #expect(abs(pow(abs(point.x / 0.5), 3) + pow(abs(point.y / 0.5), 3) + pow(abs(point.z / 0.5), 3) - 1) < 0.00001)
+            #expect(simd_length(point) < 0.67, "The body must not reach sharp cube corners")
+            #expect(abs(pow(abs(point.x / 0.5), 4) + pow(abs(point.y / 0.5), 4) + pow(abs(point.z / 0.5), 4) - 1) < 0.00001)
         }
     }
 

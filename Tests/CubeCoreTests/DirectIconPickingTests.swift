@@ -5,10 +5,10 @@ import simd
 
 struct DirectIconPickingTests {
     @Test func obliqueClickFollowsTheCurvedIconInsteadOfItsOldFloatingPlane() {
-        // Projection of local (-0.101, 0.14273438, 0.5) onto the cubic shell,
+        // Projection of local (-0.101, 0.14273438, 0.5) onto the quartic shell,
         // plus its 0.0015 normal offset. This is inside slot 0's right edge.
-        let target = SIMD3<Float>(-0.10002200, 0.14138785, 0.49635048)
-        let origin = SIMD3<Float>(3, 2, 3)
+        let target = SIMD3<Float>(-0.10080372, 0.14247441, 0.50046665)
+        let origin = SIMD3<Float>(12, 2, 3)
         let hit = CubeFacePicking.icon(origin: origin, direction: target - origin)
         #expect(hit?.face == .front)
         #expect(hit?.slot == 0)

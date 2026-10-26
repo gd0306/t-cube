@@ -108,7 +108,20 @@ struct DirectLaunchTests {
     }
 
     private func projected(_ local: SIMD2<Float>, face: CubeFace, view: CubeView) throws -> CGPoint {
-        let world = view.cube.convert(position: face.orientation.act(FaceLayout.surfacePoint(at: local)), to: nil)
+        // Sample the actual render triangle, rather than the ideal continuous
+        // surface just above it. That difference matters at grazing angles.
+        let patch = CurvedFaceGeometry()
+        let segments = Int(Float(patch.positions.count).squareRoot()) - 1
+        let grid = (local / FaceLayout.panelSide + SIMD2(repeating: 0.5)) * Float(segments)
+        let column = min(segments - 1, max(0, Int(grid.x)))
+        let row = min(segments - 1, max(0, Int(grid.y)))
+        let x = grid.x - Float(column), y = grid.y - Float(row)
+        let a = row * (segments + 1) + column
+        let b = a + 1, c = a + segments + 1, d = c + 1
+        let surfacePoint = y <= x
+            ? patch.positions[a] * (1 - x) + patch.positions[b] * (x - y) + patch.positions[d] * y
+            : patch.positions[a] * (1 - y) + patch.positions[d] * x + patch.positions[c] * (y - x)
+        let world = view.cube.convert(position: face.orientation.act(surfacePoint), to: nil)
         let point = try #require(view.project(world))
         return view.convert(point, to: nil)
     }

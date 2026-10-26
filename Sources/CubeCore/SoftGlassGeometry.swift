@@ -1,6 +1,6 @@
 import simd
 
-/// A closed cubic superellipsoid: the silhouette bends continuously instead of
+/// A closed quartic superellipsoid: the silhouette bends continuously instead of
 /// meeting at twelve edges. Icon decals use the same surface projection.
 public struct SoftGlassGeometry: Sendable {
     public let positions: [SIMD3<Float>]
@@ -63,12 +63,12 @@ public struct SoftGlassGeometry: Sendable {
 
 enum SoftGlassSurface {
     static func project(_ direction: SIMD3<Float>, halfExtent: Float = 0.5) -> SIMD3<Float> {
-        let absolute = simd_abs(direction)
-        let denominator = pow(absolute.x * absolute.x * absolute.x + absolute.y * absolute.y * absolute.y + absolute.z * absolute.z * absolute.z, Float(1.0 / 3))
+        let squared = direction * direction
+        let denominator = pow(simd_dot(squared, squared), Float(0.25))
         return halfExtent * direction / denominator
     }
 
     static func normal(at point: SIMD3<Float>) -> SIMD3<Float> {
-        simd_normalize(point * simd_abs(point))
+        simd_normalize(point * point * point)
     }
 }

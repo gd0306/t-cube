@@ -26,10 +26,10 @@ final class CubeAura {
         if let mesh = Self.mesh {
             var glass = PhysicallyBasedMaterial()
             glass.baseColor = .init(tint: NSColor(white: 1, alpha: 0.035))
-            glass.roughness = .init(floatLiteral: 0.16)
-            glass.specular = .init(floatLiteral: 0.75)
-            glass.clearcoat = .init(floatLiteral: 1)
-            glass.clearcoatRoughness = .init(floatLiteral: 0.12)
+            glass.roughness = .init(floatLiteral: 0.20)
+            glass.specular = .init(floatLiteral: 0.50)
+            glass.clearcoat = .init(floatLiteral: 0.55)
+            glass.clearcoatRoughness = .init(floatLiteral: 0.20)
             glass.blending = .transparent(opacity: .init(floatLiteral: 1))
             glass.faceCulling = .back
             glass.writesDepth = false

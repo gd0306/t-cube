@@ -25,6 +25,8 @@ enum CubeTheme {
             }
             return true
         }
-        return image.cgImage(forProposedRect: nil, context: nil, hints: nil)
+        guard let rendered = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }
+        guard group.slots.contains(where: { $0 != nil }) else { return rendered }
+        return IconTexture.preparedImage(from: rendered)
     }
 }
