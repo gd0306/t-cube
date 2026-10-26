@@ -40,7 +40,7 @@ public enum CubeFace: String, CaseIterable, Codable, Sendable, Identifiable {
 public enum CubeRotation {
     /// A modest three-quarter view exposes the transparent cube's depth.
     public static var displayTilt: simd_quatf {
-        simd_quatf(angle: -0.42, axis: [0, 1, 0]) * simd_quatf(angle: 0.24, axis: [1, 0, 0])
+        simd_quatf(angle: -0.66, axis: [0, 1, 0]) * simd_quatf(angle: 0.52, axis: [1, 0, 0])
     }
 
     public static func snapped(to face: CubeFace) -> simd_quatf {

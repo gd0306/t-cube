@@ -30,7 +30,9 @@ final class CubeSurfaceView: NSView {
 @MainActor
 final class CubeInputOverlay: NSView {
     private unowned let cubeView: CubeView
-    private var controlDrag = false
+    var hoverChanged: ((Bool) -> Void)?
+    var hoverPointChanged: ((NSPoint) -> Void)?
+    var modifierFlagsChanged: ((NSEvent.ModifierFlags, NSPoint?) -> Void)?
 
     init(cubeView: CubeView) {
         self.cubeView = cubeView
@@ -38,8 +40,12 @@ final class CubeInputOverlay: NSView {
         registerForDraggedTypes([.fileURL])
         setAccessibilityElement(true)
         setAccessibilityRole(.group)
-        setAccessibilityLabel("立方体：按住拖动位置，滚动旋转，单击面展开入口")
-        toolTip = "左键或右键按住拖动位置 · 滚动旋转 · 单击面立即展开 · 右键单击设置"
+        updateInteractionHelp(expandsFaces: cubeView.model.configuration.expandsFacesOnClick)
+    }
+    func updateInteractionHelp(expandsFaces: Bool) {
+        let click = expandsFaces ? "单击面展开入口" : "单击图标直接打开"
+        setAccessibilityLabel("立方体：按住 Ctrl 恢复原大小，Ctrl 加左键按原大小拖动，滚动旋转，\(click)")
+        toolTip = "Ctrl 恢复原大小 · Ctrl＋左键按原大小拖动 · 滚动旋转 · \(click) · 右键设置"
     }
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("Use init(cubeView:)") }
@@ -57,32 +63,50 @@ final class CubeInputOverlay: NSView {
         addTrackingArea(NSTrackingArea(rect: bounds, options: [.activeAlways, .inVisibleRect, .mouseEnteredAndExited, .mouseMoved], owner: self))
         super.updateTrackingAreas()
     }
-    override func mouseEntered(with event: NSEvent) { cubeView.setHovered(true) }
-    override func mouseMoved(with event: NSEvent) { cubeView.setHovered(true) }
-    override func mouseExited(with event: NSEvent) { cubeView.setHovered(false) }
+    private func updateHover(_ inside: Bool, event: NSEvent? = nil) {
+        // Capture screen coordinates before modifier handling can resize/move
+        // the panel. The event's old local coordinates would then be stale.
+        if let event, let window {
+            let point = window.convertPoint(toScreen: event.locationInWindow)
+            modifierFlagsChanged?(event.modifierFlags, point)
+            if let hoverPointChanged { hoverPointChanged(point) }
+            else if let hoverChanged { hoverChanged(inside) }
+            else { cubeView.setHovered(inside) }
+        } else if let hoverChanged { hoverChanged(inside) }
+        else { cubeView.setHovered(inside) }
+    }
+    override func flagsChanged(with event: NSEvent) { modifierFlagsChanged?(event.modifierFlags, nil) }
+    override func mouseEntered(with event: NSEvent) { updateHover(true, event: event) }
+    override func mouseMoved(with event: NSEvent) { updateHover(true, event: event) }
+    override func mouseExited(with event: NSEvent) { updateHover(false, event: event) }
     override func mouseDown(with event: NSEvent) {
         if event.modifierFlags.contains(.control) {
-            controlDrag = true
             beginWindowDrag(with: event, leftButton: true)
-        } else { cubeView.mouseDown(with: event) }
+        } else {
+            let point = window?.convertPoint(toScreen: event.locationInWindow) ?? event.locationInWindow
+            modifierFlagsChanged?(event.modifierFlags, point)
+            cubeView.beginPrimaryDrag(atScreenPoint: point)
+        }
     }
     override func mouseDragged(with event: NSEvent) {
-        if controlDrag { cubeView.rightMouseDragged(with: event) }
-        else { cubeView.mouseDragged(with: event) }
+        modifierFlagsChanged?(event.modifierFlags, nil)
+        cubeView.mouseDragged(with: event)
     }
     override func mouseUp(with event: NSEvent) {
-        if controlDrag { controlDrag = false; cubeView.rightMouseUp(with: event) }
-        else { cubeView.mouseUp(with: event) }
+        modifierFlagsChanged?(event.modifierFlags, nil)
+        cubeView.mouseUp(with: event)
     }
     override func rightMouseDown(with event: NSEvent) {
-        controlDrag = false
-        beginWindowDrag(with: event, leftButton: false)
+        beginWindowDrag(with: event, leftButton: event.buttonNumber == 0 && event.modifierFlags.contains(.control))
     }
     override func rightMouseDragged(with event: NSEvent) { cubeView.rightMouseDragged(with: event) }
     override func rightMouseUp(with event: NSEvent) { cubeView.rightMouseUp(with: event) }
-    override func scrollWheel(with event: NSEvent) { cubeView.scrollWheel(with: event) }
+    override func scrollWheel(with event: NSEvent) { updateHover(true, event: event); cubeView.scrollWheel(with: event) }
     private func beginWindowDrag(with event: NSEvent, leftButton: Bool) {
-        cubeView.rightMouseDown(with: event)
+        let point = window?.convertPoint(toScreen: event.locationInWindow) ?? event.locationInWindow
+        modifierFlagsChanged?(event.modifierFlags, point)
+        if leftButton { cubeView.beginPrimaryDrag(atScreenPoint: point, moveOnly: true) }
+        else { cubeView.beginSecondaryDrag(atScreenPoint: point) }
         guard let window, window.isVisible else { return }
         let mask: NSEvent.EventTypeMask = leftButton ? [.leftMouseDragged, .leftMouseUp] : [.rightMouseDragged, .rightMouseUp]
         let buttonMask = leftButton ? 1 : 2
@@ -92,26 +116,28 @@ final class CubeInputOverlay: NSView {
             guard let self, self.window === window else { stop.pointee = true; return }
             guard let event else {
                 if !window.isVisible || NSEvent.pressedMouseButtons & buttonMask == 0 {
-                    self.cubeView.cancelRightDrag()
-                    self.controlDrag = false
+                    if leftButton { self.cubeView.cancelPrimaryDrag() }
+                    else { self.cubeView.cancelRightDrag() }
                     stop.pointee = true
                 }
                 return
             }
+            self.modifierFlagsChanged?(event.modifierFlags, nil)
             if event.type == .rightMouseUp || event.type == .leftMouseUp {
-                self.cubeView.rightMouseUp(with: event)
-                self.controlDrag = false
+                if leftButton { self.cubeView.mouseUp(with: event) }
+                else { self.cubeView.rightMouseUp(with: event) }
                 stop.pointee = true
-            } else { self.cubeView.rightMouseDragged(with: event) }
+            } else if leftButton { self.cubeView.mouseDragged(with: event) }
+            else { self.cubeView.rightMouseDragged(with: event) }
         }
     }
-    override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation { cubeView.setHovered(true); return cubeView.draggingEntered(sender) }
+    override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation { updateHover(true); return cubeView.draggingEntered(sender) }
     override func prepareForDragOperation(_ sender: any NSDraggingInfo) -> Bool { cubeView.prepareForDragOperation(sender) }
     override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool { cubeView.performDragOperation(sender) }
-    override func draggingExited(_ sender: (any NSDraggingInfo)?) { cubeView.setHovered(false) }
+    override func draggingExited(_ sender: (any NSDraggingInfo)?) { updateHover(false) }
     override func concludeDragOperation(_ sender: (any NSDraggingInfo)?) {
-        guard let window else { cubeView.setHovered(false); return }
+        guard let window else { updateHover(false); return }
         let point = convert(window.convertPoint(fromScreen: NSEvent.mouseLocation), from: nil)
-        cubeView.setHovered(bounds.contains(point))
+        updateHover(bounds.contains(point))
     }
 }

@@ -3,6 +3,7 @@ import Foundation
 public enum ConfigurationError: Error, Equatable, Sendable, LocalizedError {
     case groupFull, duplicateItem, invalidSlot, emptySlot, occupiedSlot, invalidName, invalidSlotCount
     case invalidGroups, invalidItem, invalidScale, invalidPosition, invalidAppearance
+    case invalidThemeCycle, invalidHover
     case unsupportedVersion(Int)
 
     public var errorDescription: String? {
@@ -19,6 +20,8 @@ public enum ConfigurationError: Error, Equatable, Sendable, LocalizedError {
         case .invalidScale: "立方体尺寸超出允许范围。"
         case .invalidPosition: "窗口位置无效。"
         case .invalidAppearance: "主题颜色或光晕强度无效。"
+        case .invalidThemeCycle: "请选择至少两种不同的轮换主题，间隔为 10 秒或 20 秒。"
+        case .invalidHover: "悬停放大倍率应在 1.1 到 4.0 之间。"
         case .unsupportedVersion(let version): "不支持的配置版本：\(version)。"
         }
     }
@@ -130,6 +133,9 @@ public struct CubeConfiguration: Codable, Equatable, Sendable {
     public private(set) var groups: [CubeFace: FaceGroup]
     public var themeID: String
     public var appearance: CubeAppearance
+    public var themeCycle: CubeThemeCycle
+    public var hover: CubeHoverSettings
+    public var expandsFacesOnClick: Bool
     public var scale: Double
     /// AppKit screen coordinates, at the panel's bottom-left corner. Nil means center on first launch.
     public var windowPosition: WindowPosition?
@@ -141,6 +147,9 @@ public struct CubeConfiguration: Codable, Equatable, Sendable {
         })
         themeID = "graphite"
         appearance = CubeAppearance()
+        themeCycle = CubeThemeCycle()
+        hover = CubeHoverSettings()
+        expandsFacesOnClick = true
         scale = 1
         windowPosition = nil
     }
@@ -163,13 +172,15 @@ public struct CubeConfiguration: Codable, Equatable, Sendable {
         guard Set(groups.keys) == Set(CubeFace.allCases) else { throw ConfigurationError.invalidGroups }
         for group in groups.values { try group.validate() }
         try appearance.validate()
+        try themeCycle.validate()
+        try hover.validate()
         guard scale.isFinite, Self.scaleRange.contains(scale) else { throw ConfigurationError.invalidScale }
         if let position = windowPosition, !position.x.isFinite || !position.y.isFinite {
             throw ConfigurationError.invalidPosition
         }
     }
 
-    private enum CodingKeys: String, CodingKey { case version, groups, themeID, appearance, scale, windowPosition }
+    private enum CodingKeys: String, CodingKey { case version, groups, themeID, appearance, themeCycle, hover, expandsFacesOnClick, scale, windowPosition }
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         version = try container.decode(Int.self, forKey: .version)
@@ -177,6 +188,9 @@ public struct CubeConfiguration: Codable, Equatable, Sendable {
         groups = try container.decode([CubeFace: FaceGroup].self, forKey: .groups)
         themeID = try container.decode(String.self, forKey: .themeID)
         appearance = try container.decodeIfPresent(CubeAppearance.self, forKey: .appearance) ?? CubeAppearance()
+        themeCycle = try container.decodeIfPresent(CubeThemeCycle.self, forKey: .themeCycle) ?? CubeThemeCycle()
+        hover = try container.decodeIfPresent(CubeHoverSettings.self, forKey: .hover) ?? CubeHoverSettings()
+        expandsFacesOnClick = try container.decodeIfPresent(Bool.self, forKey: .expandsFacesOnClick) ?? true
         scale = try container.decode(Double.self, forKey: .scale)
         windowPosition = try container.decodeIfPresent(WindowPosition.self, forKey: .windowPosition)
         try validate()

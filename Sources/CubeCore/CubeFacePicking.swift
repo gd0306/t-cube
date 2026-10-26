@@ -2,6 +2,19 @@ import simd
 
 /// Picks the full cube surface, including clear areas outside the icon texture.
 public enum CubeFacePicking {
+    /// Only the closest face can receive a direct icon click. Empty face margins
+    /// never fall through to an icon on a different face behind the cube.
+    public static func icon(origin: SIMD3<Float>, direction: SIMD3<Float>) -> (face: CubeFace, slot: Int)? {
+        guard let face = face(origin: origin, direction: direction) else { return nil }
+        let denominator = simd_dot(direction, face.normal)
+        guard abs(denominator) > 1e-7 else { return nil }
+        let distance = (FaceLayout.panelDistance - simd_dot(origin, face.normal)) / denominator
+        guard distance >= 0 else { return nil }
+        let local = face.orientation.inverse.act(origin + distance * direction)
+        guard let slot = FaceLayout.iconSlot(at: [local.x, local.y]) else { return nil }
+        return (face, slot)
+    }
+
     public static func face(origin: SIMD3<Float>, direction: SIMD3<Float>) -> CubeFace? {
         guard (0..<3).allSatisfy({ origin[$0].isFinite && direction[$0].isFinite }),
               simd_length_squared(direction) > 0 else { return nil }
