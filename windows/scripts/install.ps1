@@ -7,8 +7,8 @@ if (-not [Environment]::Is64BitOperatingSystem) { throw 'T-Cube requires 64-bit 
 $version = [Environment]::OSVersion.Version
 if ($version.Build -lt 19045) { throw 'T-Cube requires Windows 10 22H2 (19045) or newer.' }
 if (-not (Get-Command node.exe -ErrorAction SilentlyContinue)) { throw 'Install Node.js 22 LTS first (winget install OpenJS.NodeJS.LTS), then reopen PowerShell.' }
-$major = [int]((& node.exe --version).TrimStart('v').Split('.')[0])
-if ($major -lt 22) { throw 'Node.js 22 or newer is required.' }
+$nodeVersion = [version]((& node.exe --version).TrimStart('v'))
+if ($nodeVersion -lt [version]'22.12.0') { throw 'Node.js 22.12 or newer is required.' }
 $source = Split-Path $PSScriptRoot -Parent
 $destination = [IO.Path]::GetFullPath($InstallDirectory)
 if ([IO.Path]::GetFullPath($source).TrimEnd('\') -eq $destination.TrimEnd('\')) { throw 'Choose an installation directory different from the source directory.' }
