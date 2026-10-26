@@ -2,19 +2,19 @@
 
 **English** | [简体中文](README-CN.md)
 
-A floating glass cube for your favorite Mac apps and folders. Scroll to turn it, hover to reveal your icons, and click to launch.
+A floating, softly rounded glass launcher for your favorite Mac apps and folders. Scroll to turn it, hover to reveal your icons, and click to launch.
 
 **macOS 15+ · Swift 6 · AppKit / SwiftUI / RealityKit · No third-party dependencies**
 
 ## Preview
 
 <p align="center">
-  <img src="docs/images/cube-hover.png" width="760" alt="T-Cube showing app icons on three transparent glass faces against a graphite background">
+  <img src="docs/images/cube-hover.png" width="760" alt="T-Cube showing app icons around a softly rounded glass body against a graphite background">
 </p>
 
 <table>
   <tr>
-    <td align="center"><strong>Quiet at rest</strong><br><img src="docs/images/cube-idle.png" width="370" alt="Idle cube with hidden icons, thin glass edges, and a subtle inner glow"></td>
+    <td align="center"><strong>Quiet at rest</strong><br><img src="docs/images/cube-idle.png" width="370" alt="Idle glass body with hidden icons, a continuous curved silhouette, and a subtle inner glow"></td>
     <td align="center"><strong>Aurora Flow</strong><br><img src="docs/images/cube-aurora.png" width="370" alt="Aurora Flow glass material with the same background, camera, and scale"></td>
   </tr>
 </table>
@@ -28,7 +28,7 @@ Native app renders with sample system icons, enlarged for detail. All previews s
 
 ## Features
 
-- **Six faces, four shortcuts each.** Add local apps or folders; empty slots stay blank.
+- **Six groups, four shortcuts each.** Add local apps or folders; empty slots stay blank. A continuous curved glass body replaces sharp edges and separate face plates.
 - **Free rotation and positioning.** Scroll in either direction; the cube stays where you stop while hovered. Drag with either mouse button to move it.
 - **Quick placement.** Put the cube in any corner or the center of its screen from the menu bar or Appearance settings. Positions save immediately, with room for the menu bar and Dock.
 - **Wandering idle rotation.** Slowly drift through changing directions; hover to stop instantly and leave to resume. Disable it under **Appearance → Dynamic rotation (动态旋转)**. Reduce Motion pauses it automatically.
@@ -39,7 +39,7 @@ Native app renders with sample system icons, enlarged for detail. All previews s
 
 ## Install and run
 
-Current version: **0.11.0**. Use the **master** branch.
+Current version: **0.12.0**. Use the **master** branch.
 
 Running requires macOS 15+. Building requires full Xcode with Swift 6 and the **macOS 27 SDK**. Current local packages target Apple Silicon and use ad-hoc signing; they are not notarized.
 
@@ -50,7 +50,7 @@ bash scripts/build-app.sh
 open build/T-Cube.app
 ```
 
-For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.11.0.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are not included in the repository; macOS security approvals remain with the user.
+For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.12.0.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are not included in the repository; macOS security approvals remain with the user.
 
 ### Let an agent install it
 

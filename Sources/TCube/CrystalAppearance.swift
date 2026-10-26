@@ -4,42 +4,46 @@ import RealityKit
 import CubeCore
 import simd
 
-/// Open, rounded glass edges. Optical contrast, pearl and chromatic light are
-/// separate layers. Face interiors stay transparent; new materials add faint
-/// inner light that recedes while the user chooses an app.
+/// A continuous glass body with soft reflections, without a twelve-edge frame
+/// or six face plates. Launcher icons remain independent of the optical shell.
 @MainActor
 final class CubeAura {
     private let root = Entity()
     private var pearl: ModelEntity?
     private var chroma: ModelEntity?
     private var energy: ModelEntity?
-    private var facets: [ModelEntity] = []
     private var pearlMaterial: UnlitMaterial?
     private var chromaMaterial: UnlitMaterial?
     private var energyMaterial: UnlitMaterial?
-    private var facetMaterial: UnlitMaterial?
     private var appearance: CubeAppearance?
     private var motion = PrismMotion()
-    private static let mesh = frameMesh()
+    private static let mesh = bodyMesh()
     private static let pearlTexture = opticalTexture(layer: .pearl)
-    private static let shadeTexture = opticalTexture(layer: .shade)
-    private static let facetTexture = opticalTexture(layer: .facet)
 
     init(parent: Entity, appearance: CubeAppearance) {
         root.name = "cube-aura"
         parent.addChild(root)
         if let mesh = Self.mesh {
-            let shade = ModelEntity(mesh: mesh, materials: [Self.material(texture: Self.shadeTexture)])
-            shade.name = "prism-contrast"
-            root.addChild(shade)
+            var glass = PhysicallyBasedMaterial()
+            glass.baseColor = .init(tint: NSColor(white: 1, alpha: 0.035))
+            glass.roughness = .init(floatLiteral: 0.16)
+            glass.specular = .init(floatLiteral: 0.75)
+            glass.clearcoat = .init(floatLiteral: 1)
+            glass.clearcoatRoughness = .init(floatLiteral: 0.12)
+            glass.blending = .transparent(opacity: .init(floatLiteral: 1))
+            glass.faceCulling = .back
+            glass.writesDepth = false
+            let shell = ModelEntity(mesh: mesh, materials: [glass])
+            shell.name = "glass-shell"
+            root.addChild(shell)
             let pearlMaterial = Self.material(texture: Self.pearlTexture)
             let pearl = ModelEntity(mesh: mesh, materials: [pearlMaterial])
-            pearl.name = "prism-pearl"
+            pearl.name = "glass-pearl"
             root.addChild(pearl)
             self.pearl = pearl
             self.pearlMaterial = pearlMaterial
             let chroma = ModelEntity(mesh: mesh, materials: [Self.material(texture: nil)])
-            chroma.name = "prism-flow"
+            chroma.name = "glass-flow"
             root.addChild(chroma)
             self.chroma = chroma
         }
@@ -47,17 +51,6 @@ final class CubeAura {
         energy.name = "glass-inner-light"
         root.addChild(energy)
         self.energy = energy
-        let facetMaterial = Self.material(texture: Self.facetTexture)
-        self.facetMaterial = facetMaterial
-        let facetMesh = MeshResource.generatePlane(width: 0.93, height: 0.93, cornerRadius: 0.025)
-        for face in CubeFace.allCases {
-            let facet = ModelEntity(mesh: facetMesh, materials: [facetMaterial])
-            facet.name = "prism-facet-\(face.rawValue)"
-            facet.orientation = face.orientation
-            facet.position = face.normal * 0.5002
-            root.addChild(facet)
-            facets.append(facet)
-        }
         update(appearance: appearance)
     }
 
@@ -90,17 +83,7 @@ final class CubeAura {
             material.textureCoordinateTransform.offset = [phase, 0]
             chroma?.model?.materials = [material]
         }
-        if var material = facetMaterial {
-            material.textureCoordinateTransform.offset = [phase, 0]
-            for facet in facets {
-                facet.isEnabled = engagement > 0
-                if engagement > 0 {
-                    facet.model?.materials = [material]
-                    facet.components.set(OpacityComponent(opacity: engagement))
-                }
-            }
-        }
-        pearl?.components.set(OpacityComponent(opacity: 0.62 + 0.28 * engagement))
+        pearl?.components.set(OpacityComponent(opacity: 0.55 + 0.20 * engagement))
         let intensity = Float(max(0, min(1, appearance?.glowIntensity ?? 0)))
         energy?.isEnabled = appearance?.surfaceStyle != .clear && intensity > 0
         if energy?.isEnabled == true, var material = energyMaterial {
@@ -112,7 +95,7 @@ final class CubeAura {
         }
         let breathing = Float(0.94 + 0.06 * sin(motion.phase * 2 * .pi))
         chroma?.isEnabled = intensity > 0
-        chroma?.components.set(OpacityComponent(opacity: intensity * (0.34 + 0.46 * engagement) * breathing))
+        chroma?.components.set(OpacityComponent(opacity: intensity * (0.55 + 0.25 * engagement) * breathing))
     }
 
     private static func material(texture: TextureResource?) -> UnlitMaterial {
@@ -131,7 +114,7 @@ final class CubeAura {
         return material
     }
 
-    private enum OpticalLayer { case shade, pearl, chroma, facet, energy }
+    private enum OpticalLayer { case pearl, chroma, energy }
 
     private static func opticalTexture(layer: OpticalLayer, appearance: CubeAppearance = CubeAppearance()) -> TextureResource? {
         let primary = (NSColor(hexRGB: appearance.primaryHex) ?? .cyan).usingColorSpace(.sRGB) ?? .cyan
@@ -152,13 +135,11 @@ final class CubeAura {
                 let color: SIMD3<Double>
                 let alpha: Double
                 switch layer {
-                case .shade:
-                    color = SIMD3(0.035, 0.055, 0.075)
-                    alpha = 0.07 * gaussian(v, 0.995, 0.025)
                 case .pearl:
                     color = SIMD3(0.94, 0.98, 1)
-                    let profile = 0.46 * gaussian(v, 0.96, 0.035) + 0.015 * gaussian(v, 0.81, 0.18)
-                    alpha = profile * (0.50 + 0.50 * wave * wave)
+                    let crest = 0.70 + 0.12 * cos(2 * .pi * u)
+                    let profile = 0.20 * gaussian(v, crest, 0.055) + 0.035 * gaussian(v, 0.72, 0.22)
+                    alpha = profile * (0.35 + 0.65 * wave * wave)
                 case .chroma:
                     let mix = 0.5 + 0.5 * sin(2 * .pi * (u + 0.12))
                     let blend = a * (1 - mix) + b * mix
@@ -166,22 +147,18 @@ final class CubeAura {
                     case .iridescent:
                         let warmth = 0.46 * pow(max(0, sin(2 * .pi * (u - 0.18))), 6)
                         color = blend * (1 - warmth) + SIMD3(1, 0.83, 0.67) * warmth
-                        alpha = gaussian(v, 0.95, 0.07) * (0.08 + 0.26 * pow(wave, 4))
+                        alpha = gaussian(v, 0.38 + 0.14 * sin(2 * .pi * u), 0.20) * (0.06 + 0.09 * pow(wave, 4))
                     case .moonstone:
                         color = blend * 0.35 + SIMD3(repeating: 0.65)
-                        alpha = gaussian(v, 0.95, 0.085) * (0.06 + 0.18 * wave)
+                        alpha = gaussian(v, 0.52, 0.28) * (0.04 + 0.08 * wave)
                     case .aurora:
                         color = blend * 0.85 + SIMD3(repeating: 0.15)
-                        let fold = 0.94 + 0.025 * sin(4 * .pi * u)
-                        alpha = gaussian(v, fold, 0.075) * (0.08 + 0.28 * wave * wave)
+                        let fold = 0.45 + 0.15 * sin(2 * .pi * u)
+                        alpha = gaussian(v, fold, 0.16) * (0.07 + 0.12 * wave * wave)
                     case .clear:
                         color = blend * 0.8 + SIMD3(repeating: 0.2)
-                        alpha = gaussian(v, 0.95, 0.07) * (0.06 + 0.26 * pow(wave, 4))
+                        alpha = gaussian(v, 0.42, 0.24) * (0.025 + 0.055 * wave * wave)
                     }
-                case .facet:
-                    color = SIMD3(0.93, 0.97, 1)
-                    let diagonal = (u + v * 0.35).truncatingRemainder(dividingBy: 1)
-                    alpha = 0.065 * gaussian(diagonal, 0.5, 0.09)
                 case .energy:
                     let mix = 0.5 + 0.5 * sin(2 * .pi * u)
                     let blend = a * (1 - mix) + b * mix
@@ -205,15 +182,12 @@ final class CubeAura {
         return try? TextureResource(image: image, options: .init(semantic: .color))
     }
 
-    private static func frameMesh() -> MeshResource? {
-        let geometry = RoundedCubeFrameGeometry(halfExtent: 0.5, cornerRadius: 0.028, segments: 32)
-        var mesh = MeshDescriptor(name: "prism-rounded-frame")
+    private static func bodyMesh() -> MeshResource? {
+        let geometry = SoftGlassGeometry()
+        var mesh = MeshDescriptor(name: "soft-glass-body")
         mesh.positions = .init(geometry.positions)
         mesh.normals = .init(geometry.normals)
-        mesh.textureCoordinates = .init(zip(geometry.positions, geometry.normals).map { position, normal in
-            let u = (position.x + 0.62 * position.y + 0.39 * position.z + 1.005) / 2.01
-            return SIMD2(u, max(abs(normal.x), max(abs(normal.y), abs(normal.z))))
-        })
+        mesh.textureCoordinates = .init(geometry.textureCoordinates)
         mesh.primitives = .triangles(geometry.indices)
         return try? MeshResource.generate(from: [mesh])
     }

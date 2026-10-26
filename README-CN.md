@@ -2,19 +2,19 @@
 
 [English](README.md) | **简体中文**
 
-把常用 App 和文件夹放进一颗悬浮在桌面的玻璃立方体。滚动切换六个面，悬停显示图标，点击打开入口。
+把常用 App 和文件夹放进一个悬浮在桌面的圆润玻璃体。滚动切换六组入口，悬停显示图标，点击打开。
 
 **macOS 15+ · Swift 6 · AppKit / SwiftUI / RealityKit · 无第三方依赖**
 
 ## 效果预览
 
 <p align="center">
-  <img src="docs/images/cube-hover.png" width="760" alt="深石墨色背景下的 T-Cube，三个透明玻璃面展示应用图标">
+  <img src="docs/images/cube-hover.png" width="760" alt="深石墨色背景下的 T-Cube，圆润透明玻璃体周围展示应用图标">
 </p>
 
 <table>
   <tr>
-    <td align="center"><strong>安静的静置状态</strong><br><img src="docs/images/cube-idle.png" width="370" alt="静置时隐藏图标，保留细玻璃棱边与轻微内部光丝"></td>
+    <td align="center"><strong>安静的静置状态</strong><br><img src="docs/images/cube-idle.png" width="370" alt="静置时隐藏图标，保留连续弧面轮廓与轻微内部光丝"></td>
     <td align="center"><strong>极光流体</strong><br><img src="docs/images/cube-aurora.png" width="370" alt="极光流体材质，背景、视角和比例与其他预览一致"></td>
   </tr>
 </table>
@@ -28,7 +28,7 @@
 
 ## 主要功能
 
-- **六面入口，每面四个快捷方式**：支持本地 App 和文件夹，空位留白。
+- **六组入口，每组四个快捷方式**：支持本地 App 和文件夹，空位留白。外形采用连续弧面，不强调棱边或六个面。
 - **自由旋转与移动**：双向滚动旋转，悬停时滚哪停哪；左右键均可拖动位置。
 - **快捷放置**：从状态栏菜单或「外观 → 快捷位置」一键移到所在屏幕四角或正中央，立即保存，避开菜单栏与 Dock。
 - **空闲自动旋转**：缓慢、平滑地变换方向；移入立即停转，移出继续。在「外观 → 动态旋转」可关闭；系统开启「减少动态效果」时自动暂停。
@@ -39,7 +39,7 @@
 
 ## 安装与运行
 
-当前版本为 **0.11.0**，使用 **master** 分支。
+当前版本为 **0.12.0**，使用 **master** 分支。
 
 运行需要 macOS 15+；源码构建需要完整 Xcode、Swift 6 和 **macOS 27 SDK**。当前本地打包产物面向 Apple Silicon，使用 ad-hoc 签名，尚未公证。
 
@@ -50,7 +50,7 @@ bash scripts/build-app.sh
 open build/T-Cube.app
 ```
 
-需要拖拽安装时，运行 `bash scripts/build-dmg.sh`，打开 `build/T-Cube-0.11.0.dmg`，将应用拖入 **Applications**。更新前先退出旧版，保留原配置。构建产物不随源码提交；系统安全授权由用户确认。
+需要拖拽安装时，运行 `bash scripts/build-dmg.sh`，打开 `build/T-Cube-0.12.0.dmg`，将应用拖入 **Applications**。更新前先退出旧版，保留原配置。构建产物不随源码提交；系统安全授权由用户确认。
 
 ### 让 agent 帮忙安装
 

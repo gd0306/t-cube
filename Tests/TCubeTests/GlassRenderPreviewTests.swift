@@ -11,7 +11,7 @@ import UniformTypeIdentifiers
 @MainActor
 struct GlassRenderPreviewTests {
     @Test(.enabled(if: ProcessInfo.processInfo.environment["TCUBE_RENDER_PREVIEWS"] == "1"))
-    func exportPrismGlassAndMotion() async throws {
+    func exportGlassBodyAndMotion() async throws {
         _ = NSApplication.shared
         let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let store = ConfigurationStore(url: temporary.appendingPathComponent("configuration.json"))
@@ -39,9 +39,9 @@ struct GlassRenderPreviewTests {
         let galleryBackground = NSColor(red: 0.065, green: 0.075, blue: 0.095, alpha: 1)
 
         let poses: [(String, simd_quatf, NSColor)] = [
-            ("thin-prism-dark", CubeRotation.snapped(to: .front), NSColor(red: 0.065, green: 0.075, blue: 0.095, alpha: 1)),
-            ("thin-prism-warm", CubeRotation.displayTilt * simd_quatf(angle: -0.45, axis: [1, 0, 0]), NSColor(red: 0.27, green: 0.24, blue: 0.22, alpha: 1)),
-            ("thin-prism-light", CubeRotation.displayTilt * simd_quatf(angle: 0.35, axis: [0, 1, 0]), NSColor(white: 0.88, alpha: 1))
+            ("soft-body-dark", CubeRotation.snapped(to: .front), NSColor(red: 0.065, green: 0.075, blue: 0.095, alpha: 1)),
+            ("soft-body-warm", CubeRotation.displayTilt * simd_quatf(angle: -0.45, axis: [1, 0, 0]), NSColor(red: 0.27, green: 0.24, blue: 0.22, alpha: 1)),
+            ("soft-body-light", CubeRotation.displayTilt * simd_quatf(angle: 0.35, axis: [0, 1, 0]), NSColor(white: 0.88, alpha: 1))
         ]
         for (name, pose, background) in poses {
             view.cube.orientation = pose
@@ -66,7 +66,7 @@ struct GlassRenderPreviewTests {
             let image: NSImage? = await withCheckedContinuation { continuation in view.snapshot(saveToHDR: false) { continuation.resume(returning: $0) } }
             let data = try #require(image?.tiffRepresentation)
             let bitmap = try #require(NSBitmapImageRep(data: data))
-            try #require(bitmap.representation(using: .png, properties: [:])).write(to: output.appendingPathComponent("thin-\(preset.rawValue).png"))
+            try #require(bitmap.representation(using: .png, properties: [:])).write(to: output.appendingPathComponent("soft-\(preset.rawValue).png"))
         }
         // Documentation uses one background, viewport and pose across every
         // state. Keep the varied-background QA captures above as well.
@@ -97,26 +97,41 @@ struct GlassRenderPreviewTests {
         let idleData = try #require(idle?.tiffRepresentation)
         let idleBitmap = try #require(NSBitmapImageRep(data: idleData))
         let backgroundColor = try #require(idleBitmap.colorAt(x: 2, y: 2)?.usingColorSpace(.sRGB))
-        var visibleEdgeSamples = 0
+        var visibleShellSamples = 0
         for y in stride(from: 0, to: idleBitmap.pixelsHigh, by: 2) {
             for x in stride(from: 0, to: idleBitmap.pixelsWide, by: 2) {
                 guard let pixel = idleBitmap.colorAt(x: x, y: y)?.usingColorSpace(.sRGB) else { continue }
                 if abs(pixel.redComponent - backgroundColor.redComponent) + abs(pixel.greenComponent - backgroundColor.greenComponent) + abs(pixel.blueComponent - backgroundColor.blueComponent) > 0.08 {
-                    visibleEdgeSamples += 1
+                    visibleShellSamples += 1
                 }
             }
         }
-        #expect(visibleEdgeSamples > 100, "Idle glass edges must remain visible without icons")
+        #expect(visibleShellSamples > 100, "Idle glass body must remain visible without icons")
         let idlePNG = try #require(idleBitmap.representation(using: .png, properties: [:]))
-        try idlePNG.write(to: output.appendingPathComponent("thin-glass-idle.png"))
+        try idlePNG.write(to: output.appendingPathComponent("soft-body-idle.png"))
         try idlePNG.write(to: output.appendingPathComponent("readme-idle.png"))
 
+        // Check the rendered shell, rather than just its material parameters:
+        // changing the backdrop must remain visible through its center.
+        view.environment.background = .color(NSColor(white: 0.88, alpha: 1))
+        try await Task.sleep(for: .milliseconds(200))
+        let lightIdle: NSImage? = await withCheckedContinuation { continuation in
+            view.snapshot(saveToHDR: false) { continuation.resume(returning: $0) }
+        }
+        let lightData = try #require(lightIdle?.tiffRepresentation)
+        let lightBitmap = try #require(NSBitmapImageRep(data: lightData))
+        let darkCenter = try #require(idleBitmap.colorAt(x: idleBitmap.pixelsWide / 2, y: idleBitmap.pixelsHigh / 2)?.usingColorSpace(.sRGB))
+        let lightCenter = try #require(lightBitmap.colorAt(x: lightBitmap.pixelsWide / 2, y: lightBitmap.pixelsHigh / 2)?.usingColorSpace(.sRGB))
+        let backdropResponse = ((lightCenter.redComponent - darkCenter.redComponent) + (lightCenter.greenComponent - darkCenter.greenComponent) + (lightCenter.blueComponent - darkCenter.blueComponent)) / 3
+        #expect(backdropResponse > 0.45, "The glass must reveal its backdrop instead of becoming an opaque pearl")
+        try #require(lightBitmap.representation(using: .png, properties: [:])).write(to: output.appendingPathComponent("soft-body-idle-light.png"))
+
         view.environment.background = .color(galleryBackground)
-        let flow = try #require(view.cube.findEntity(named: "prism-flow") as? ModelEntity)
+        let flow = try #require(view.cube.findEntity(named: "glass-flow") as? ModelEntity)
         let startingMaterial = try #require(flow.model?.materials.first as? UnlitMaterial)
         let startingPhase = startingMaterial.textureCoordinateTransform.offset.x
         let pose = view.cube.orientation
-        let gifURL = output.appendingPathComponent("thin-glass-motion.gif")
+        let gifURL = output.appendingPathComponent("soft-body-motion.gif")
         let destination = try #require(CGImageDestinationCreateWithURL(gifURL as CFURL, UTType.gif.identifier as CFString, 24, nil))
         CGImageDestinationSetProperties(destination, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFLoopCount: 0]] as CFDictionary)
         for index in 0..<24 {
@@ -128,7 +143,7 @@ struct GlassRenderPreviewTests {
             let cgImage = try #require(frame?.cgImage(forProposedRect: nil, context: nil, hints: nil))
             if [0, 12, 23].contains(index) {
                 let still = NSBitmapImageRep(cgImage: cgImage)
-                try #require(still.representation(using: .png, properties: [:])).write(to: output.appendingPathComponent("thin-glass-motion-\(index).png"))
+                try #require(still.representation(using: .png, properties: [:])).write(to: output.appendingPathComponent("soft-body-motion-\(index).png"))
             }
             CGImageDestinationAddImage(destination, cgImage, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFDelayTime: 0.1]] as CFDictionary)
         }
