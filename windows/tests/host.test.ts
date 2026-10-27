@@ -5,8 +5,18 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { ConfigurationStore } from '../src/core/store';
 import { LauncherHost } from '../src/main/application';
+import { isLocalIconPath } from '../src/main/targets';
 import type { HostServices } from '../src/main/application';
 import type { Rect } from '../src/shared/contracts';
+
+const nextTurn = () => new Promise<void>(resolve => setImmediate(resolve));
+async function eventually(condition: () => boolean): Promise<void> {
+    const deadline = performance.now() + 3000;
+    while (!condition()) {
+        if (performance.now() > deadline) throw new Error('Expected asynchronous side effect did not finish');
+        await nextTurn();
+    }
+}
 
 async function fixture(overrides: Partial<HostServices> = {}) {
     const directory = await mkdtemp(path.join(tmpdir(), 'tcube-host-'));
@@ -28,7 +38,7 @@ async function fixture(overrides: Partial<HostServices> = {}) {
         chooseTarget: async () => [], quit: () => {}, refreshIcons: async () => ({}), ...overrides
     });
     return { host, store, frames, launched, errors, input, get settings() { return settings; }, get broadcasts() { return broadcasts; },
-        pointer: (x: number, y: number) => { pointer = { x, y }; }, dispose: () => rm(directory, { recursive: true, force: true }) };
+        pointer: (x: number, y: number) => { pointer = { x, y }; }, dispose: async () => { await host.whenIdle(); await rm(directory, { recursive: true, force: true }); } };
 }
 
 test('native release consumes a late renderer hit once', async () => {
@@ -51,6 +61,7 @@ test('outside drag suppresses late click and persists resting coordinates', asyn
         f.pointer(600, 500); await f.host.poll();
         f.input.primaryDown = false; await f.host.poll();
         await f.host.endPointer({ gestureId, button: 0, hit: { face: 'front', slot: 0 } });
+        await f.host.whenIdle();
         assert.deepEqual(f.launched, []);
         assert.equal(f.store.snapshot.windowPosition?.x, f.host.geometry.restingFrame.x);
         assert.equal(f.store.snapshot.windowPosition?.y, f.host.geometry.restingFrame.y);
@@ -105,7 +116,11 @@ test('launch failures reach the user and never launch unconfigured paths', async
     const f = await fixture({ openPath: async () => 'Access denied' });
     try {
         await assert.rejects(f.host.launch({ face: 'front', slot: 0 }), /Access denied/);
+        const gestureId = f.host.beginPointer(0);
+        await f.host.endPointer({ gestureId, button: 0, hit: { face: 'front', slot: 0 } });
+        f.input.primaryDown = false; f.host.poll(); await f.host.whenIdle();
         assert.match(f.errors[0], /Editor.*Access denied/);
+        assert.equal(f.errors.length, 1);
         await assert.rejects(f.host.launch({ face: 'front', slot: 1 }), /empty/);
     } finally { await f.dispose(); }
 });
@@ -117,6 +132,7 @@ test('a right drag is move-only and macOS fallback completes on renderer release
         const gestureId = f.host.beginPointer(2);
         f.pointer(200, 180);
         await f.host.endPointer({ gestureId, button: 2, hit: null });
+        await f.host.whenIdle();
         assert.equal(f.host.snapshot.state.interactionActive, false);
         assert.equal(f.settings, 0);
         assert.deepEqual(f.launched, []);
@@ -206,4 +222,100 @@ test('quick placement closes an expanded face', async () => {
         assert.equal(f.host.snapshot.state.expandedFace, null);
         assert.equal(closed, 1);
     } finally { await f.dispose(); }
+});
+
+test('deferred position writes do not delay native sampling or the next drag', async t => {
+    const f = await fixture();
+    let finish!: () => void;
+    let settled = false;
+    const gate = new Promise<void>(resolve => { finish = () => { settled = true; resolve(); }; });
+    const config = f.store.snapshot; config.hover.isEnabled = true;
+    await f.host.applyConfiguration(config); f.host.poll();
+    assert.equal(f.host.snapshot.state.hovered, true);
+    const update = f.store.update.bind(f.store);
+    let writes = 0;
+    t.mock.method(f.store, 'update', (edit: Parameters<typeof update>[0]) => { writes++; return gate.then(() => update(edit)); });
+    let firstPoll: Promise<void> | void = undefined;
+    try {
+        const firstId = f.host.beginPointer(0);
+        f.pointer(600, 500); await f.host.poll();
+        f.input.primaryDown = false; firstPoll = f.host.poll();
+        assert.equal(await Promise.race([Promise.resolve(firstPoll).then(() => true), nextTurn().then(() => false)]), true,
+            'native sample must finish while fsync/store work remains pending');
+        f.input.controlHeld = true; f.pointer(20, 20); await f.host.poll();
+        assert.equal(f.host.snapshot.state.controlHeld, true);
+        assert.equal(f.host.snapshot.state.hovered, false);
+        f.input.primaryDown = true;
+        const secondId = f.host.beginPointer(0); assert.notEqual(secondId, firstId);
+        f.pointer(40, 40); await f.host.poll();
+        const draggedFrame = f.frames.at(-1);
+        assert.equal(settled, false);
+        finish(); await f.host.whenIdle();
+        assert.deepEqual(f.frames.at(-1), draggedFrame, 'an earlier write must not snap an active drag back');
+        f.input.primaryDown = false; await f.host.poll();
+        assert.equal(f.host.snapshot.state.interactionActive, false);
+        const expected = f.host.geometry.restingFrame;
+        await f.host.whenIdle();
+        assert.equal(writes, 2);
+        assert.deepEqual(f.store.snapshot.windowPosition, { x: expected.x, y: expected.y });
+    } finally { finish(); await firstPoll; await nextTurn(); await f.dispose(); }
+});
+
+test('a deferred launch cannot collapse later native clicks or block Control sampling', async () => {
+    let finish!: (error: string) => void;
+    const gate = new Promise<string>(resolve => { finish = resolve; });
+    const opened: string[] = [];
+    const f = await fixture({ openPath: async target => { opened.push(target); return opened.length === 1 ? gate : ''; } });
+    let firstPoll: Promise<void> | void = undefined;
+    try {
+        const config = f.store.snapshot; config.hover.isEnabled = true;
+        await f.host.applyConfiguration(config); f.host.poll();
+        assert.equal(f.host.snapshot.state.hovered, true);
+        const firstId = f.host.beginPointer(0);
+        await f.host.endPointer({ gestureId: firstId, button: 0, hit: { face: 'front', slot: 0 } });
+        f.input.primaryDown = false; firstPoll = f.host.poll();
+        assert.equal(await Promise.race([Promise.resolve(firstPoll).then(() => true), nextTurn().then(() => false)]), true,
+            'native sample must finish while shell.openPath remains pending');
+        f.input.controlHeld = true; f.pointer(-1000, -1000); await f.host.poll();
+        assert.equal(f.host.snapshot.state.controlHeld, true);
+        assert.equal(f.host.snapshot.state.hovered, false);
+        f.pointer(180, 180); f.input.controlHeld = false; f.input.primaryDown = true; await f.host.poll();
+        const secondId = f.host.beginPointer(0); assert.notEqual(secondId, firstId);
+        await f.host.endPointer({ gestureId: secondId, button: 0, hit: { face: 'front', slot: 0 } });
+        f.input.primaryDown = false; await f.host.poll();
+        await eventually(() => opened.length === 2);
+        await f.host.endPointer({ gestureId: firstId, button: 0, hit: { face: 'front', slot: 0 } });
+        await f.host.endPointer({ gestureId: secondId, button: 0, hit: { face: 'front', slot: 0 } });
+        assert.equal(opened.length, 2);
+        await f.host.whenIdle({ includeLaunches: false });
+        assert.equal(opened.length, 2, 'persistence drain must not wait for a shell launch');
+        finish('Access denied');
+        await eventually(() => f.errors.some(message => message.includes('Access denied')));
+        assert.equal(f.errors.length, 1);
+    } finally { finish(''); await firstPoll; await nextTurn(); await f.dispose(); }
+});
+
+test('icon paths exclude remote and malformed targets while allowing local preview paths', () => {
+    for (const value of ['\\\\server\\share\\app.exe', 'https://example.com/app.exe', 'C:relative.exe', '\\\\?\\C:\\app.exe']) {
+        assert.equal(isLocalIconPath(value, 'win32'), false, value);
+        assert.equal(isLocalIconPath(value, 'darwin'), false, value);
+    }
+    assert.equal(isLocalIconPath('C:\\Apps\\Editor.exe', 'win32'), true);
+    assert.equal(isLocalIconPath('/Applications/Editor.app', 'darwin'), true);
+    assert.equal(isLocalIconPath('/Applications/Editor.app', 'win32'), false);
+});
+
+test('a failed detached position save is reported once without an unhandled rejection', async t => {
+    const f = await fixture();
+    const unhandled: unknown[] = [];
+    const onUnhandled = (error: unknown) => { unhandled.push(error); };
+    process.on('unhandledRejection', onUnhandled);
+    t.mock.method(f.store, 'update', async () => { throw new Error('disk failed'); });
+    try {
+        f.host.beginPointer(0); f.pointer(600, 500); f.host.poll();
+        f.input.primaryDown = false; f.host.poll();
+        await f.host.whenIdle(); await nextTurn();
+        assert.deepEqual(f.errors, ['disk failed']);
+        assert.deepEqual(unhandled, []);
+    } finally { process.off('unhandledRejection', onUnhandled); await f.dispose(); }
 });

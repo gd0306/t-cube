@@ -45,6 +45,8 @@ export class LauncherHost {
     private elapsed = 0;
     private iconGeneration = 0;
     private position: Point | null = null;
+    private readonly pendingSideEffects = new Set<Promise<void>>();
+    private readonly pendingPersistence = new Set<Promise<unknown>>();
     constructor(private readonly store: ConfigurationStore, private readonly services: HostServices) {
         this.configuration = store.snapshot;
         const size = 164 * this.configuration.scale;
@@ -67,22 +69,39 @@ export class LauncherHost {
         this.icons = icons; this.services.iconsChanged({ ...icons });
     }
     private publish(): void {
-        const frame = this.geometry.displayFrame, frameKey = JSON.stringify(frame);
+        const gesture = this.gesture;
+        const frame = gesture && !gesture.released && gesture.dragged ? gesture.movedFrame : this.geometry.displayFrame;
+        const frameKey = JSON.stringify(frame);
         if (frameKey !== this.lastFrame) { this.lastFrame = frameKey; this.services.setFrame(frame); }
         const state = this.snapshot.state, key = JSON.stringify(state);
         if (key !== this.lastState) { this.lastState = key; this.services.stateChanged(state); }
     }
     private async update(edit: (config: Configuration) => Configuration | void): Promise<void> {
-        this.configuration = await this.store.update(edit);
-        this.publish();
+        const pending = this.store.update(edit);
+        this.pendingPersistence.add(pending);
+        try { this.configuration = await pending; this.publish(); }
+        finally { this.pendingPersistence.delete(pending); }
     }
     private async savePosition(): Promise<void> {
         if (!this.position) return;
         const point = this.position; this.position = null;
-        try { await this.update(config => { config.windowPosition = point; }); }
-        catch (error) { this.reportError(error); }
+        await this.update(config => { config.windowPosition = point; });
     }
-    async poll(elapsedSeconds = this.elapsed, reducedMotion = this.reducedMotion): Promise<void> {
+    private detach(task: Promise<void>, persists = false): void {
+        const tracked = task.catch(error => this.reportError(error));
+        this.pendingSideEffects.add(tracked);
+        if (persists) this.pendingPersistence.add(tracked);
+        void tracked.then(() => { this.pendingSideEffects.delete(tracked); this.pendingPersistence.delete(tracked); });
+    }
+    /** Drain input-triggered work for orderly lifecycle completion without blocking native sampling. */
+    async whenIdle({ includeLaunches = true }: { includeLaunches?: boolean } = {}): Promise<void> {
+        while (true) {
+            const pending = new Set([...this.pendingPersistence, ...(includeLaunches ? this.pendingSideEffects : [])]);
+            if (!pending.size) return;
+            await Promise.allSettled(pending);
+        }
+    }
+    poll(elapsedSeconds = this.elapsed, reducedMotion = this.reducedMotion): void {
         this.elapsed = elapsedSeconds; this.reducedMotion = reducedMotion;
         const input = this.services.input(), pointer = this.services.cursor();
         // macOS preview updates Control using before-input-event instead of unavailable Win32 polling.
@@ -97,7 +116,7 @@ export class LauncherHost {
                 gesture.movedFrame = { ...gesture.frame, x: gesture.frame.x + dx, y: gesture.frame.y + dy };
                 this.services.setFrame(gesture.movedFrame); this.lastFrame = JSON.stringify(gesture.movedFrame);
             }
-            if (input.available && !(gesture.button === 0 ? input.primaryDown : input.secondaryDown)) await this.release(gesture);
+            if (input.available && !(gesture.button === 0 ? input.primaryDown : input.secondaryDown)) this.release(gesture);
         }
         if (this.gesture?.released && Date.now() - this.gesture.releasedAt > 1500) this.gesture = null;
         // During a drag the platform frame follows the pointer; hover remains frozen until release.
@@ -106,7 +125,7 @@ export class LauncherHost {
             const state = this.snapshot.state, key = JSON.stringify(state);
             if (key !== this.lastState) { this.lastState = key; this.services.stateChanged(state); }
         }
-        await this.savePosition();
+        if (this.position) this.detach(this.savePosition(), true);
     }
     setFallbackControl(held: boolean): void { this.controlHeld = held; this.geometry.setControlHeld(held); this.publish(); }
     beginPointer(button: 0 | 2): number {
@@ -128,11 +147,11 @@ export class LauncherHost {
         if (gesture.released && Date.now() - gesture.releasedAt > 1500) { this.gesture = null; return; }
         gesture.hit = request.hit;
         if (!this.services.input().available && !gesture.released) {
-            await this.poll(); // Sample final displacement before the fallback mouseup.
-            await this.release(gesture);
-        } else if (gesture.released) await this.dispatchClick(gesture);
+            this.poll(); // Sample final displacement before the fallback mouseup.
+            this.release(gesture);
+        } else if (gesture.released) this.dispatchClick(gesture);
     }
-    private async release(gesture: Gesture): Promise<void> {
+    private release(gesture: Gesture): void {
         if (gesture.released) return;
         gesture.released = true; gesture.releasedAt = Date.now();
         if (gesture.dragged) {
@@ -141,10 +160,11 @@ export class LauncherHost {
             this.geometry.pointerChanged(this.services.cursor());
         }
         this.geometry.setInteractionActive(false);
-        this.publish(); await this.savePosition();
-        if (gesture.button === 2 || gesture.hit !== undefined || gesture.dragged || gesture.moveOnly) await this.dispatchClick(gesture);
+        this.publish();
+        if (this.position) this.detach(this.savePosition(), true);
+        if (gesture.button === 2 || gesture.hit !== undefined || gesture.dragged || gesture.moveOnly) this.dispatchClick(gesture);
     }
-    private async dispatchClick(gesture: Gesture): Promise<void> {
+    private dispatchClick(gesture: Gesture): void {
         if (this.gesture !== gesture) return;
         this.gesture = null;
         if (gesture.dragged || gesture.moveOnly) return;
@@ -152,7 +172,7 @@ export class LauncherHost {
         if (!gesture.hit) return;
         if (this.configuration.expandsFacesOnClick) {
             this.expandedFace = gesture.hit.face; this.services.showExpanded(gesture.hit.face); this.publish();
-        } else if (gesture.hit.slot !== null) await this.launch({ face: gesture.hit.face, slot: gesture.hit.slot });
+        } else if (gesture.hit.slot !== null) this.detach(this.launch({ face: gesture.hit.face, slot: gesture.hit.slot }));
     }
     async applyConfiguration(input: Configuration): Promise<void> {
         // Renderers may change preferences, but only explicit target operations can edit groups.
@@ -188,11 +208,12 @@ export class LauncherHost {
         if (this.controlHeld) return;
         const item = this.configuration.groups[request.face].slots[request.slot];
         if (!item) throw new Error('This slot is empty');
+        // Close the initiating popup before awaiting services, so a slow launch cannot close a later popup.
+        this.closeExpanded();
         // Validate saved paths again: edited config files must not become a command/URL channel.
         await this.services.validateTarget(item.path, item.kind);
         const error = await this.services.openPath(item.path);
-        if (error) { const failure = new Error(`Could not open ${item.name}: ${error}`); this.reportError(failure); throw failure; }
-        this.closeExpanded();
+        if (error) throw new Error(`Could not open ${item.name}: ${error}`);
     }
     async place(placement: Placement): Promise<void> {
         if (this.gesture && !this.gesture.released) return;

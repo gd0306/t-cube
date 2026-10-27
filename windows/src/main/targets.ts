@@ -3,6 +3,13 @@ import { win32 } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { LauncherItem } from '../shared/contracts';
 
+/** Shell icon extraction must never touch remote or device namespace paths. */
+export function isLocalIconPath(value: string, platform: string): boolean {
+    if (typeof value !== 'string' || value.length > 32767 || /[\0-\x1f]/.test(value)) return false;
+    if (platform === 'darwin' && value.startsWith('/') && !value.startsWith('//')) return true;
+    return /^[a-z]:[\\/]/i.test(value) && !/["<>|?*]/.test(value) && !value.slice(2).includes(':');
+}
+
 /** Accept a local drive path only. UNC, device namespaces, URLs and drive-relative paths are excluded. */
 export async function validateLocalTarget(value: string, kind?: LauncherItem['kind'], stat: (path: string) => Promise<{ isFile(): boolean; isDirectory(): boolean }> = fileStat): Promise<LauncherItem> {
     if (typeof value !== 'string' || value.length > 32767 || !/^[a-z]:[\\/]/i.test(value)

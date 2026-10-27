@@ -2,6 +2,7 @@ import { app, nativeImage } from 'electron';
 import { extractIconInWorker } from '../native/icon-service';
 import { FACES } from '../shared/contracts';
 import type { Configuration } from '../shared/contracts';
+import { isLocalIconPath } from './targets';
 
 export class IconCache {
     private readonly cache = new Map<string, Promise<string | null>>();
@@ -20,7 +21,8 @@ export class IconCache {
         } catch { return null; }
     }
     async forConfiguration(configuration: Configuration): Promise<Record<string, string>> {
-        const items = FACES.flatMap(face => configuration.groups[face].slots).filter(item => item !== null);
+        const items = FACES.flatMap(face => configuration.groups[face].slots)
+            .filter(item => item !== null).filter(item => isLocalIconPath(item.path, process.platform));
         const active = new Set(items.map(item => item.path.toLowerCase()));
         for (const key of this.cache.keys()) if (!active.has(key)) this.cache.delete(key);
         const icons: Record<string, string> = {};

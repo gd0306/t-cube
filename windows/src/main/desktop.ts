@@ -80,7 +80,14 @@ export class DesktopApplication {
         this.timer = setInterval(() => { void this.tick(); }, 16);
         void this.host.refreshIcons().catch(error => this.host.reportError(error));
         screen.on('display-metrics-changed', () => { void this.host.refreshDisplays().catch(error => this.host.reportError(error)); });
-        app.on('before-quit', () => { this.quitting = true; this.dispose(); });
+        app.on('before-quit', event => {
+            if (this.quitting) return;
+            event.preventDefault(); this.quitting = true; this.dispose();
+            // A last drag save must finish before windows are destroyed. External launches do not delay quit.
+            void this.host.whenIdle({ includeLaunches: false }).then(() => app.quit(), error => {
+                this.host.reportError(error); app.quit();
+            });
+        });
         app.on('activate', () => { this.host.setVisible(true); this.widget.show(); });
         app.on('second-instance', () => this.showSettings());
         if (firstLaunch) this.showSettings();
@@ -122,7 +129,7 @@ export class DesktopApplication {
             if (window && !window.isDestroyed()) window.webContents.send(channel, value);
         }
     }
-    private async tick(): Promise<void> {
+    private tick(): void {
         if (this.pollActive || !this.host || this.quitting) return;
         this.pollActive = true;
         try {
@@ -132,7 +139,7 @@ export class DesktopApplication {
                 if (p.x < r.x || p.y < r.y || p.x >= r.x + r.width || p.y >= r.y + r.height) this.host.closeExpanded();
             }
             this.previousButtons = buttons;
-            await this.host.poll((Date.now() - this.started) / 1000, readReducedMotion());
+            this.host.poll((Date.now() - this.started) / 1000, readReducedMotion());
         } catch (error) { this.host.reportError(error); }
         finally { this.pollActive = false; }
     }
