@@ -1,7 +1,7 @@
 name: Windows source client
 on:
   push:
-    branches: [master, feat/windows-support]
+    branches: [master, 'feat/**', 'fix/**']
     paths: ['windows/**', '.github/workflows/windows.yml']
   pull_request:
     paths: ['windows/**', '.github/workflows/windows.yml']

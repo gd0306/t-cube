@@ -85,6 +85,38 @@ try {
     }
     await move(2, 2);
     await until(bounds, frame => frame.width === 164, 'Resting size incorrect');
+    const contour = await widget.evaluate(async () => {
+        const { controller } = await import(new URL('widget.js', location.href).href);
+        const faces = controller.cube.children.filter((mesh: any) => mesh.geometry?.getAttribute('position').count === 1089);
+        const visibility = faces.map((mesh: any) => mesh.visible);
+        try {
+            faces.forEach((mesh: any) => { mesh.visible = false; });
+            controller.renderer.render(controller.scene, controller.camera);
+            const gl = controller.renderer.getContext();
+            const { width, height } = controller.renderer.domElement;
+            const pixels = new Uint8Array(width * height * 4);
+            gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+            const backgrounds = [[24, 33, 46], [245, 246, 248]];
+            const visible = backgrounds.map(background => {
+                let count = 0;
+                for (let i = 0; i < pixels.length; i += 4) {
+                    const alpha = pixels[i + 3] / 255;
+                    const contrast = Math.max(...background.map((channel, index) => Math.abs(pixels[i + index] - alpha * channel)));
+                    if (contrast >= 18) count++;
+                }
+                return count / (width * height);
+            });
+            const middle = ((Math.floor(height / 2) * width) + Math.floor(width / 2)) * 4;
+            return { dark: visible[0], light: visible[1], centerAlpha: pixels[middle + 3] / 255 };
+        } finally {
+            faces.forEach((mesh: any, index: number) => { mesh.visible = visibility[index]; });
+            controller.renderer.render(controller.scene, controller.camera);
+        }
+    });
+    console.log('Resting glass contrast:', JSON.stringify(contour));
+    assert.ok(contour.dark >= 0.004, 'Glass contour is effectively invisible over a dark desktop');
+    assert.ok(contour.light >= 0.004, 'Glass contour is effectively invisible over a light desktop');
+    assert.ok(contour.centerAlpha < 0.12, 'The glass center should remain transparent');
     results.push('Loaded isolated six-group configuration and resting geometry.');
     const initial = await bounds();
     await move(initial.x + initial.width / 2, initial.y + initial.height / 2);
