@@ -26,7 +26,7 @@ test('IPC bounds-checks gesture IDs, faces, slots and path lists', async () => {
         sender => sender.id === 1 ? 'widget' : 'settings');
     const frame = {}, event = (id: number) => ({ sender: { id, mainFrame: frame }, senderFrame: frame });
     for (const payload of [{ gestureId: -1, button: 0, hit: null }, { gestureId: 1, button: 1, hit: null },
-        { gestureId: 1, button: 0, hit: { face: 'other', slot: 0 } }, { gestureId: 1, button: 0, hit: { face: 'front', slot: 4 } }]) {
+        { gestureId: 1, button: 0, hit: null, cancelled: 'yes' }, { gestureId: 1, button: 0, hit: { face: 'other', slot: 0 } }, { gestureId: 1, button: 0, hit: { face: 'front', slot: 4 } }]) {
         await assert.rejects(handlers.get(CHANNELS.endPointer)!(event(1), payload), /Invalid/);
     }
     await assert.rejects(handlers.get(CHANNELS.dropTargets)!(event(2), { face: 'front', paths: Array(5).fill('C:\\A.exe') }), /Invalid/);

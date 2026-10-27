@@ -38,7 +38,8 @@ export function registerIPC(ipc: IPCRegistrar, host: LauncherHost, roleForSender
     handle(CHANNELS.endPointer, ['widget'], value => {
         const request = record(value);
         if (!Number.isSafeInteger(request.gestureId) || (request.gestureId as number) < 1) invalid();
-        return host.endPointer({ gestureId: request.gestureId as number, button: button(request.button), hit: hit(request.hit) });
+        if (request.cancelled !== undefined && typeof request.cancelled !== 'boolean') invalid();
+        return host.endPointer({ gestureId: request.gestureId as number, button: button(request.button), hit: hit(request.hit), cancelled: request.cancelled as boolean | undefined });
     });
     handle(CHANNELS.applyConfiguration, ['settings'], value => {
         // Bound the entire JSON request before the core walks nested structures.

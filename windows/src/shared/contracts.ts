@@ -43,7 +43,7 @@ export interface DesktopBridge {
     onIcons(callback: (icons: Record<string, string>) => void): () => void;
     onError(callback: (message: string) => void): () => void;
     beginPointer(button: 0 | 2): Promise<number>;
-    endPointer(request: { gestureId: number; button: 0 | 2; hit: Hit | null }): Promise<void>;
+    endPointer(request: { gestureId: number; button: 0 | 2; hit: Hit | null; cancelled?: boolean }): Promise<void>;
     applyConfiguration(configuration: Configuration): Promise<void>;
     chooseTarget(request: TargetRequest): Promise<void>;
     dropTargets(request: { paths: string[]; face: Face; slot?: number }): Promise<void>;

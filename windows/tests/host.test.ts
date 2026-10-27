@@ -319,3 +319,36 @@ test('a failed detached position save is reported once without an unhandled reje
         assert.deepEqual(unhandled, []);
     } finally { process.off('unhandledRejection', onUnhandled); await f.dispose(); }
 });
+
+test('cancellation suppresses both buttons before or after native release', async () => {
+    for (const button of [0, 2] as const) {
+        for (const releaseFirst of [false, true]) {
+            const f = await fixture();
+            try {
+                f.input.primaryDown = button === 0; f.input.secondaryDown = button === 2;
+                const gestureId = f.host.beginPointer(button);
+                if (releaseFirst) { f.input.primaryDown = false; f.input.secondaryDown = false; f.host.poll(); }
+                await f.host.endPointer({ gestureId, button, hit: null, cancelled: true });
+                if (!releaseFirst) { f.input.primaryDown = false; f.input.secondaryDown = false; f.host.poll(); }
+                await f.host.whenIdle();
+                assert.deepEqual(f.launched, []);
+                assert.equal(f.settings, 0);
+                assert.equal(f.host.snapshot.state.expandedFace, null);
+            } finally { await f.dispose(); }
+        }
+    }
+});
+
+test('right click waits for late renderer release before opening settings', async () => {
+    const f = await fixture();
+    try {
+        f.input.primaryDown = false; f.input.secondaryDown = true;
+        const gestureId = f.host.beginPointer(2);
+        f.input.secondaryDown = false; f.host.poll();
+        assert.equal(f.settings, 0);
+        await f.host.endPointer({ gestureId, button: 2, hit: null });
+        assert.equal(f.settings, 1);
+        await f.host.endPointer({ gestureId, button: 2, hit: null });
+        assert.equal(f.settings, 1);
+    } finally { await f.dispose(); }
+});

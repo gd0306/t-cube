@@ -8,11 +8,14 @@ import {
     type ThemeId,
 } from '../shared/contracts';
 import { subscribe } from './util';
+import { NameDraft, PreferenceQueue, shouldDeferSettingsRender } from './state';
 const content = document.querySelector<HTMLElement>('#content')!,
     error = document.querySelector<HTMLElement>('#error')!;
 let snapshot: Snapshot | undefined,
     face: Face = 'front',
     page = 'groups';
+let preferences: PreferenceQueue | undefined;
+const nameDraft = new NameDraft();
 const labels: Record<ThemeId, string> = {
     aurora: '极光',
     ocean: '海洋',
@@ -53,10 +56,8 @@ function heading(title: string, description: string) {
     content.append(element('h2', title), element('p', description));
 }
 function save(edit: (config: Configuration) => void) {
-    if (!snapshot) return;
-    const config = structuredClone(snapshot.state.configuration);
-    edit(config);
-    run(window.tcube.applyConfiguration(config));
+    if (!preferences) return;
+    run(preferences.edit(edit));
 }
 function row(title: string, control: HTMLElement, extra?: HTMLElement) {
     const wrap = element('div', undefined, 'row'),
@@ -118,10 +119,24 @@ function renderGroups(data: Snapshot) {
         label = element('label', '分组名称'),
         input = element('input');
     input.type = 'text';
-    input.value = group.name;
+    input.value = nameDraft.value(face, group.name);
     input.id = 'group-name';
     label.htmlFor = input.id;
-    input.onchange = () => run(window.tcube.renameGroup({ face, name: input.value }));
+    const editingFace = face;
+    input.oninput = () => nameDraft.change(editingFace, input.value);
+    input.onchange = () => {
+        const name = input.value;
+        nameDraft.commit(editingFace, name);
+        error.textContent = '';
+        void window.tcube.renameGroup({ face: editingFace, name }).catch((reason) => {
+            nameDraft.clear(editingFace);
+            error.textContent = reason instanceof Error ? reason.message : String(reason);
+            render();
+        });
+    };
+    input.onblur = () => {
+        queueMicrotask(render);
+    };
     nameRow.append(label, input);
     content.append(nameRow);
     const slots = element('div', undefined, 'slots');
@@ -263,10 +278,11 @@ function renderAppearance(data: Snapshot) {
     for (const id of Object.keys(THEMES) as ThemeId[]) {
         const label = element('label'),
             input = checkbox(config.themeCycle.themes.includes(id), (checked) => {
+                const current = preferences?.draft ?? config;
                 const selected = checked
-                    ? [...config.themeCycle.themes, id]
-                    : config.themeCycle.themes.filter((t) => t !== id);
-                if (config.themeCycle.isEnabled && selected.length < 2) {
+                    ? [...current.themeCycle.themes, id]
+                    : current.themeCycle.themes.filter((t) => t !== id);
+                if (current.themeCycle.isEnabled && selected.length < 2) {
                     error.textContent = '轮换至少需要两个主题。';
                     render();
                     return;
@@ -357,10 +373,18 @@ function renderBehavior(data: Snapshot) {
 }
 function render() {
     if (!snapshot) return;
+    if (shouldDeferSettingsRender(page, document.activeElement?.id ?? null)) return;
+    const data = {
+        ...snapshot,
+        state: {
+            ...snapshot.state,
+            configuration: preferences?.draft ?? snapshot.state.configuration,
+        },
+    };
     content.replaceChildren();
-    if (page === 'groups') renderGroups(snapshot);
-    else if (page === 'appearance') renderAppearance(snapshot);
-    else renderBehavior(snapshot);
+    if (page === 'groups') renderGroups(data);
+    else if (page === 'appearance') renderAppearance(data);
+    else renderBehavior(data);
 }
 document.querySelectorAll<HTMLButtonElement>('nav button').forEach((b) => {
     b.onclick = () => {
@@ -375,6 +399,16 @@ document.querySelector<HTMLButtonElement>('#quit')!.onclick = () => run(window.t
 let renderedKey = '';
 subscribe((data) => {
     snapshot = data;
+    if (!preferences) {
+        preferences = new PreferenceQueue(
+            data.state.configuration,
+            (config) => window.tcube.applyConfiguration(config),
+            async () => (await window.tcube.getSnapshot()).state.configuration,
+            render,
+        );
+    } else preferences.update(data.state.configuration);
+    for (const groupFace of FACES)
+        nameDraft.observe(groupFace, data.state.configuration.groups[groupFace].name);
     const key = JSON.stringify([data.state.configuration, data.icons]);
     if (key !== renderedKey) {
         renderedKey = key;

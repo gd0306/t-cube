@@ -141,10 +141,11 @@ export class LauncherHost {
             moveOnly: this.controlHeld, released: false, releasedAt: 0, hit: undefined };
         this.publish(); return this.gesture.id;
     }
-    async endPointer(request: { gestureId: number; button: 0 | 2; hit: Hit | null }): Promise<void> {
+    async endPointer(request: { gestureId: number; button: 0 | 2; hit: Hit | null; cancelled?: boolean }): Promise<void> {
         const gesture = this.gesture;
         if (!gesture || gesture.id !== request.gestureId || gesture.button !== request.button || gesture.hit !== undefined) return;
         if (gesture.released && Date.now() - gesture.releasedAt > 1500) { this.gesture = null; return; }
+        gesture.moveOnly ||= request.cancelled === true;
         gesture.hit = request.hit;
         if (!this.services.input().available && !gesture.released) {
             this.poll(); // Sample final displacement before the fallback mouseup.
@@ -162,7 +163,7 @@ export class LauncherHost {
         this.geometry.setInteractionActive(false);
         this.publish();
         if (this.position) this.detach(this.savePosition(), true);
-        if (gesture.button === 2 || gesture.hit !== undefined || gesture.dragged || gesture.moveOnly) this.dispatchClick(gesture);
+        if (gesture.hit !== undefined || gesture.dragged || gesture.moveOnly) this.dispatchClick(gesture);
     }
     private dispatchClick(gesture: Gesture): void {
         if (this.gesture !== gesture) return;

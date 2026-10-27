@@ -9,6 +9,7 @@ import {
 import { applyScrollRotation, IdleRotation, PrismMotion } from '../core/rotation';
 import { FACES, type Appearance, type Face, type Snapshot } from '../shared/contracts';
 import { padTransparentRGB, subscribe, wheelDelta } from './util';
+import { gestureHit } from './state';
 
 const scene = new THREE.Scene(),
     cube = new THREE.Group();
@@ -304,24 +305,33 @@ function end(event: PointerEvent) {
     if (!gesture || gesture.ended) return;
     gesture.ended = true;
     active = null;
-    const rect = renderer.domElement.getBoundingClientRect(),
-        raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(
-        new THREE.Vector2(
-            ((event.clientX - rect.left) / rect.width) * 2 - 1,
-            1 - ((event.clientY - rect.top) / rect.height) * 2,
-        ),
-        camera,
-    );
-    const hit = snapshot
-        ? pickCube(
-              raycaster.ray,
-              cube.quaternion,
-              !snapshot.state.configuration.expandsFacesOnClick,
-          )
-        : null;
+    const hit = gestureHit(event.type, () => {
+        const rect = renderer.domElement.getBoundingClientRect();
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(
+            new THREE.Vector2(
+                ((event.clientX - rect.left) / rect.width) * 2 - 1,
+                1 - ((event.clientY - rect.top) / rect.height) * 2,
+            ),
+            camera,
+        );
+        return snapshot
+            ? pickCube(
+                  raycaster.ray,
+                  cube.quaternion,
+                  !snapshot.state.configuration.expandsFacesOnClick,
+              )
+            : null;
+    });
     void gesture.id
-        .then((gestureId) => window.tcube.endPointer({ gestureId, button: gesture.button, hit }))
+        .then((gestureId) =>
+            window.tcube.endPointer({
+                gestureId,
+                button: gesture.button,
+                hit,
+                cancelled: event.type !== 'pointerup',
+            }),
+        )
         .catch(console.error);
 }
 renderer.domElement.addEventListener('pointerup', end);
