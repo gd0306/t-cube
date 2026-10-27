@@ -182,12 +182,17 @@ try {
     await settings.evaluate(() => window.tcube.renameGroup({ face: 'front', name: '常用' }));
     results.push('Editing a group name preserves its draft and the first subsequent tab click.');
     if (process.platform === 'win32') {
+        await settings.getByRole('button', { name: '添加应用', exact: true }).nth(1).click();
+        await settings.keyboard.press('Escape');
+        await settings.locator('.application-picker').waitFor({ state: 'hidden' });
         await settings.getByRole('button', { name: '添加应用', exact: true }).first().click();
         const search = settings.getByRole('searchbox', { name: '搜索已安装的应用' });
         await until(() => settings.locator('.application-result').count(), count => count > 1, 'Installed application list is empty');
         await settings.locator('.application-icon img').first().waitFor({ state: 'visible', timeout: 10_000 });
         await capture(settings, 'application-picker-all.png', false);
         await search.fill('T-Cube catalog smoke');
+        await settings.getByRole('button', { name: '刷新列表', exact: true }).click();
+        await until(() => settings.getByRole('button', { name: '刷新列表', exact: true }).isEnabled(), Boolean, 'Application refresh did not finish');
         const result = settings.locator('.application-result').filter({ hasText: 'T-Cube catalog smoke' }).first();
         await result.waitFor({ state: 'visible', timeout: 30_000 });
         await capture(settings, 'application-picker.png', false);

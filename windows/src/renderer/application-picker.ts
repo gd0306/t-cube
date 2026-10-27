@@ -8,6 +8,7 @@ export class ApplicationPicker {
     private status = document.createElement('p');
     private refresh = document.createElement('button');
     private browse = document.createElement('button');
+    private cancel = document.createElement('button');
     private entries: InstalledApplication[] = [];
     private images = new Map<string, string>();
     private observer: IntersectionObserver | null = null;
@@ -45,12 +46,11 @@ export class ApplicationPicker {
         this.browse.onclick = () => {
             void this.browseFile();
         };
-        const cancel = document.createElement('button');
-        cancel.type = 'button';
-        cancel.textContent = '取消';
-        cancel.onclick = () => this.dialog.close();
+        this.cancel.type = 'button';
+        this.cancel.textContent = '取消';
+        this.cancel.onclick = () => this.dialog.close();
         const actions = document.createElement('footer');
-        actions.append(this.refresh, this.browse, cancel);
+        actions.append(this.refresh, this.browse, this.cancel);
         this.dialog.append(heading, description, this.search, this.status, this.list, actions);
         this.dialog.addEventListener('close', () => {
             this.generation++;
@@ -60,6 +60,9 @@ export class ApplicationPicker {
             clearTimeout(this.iconTimer);
             this.iconTimer = 0;
         });
+        this.dialog.addEventListener('cancel', (event) => {
+            if (this.adding) event.preventDefault();
+        });
         document.body.append(this.dialog);
     }
 
@@ -68,6 +71,9 @@ export class ApplicationPicker {
         this.destination = { face, slot };
         this.adding = false;
         this.search.disabled = false;
+        this.browse.disabled = false;
+        this.cancel.disabled = false;
+        this.list.replaceChildren();
         this.search.value = '';
         this.entries = [];
         this.images.clear();
@@ -100,6 +106,7 @@ export class ApplicationPicker {
     private render(): void {
         this.refresh.disabled = this.adding;
         this.browse.disabled = this.adding;
+        this.cancel.disabled = this.adding;
         this.search.disabled = this.adding;
         this.observer?.disconnect();
         this.pendingIcons.clear();
