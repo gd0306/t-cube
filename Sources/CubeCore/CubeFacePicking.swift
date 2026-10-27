@@ -24,14 +24,18 @@ public enum CubeFacePicking {
     }
 
     public static func face(origin: SIMD3<Float>, direction: SIMD3<Float>) -> CubeFace? {
+        guard let point = surfacePoint(origin: origin, direction: direction) else { return nil }
+        let absolute = simd_abs(point)
+        let axis = absolute.x >= absolute.y && absolute.x >= absolute.z ? 0 : absolute.y >= absolute.z ? 1 : 2
+        return point[axis] >= 0 ? [.right, .top, .front][axis] : [.left, .bottom, .back][axis]
+    }
+
+    public static func surfacePoint(origin: SIMD3<Float>, direction: SIMD3<Float>) -> SIMD3<Float>? {
         guard intersectsBounds(origin: origin, direction: direction),
               let hit = intersection(origin: origin, direction: direction, positions: body.positions,
                                      indices: body.indices, textureCoordinates: body.textureCoordinates,
                                      cullBackFaces: false) else { return nil }
-        let point = origin + hit.distance * direction
-        let absolute = simd_abs(point)
-        let axis = absolute.x >= absolute.y && absolute.x >= absolute.z ? 0 : absolute.y >= absolute.z ? 1 : 2
-        return point[axis] >= 0 ? [.right, .top, .front][axis] : [.left, .bottom, .back][axis]
+        return origin + hit.distance * direction
     }
 
     private static func intersectsBounds(origin: SIMD3<Float>, direction: SIMD3<Float>) -> Bool {

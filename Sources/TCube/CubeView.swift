@@ -18,6 +18,11 @@ final class CubeView: ARView {
     private var rightTracker = PointerDragTracker()
     private var rightDragOrientation = simd_quatf(real: 1, imag: .zero)
     private var idleRotation = CubeIdleRotation()
+    private var slime = SlimeMotion()
+    private var slimePointer: NSPoint?
+    private var slimePointerNeedsUpdate = false
+    private var slimePointerFrame = NSRect.zero
+    private var slimePointerOrientation: simd_quatf?
     private var panelOrigin = NSPoint.zero
     private(set) var isHovered = false
     private static let curvedIconMesh: MeshResource? = {
@@ -118,13 +123,46 @@ final class CubeView: ARView {
             !model.configuration.autoRotatesWhenIdle || reducedMotion
         cube.orientation = idleRotation.advance(from: cube.orientation, deltaTime: lightElapsed, paused: paused)
         aura.advance(deltaTime: lightElapsed, hovered: isHovered, reducedMotion: reducedMotion)
+        if reducedMotion { slimePointerNeedsUpdate = true }
+        else { refreshSlimeContact() }
+        let previous = slime.deformation
+        slime.advance(deltaTime: lightElapsed, reducedMotion: reducedMotion)
+        if previous != slime.deformation { aura.deform(slime.deformation) }
         lightElapsed = 0
     }
 
     func setHovered(_ hovered: Bool) {
         guard hovered != isHovered else { return }
         isHovered = hovered
+        if !hovered { updateSlimePointer(atWindowPoint: nil) }
         for panel in panels.values { panel.components.set(OpacityComponent(opacity: hovered ? 1 : 0)) }
+    }
+
+    func updateSlimePointer(atWindowPoint point: NSPoint?) {
+        guard let point, let window, isHovered, leftTracker.origin == nil, rightTracker.origin == nil else {
+            slimePointer = nil
+            slime.setContact(nil)
+            return
+        }
+        slimePointer = window.convertPoint(toScreen: point)
+        slimePointerNeedsUpdate = true
+    }
+
+    private func refreshSlimeContact() {
+        guard let point = slimePointer, let window,
+              slimePointerNeedsUpdate || slimePointerFrame != window.frame || slimePointerOrientation != cube.orientation else { return }
+        slimePointerNeedsUpdate = false
+        slimePointerFrame = window.frame
+        slimePointerOrientation = cube.orientation
+        // Reproject a stationary pointer after wheel rotation, Control resizing,
+        // or a scale change. Coalesce high-frequency input to the render cadence.
+        let local = convert(window.convertPoint(fromScreen: point), from: nil)
+        guard bounds.contains(local), let ray = ray(through: local) else {
+            slime.setContact(nil)
+            return
+        }
+        slime.setContact(CubeFacePicking.surfacePoint(origin: cube.convert(position: ray.origin, from: nil),
+                                                     direction: cube.convert(direction: ray.direction, from: nil)))
     }
 
     func containsCube(atWindowPoint point: NSPoint) -> Bool {
@@ -145,6 +183,7 @@ final class CubeView: ARView {
 
     func beginPrimaryDrag(atScreenPoint point: NSPoint, moveOnly: Bool = false) {
         guard rightTracker.origin == nil else { return }
+        updateSlimePointer(atWindowPoint: nil)
         leftMoveOnly = moveOnly
         leftTracker.start(at: [Float(point.x), Float(point.y)])
         panelOrigin = window?.frame.origin ?? .zero
@@ -213,6 +252,7 @@ final class CubeView: ARView {
 
     func beginSecondaryDrag(atScreenPoint point: NSPoint) {
         guard leftTracker.origin == nil else { return }
+        updateSlimePointer(atWindowPoint: nil)
         rightTracker.start(at: [Float(point.x), Float(point.y)])
         rightDragOrientation = cube.orientation
         interactionChanged?(true)

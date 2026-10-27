@@ -72,8 +72,12 @@ final class CubeInputOverlay: NSView {
             if let hoverPointChanged { hoverPointChanged(point) }
             else if let hoverChanged { hoverChanged(inside) }
             else { cubeView.setHovered(inside) }
+            // Hover callbacks may resize the window; convert the captured screen
+            // point only after they finish, rather than using stale event coordinates.
+            cubeView.updateSlimePointer(atWindowPoint: inside ? window.convertPoint(fromScreen: point) : nil)
         } else if let hoverChanged { hoverChanged(inside) }
         else { cubeView.setHovered(inside) }
+        if !inside { cubeView.updateSlimePointer(atWindowPoint: nil) }
     }
     override func flagsChanged(with event: NSEvent) { modifierFlagsChanged?(event.modifierFlags, nil) }
     override func mouseEntered(with event: NSEvent) { updateHover(true, event: event) }
