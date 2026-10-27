@@ -10,6 +10,7 @@ import { applyScrollRotation, IdleRotation, PrismMotion } from '../core/rotation
 import { FACES, type Appearance, type Face, type Snapshot } from '../shared/contracts';
 import { padTransparentRGB, subscribe, wheelDelta } from './util';
 import { gestureHit } from './state';
+import { createGlassMaterial, updateGlassMaterial } from './glass';
 
 const scene = new THREE.Scene(),
     cube = new THREE.Group();
@@ -28,21 +29,9 @@ const idle = new IdleRotation(),
     motion = new PrismMotion();
 cube.quaternion.copy(idle.orientation);
 const body = createBodyGeometry();
-const glass = new THREE.Mesh(
-    body,
-    new THREE.MeshPhysicalMaterial({
-        color: 0xffffff,
-        transparent: true,
-        opacity: 0.25 * 0.035,
-        roughness: 0.2,
-        metalness: 0,
-        depthWrite: false,
-        side: THREE.FrontSide,
-    }),
-);
+const glass = new THREE.Mesh(body, createGlassMaterial());
+glass.name = 'glass-shell';
 cube.add(glass);
-const ambient = new THREE.AmbientLight(0xffffff, 2);
-scene.add(ambient);
 const pearl = new THREE.Mesh(
     body,
     new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, opacity: 0.25 * 0.55 }),
@@ -236,6 +225,7 @@ function render() {
             !state.configuration.autoRotatesWhenIdle;
     cube.quaternion.copy(idle.step(dt, paused));
     motion.step(dt, state.hovered, state.reducedMotion);
+    updateGlassMaterial(glass.material, state.displayedAppearance, motion.engagement);
     pearl.material.map!.offset.x = -motion.phase;
     chroma.material.map!.offset.x = motion.phase;
     energy.material.map!.offset.x = motion.phase;

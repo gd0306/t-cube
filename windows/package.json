@@ -1,6 +1,6 @@
 {
   "name": "t-cube-windows",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "private": true,
   "description": "T-Cube transparent desktop launcher for Windows 10 and 11",
   "author": "T-Cube contributors",
@@ -15,7 +15,9 @@
     "start": "npm run build && electron .",
     "smoke": "tsx scripts/smoke.ts"
   },
-  "engines": { "node": ">=22.12.0" },
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "dependencies": {
     "koffi": "3.3.4",
     "three": "0.186.1"

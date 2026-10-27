@@ -54,10 +54,10 @@ async function move(x: number, y: number) {
         : { x, y };
     input.move(point.x, point.y);
 }
-async function capture(page: Page, name: string, backdrop = true) {
+async function capture(page: Page, name: string, backdrop = true, background = '#18212e') {
     // A capture-only backdrop makes alpha comparable; the shipping page stays transparent.
     const previous = await page.evaluate(() => document.body.style.background);
-    if (backdrop) await page.evaluate(() => { document.body.style.background = '#18212e'; });
+    if (backdrop) await page.evaluate(value => { document.body.style.background = value; }, background);
     await page.screenshot({ path: path.join(output, name), animations: 'disabled' });
     await page.evaluate(value => { document.body.style.background = value; }, previous);
 }
@@ -117,6 +117,9 @@ try {
     assert.ok(contour.dark >= 0.004, 'Glass contour is effectively invisible over a dark desktop');
     assert.ok(contour.light >= 0.004, 'Glass contour is effectively invisible over a light desktop');
     assert.ok(contour.centerAlpha < 0.12, 'The glass center should remain transparent');
+    await capture(widget, 'widget-idle-dark.png');
+    await capture(widget, 'widget-idle-light.png', true, '#f5f6f8');
+    results.push('Resting glass has visible contrast on dark and light desktops with a transparent center.');
     results.push('Loaded isolated six-group configuration and resting geometry.');
     const initial = await bounds();
     await move(initial.x + initial.width / 2, initial.y + initial.height / 2);
@@ -130,6 +133,7 @@ try {
         return faces.length === 6 && faces.every((mesh: any) => mesh.material.map?.image.data.some((value: number, index: number) => index % 4 === 3 && value > 0));
     }), Boolean, 'Curved face textures are not ready');
     await capture(widget, 'widget-hover.png');
+    await capture(widget, 'widget-hover-light.png', true, '#f5f6f8');
     results.push('Native cursor hover enlarged to 4x with configured icons.');
 
     if (process.platform === 'win32') {
