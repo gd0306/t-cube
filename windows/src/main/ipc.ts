@@ -2,13 +2,15 @@ import { normalizeConfiguration } from '../core/configuration';
 import { FACES } from '../shared/contracts';
 import type { Configuration, Face, Hit, Placement, TargetRequest } from '../shared/contracts';
 import type { LauncherHost } from './application';
+import type { InstalledApplications } from './applications';
 
 export const CHANNELS = {
     getSnapshot: 'tcube:snapshot', state: 'tcube:state', icons: 'tcube:icons', error: 'tcube:error',
     beginPointer: 'tcube:pointer-begin', endPointer: 'tcube:pointer-end', applyConfiguration: 'tcube:configure',
     chooseTarget: 'tcube:choose', dropTargets: 'tcube:drop', removeTarget: 'tcube:remove', moveTarget: 'tcube:move',
     renameGroup: 'tcube:rename', launch: 'tcube:launch', place: 'tcube:place', showSettings: 'tcube:settings',
-    quit: 'tcube:quit', closeExpanded: 'tcube:close-expanded'
+    quit: 'tcube:quit', closeExpanded: 'tcube:close-expanded',
+    listApplications: 'tcube:applications', applicationIcons: 'tcube:application-icons', addApplication: 'tcube:add-application'
 } as const;
 export type WindowRole = 'widget' | 'settings' | 'expanded';
 interface Sender { id: number; mainFrame: unknown }
@@ -24,7 +26,7 @@ function hit(value: unknown): Hit | null { if (value === null) return null; cons
 function button(value: unknown): 0 | 2 { return value === 0 || value === 2 ? value : invalid(); }
 
 /** Authorization runs before parsing and before touching any privileged host operation. */
-export function registerIPC(ipc: IPCRegistrar, host: LauncherHost, roleForSender: (sender: Sender) => WindowRole | null): void {
+export function registerIPC(ipc: IPCRegistrar, host: LauncherHost, roleForSender: (sender: Sender) => WindowRole | null, applications?: InstalledApplications): void {
     const handle = (name: string, roles: WindowRole[], operation: (value: unknown) => unknown) => {
         ipc.handle(name, async (event, value) => {
             const role = roleForSender(event.sender);
@@ -34,6 +36,20 @@ export function registerIPC(ipc: IPCRegistrar, host: LauncherHost, roleForSender
         });
     };
     handle(CHANNELS.getSnapshot, ['widget', 'settings', 'expanded'], () => host.snapshot);
+    const catalog = () => { if (!applications) throw new Error('应用列表不可用'); return applications; };
+    handle(CHANNELS.listApplications, ['settings'], value => {
+        if (value !== undefined && typeof value !== 'boolean') invalid();
+        return catalog().list(value as boolean | undefined);
+    });
+    handle(CHANNELS.applicationIcons, ['settings'], value => {
+        if (!Array.isArray(value) || value.length > 32) invalid();
+        return catalog().icons((value as unknown[]).map(id => text(id, 64)));
+    });
+    handle(CHANNELS.addApplication, ['settings'], async value => {
+        const request = record(value), destination = target(value);
+        const item = await catalog().materialize(text(request.applicationId, 64));
+        return host.addApplication(destination, item);
+    });
     handle(CHANNELS.beginPointer, ['widget'], value => host.beginPointer(button(value)));
     handle(CHANNELS.endPointer, ['widget'], value => {
         const request = record(value);

@@ -9,6 +9,8 @@ import {
 } from '../shared/contracts';
 import { subscribe } from './util';
 import { NameDraft, PreferenceQueue, shouldDeferSettingsRender } from './state';
+import { ApplicationPicker } from './application-picker';
+const applicationPicker = new ApplicationPicker();
 const content = document.querySelector<HTMLElement>('#content')!,
     error = document.querySelector<HTMLElement>('#error')!;
 let snapshot: Snapshot | undefined,
@@ -152,10 +154,13 @@ function renderGroups(data: Snapshot) {
         }
         line.append(element('span', item?.name ?? '空位置', item ? 'item' : 'item empty'));
         for (const [kind, title] of [
-            ['application', '选择应用'],
+            ['application', '添加应用'],
             ['folder', '选择文件夹'],
         ] as const)
-            line.append(button(title, () => run(window.tcube.chooseTarget({ face, slot, kind }))));
+            line.append(button(title, () => {
+                if (kind === 'application') applicationPicker.open(face, slot);
+                else run(window.tcube.chooseTarget({ face, slot, kind }));
+            }));
         if (item) {
             const up = button('↑', () =>
                 run(window.tcube.moveTarget({ face, source: slot, destination: slot - 1 })),

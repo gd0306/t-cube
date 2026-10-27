@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile, rm, copyFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 import { _electron, type ElectronApplication, type Page } from 'playwright';
@@ -27,6 +28,9 @@ let widget!: Page;
 let originalCursor: { x: number; y: number } | undefined;
 const input = nativeInput();
 let previewIcons: Record<string, string> | undefined;
+const catalogExecutable = path.join(data, 'catalog-smoke.exe');
+const catalogRegistryKey = `HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\tcube-${path.basename(data)}.exe`;
+let catalogRegistered = false;
 async function sendPreviewIcons() {
     if (!previewIcons) return;
     await app!.evaluate(({ BrowserWindow }, icons) => {
@@ -63,6 +67,12 @@ async function capture(page: Page, name: string, backdrop = true, background = '
 }
 
 try {
+    if (process.platform === 'win32') {
+        await copyFile(path.join(process.env.WINDIR!, 'System32', 'notepad.exe'), catalogExecutable);
+        execFileSync('reg.exe', ['ADD', catalogRegistryKey, '/ve', '/t', 'REG_SZ', '/d', catalogExecutable, '/f'], { windowsHide: true });
+        catalogRegistered = true;
+        execFileSync('reg.exe', ['ADD', catalogRegistryKey, '/v', 'FriendlyAppName', '/t', 'REG_SZ', '/d', 'T-Cube catalog smoke', '/f'], { windowsHide: true });
+    }
     const executablePath = process.env.TCUBE_SMOKE_EXECUTABLE;
     app = await _electron.launch({
         executablePath,
@@ -171,6 +181,30 @@ try {
     await until(snapshot, value => value.state.configuration.groups.front.name === 'Edited group', 'Blur did not persist the edited group name');
     await settings.evaluate(() => window.tcube.renameGroup({ face: 'front', name: '常用' }));
     results.push('Editing a group name preserves its draft and the first subsequent tab click.');
+    if (process.platform === 'win32') {
+        await settings.getByRole('button', { name: '添加应用', exact: true }).first().click();
+        const search = settings.getByRole('searchbox', { name: '搜索已安装的应用' });
+        await search.fill('T-Cube catalog smoke');
+        const result = settings.locator('.application-result').filter({ hasText: 'T-Cube catalog smoke' }).first();
+        await result.waitFor({ state: 'visible', timeout: 30_000 });
+        await capture(settings, 'application-picker.png', false);
+        await result.click();
+        await settings.locator('.application-picker').waitFor({ state: 'hidden' });
+        await until(snapshot, value => value.state.configuration.groups.right.slots[0]?.path === catalogExecutable, 'Catalog selection did not reach the requested slot');
+        assert.equal((await snapshot()).state.configuration.groups.right.slots[0]?.name, 'T-Cube catalog smoke');
+        const catalog = await settings.evaluate(() => window.tcube.listInstalledApplications());
+        assert.ok(catalog.length > 1, 'The catalog should include real installed applications');
+        const virtual = catalog.find(entry => entry.detail === 'Windows 应用');
+        if (virtual) {
+            await settings.evaluate(applicationId => window.tcube.addInstalledApplication({ face: 'bottom', slot: 3, applicationId }), virtual.id);
+            const shortcutPath = (await snapshot()).state.configuration.groups.bottom.slots[3]!.path;
+            const shortcut = await app.evaluate(({ shell }, file) => shell.readShortcutLink(file), shortcutPath);
+            assert.match(shortcut.target, /\\explorer\.exe$/i);
+            assert.match(shortcut.args ?? '', /^shell:AppsFolder\\/);
+            results.push('A registered virtual application produced a native launch shortcut without changing the configuration schema.');
+        }
+        results.push('Real Windows application discovery, name search and click-to-add passed.');
+    }
     const saved = await snapshot();
     const updated = structuredClone(saved.state.configuration);
     updated.expandsFacesOnClick = false;
@@ -221,5 +255,6 @@ try {
     if (process.platform === 'win32') { input.control(false); input.button(0, false); input.button(2, false); }
     if (originalCursor) await move(originalCursor.x, originalCursor.y).catch(() => {});
     await app?.close().catch(() => {});
+    if (catalogRegistered) execFileSync('reg.exe', ['DELETE', catalogRegistryKey, '/f'], { windowsHide: true });
     await rm(data, { recursive: true, force: true });
 }

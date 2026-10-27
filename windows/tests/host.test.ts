@@ -10,6 +10,18 @@ import type { HostServices } from '../src/main/application';
 import type { Rect } from '../src/shared/contracts';
 
 const nextTurn = () => new Promise<void>(resolve => setImmediate(resolve));
+
+test('catalog selection replaces only the requested slot and preserves the application name', async () => {
+    const f = await fixture();
+    try {
+        const before = f.store.snapshot.groups;
+        await f.host.addApplication({ face: 'front', slot: 2 }, { id: 'candidate', name: '我的应用', path: 'C:\\Picked.exe', kind: 'application' });
+        assert.equal(f.store.snapshot.groups.front.slots[2]?.name, '我的应用');
+        assert.equal(f.store.snapshot.groups.front.slots[0]?.id, before.front.slots[0]?.id);
+        assert.deepEqual(f.store.snapshot.groups.right, before.right);
+        assert.deepEqual(f.launched, []);
+    } finally { await f.dispose(); }
+});
 async function eventually(condition: () => boolean): Promise<void> {
     const deadline = performance.now() + 3000;
     while (!condition()) {

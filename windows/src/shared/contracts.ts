@@ -37,6 +37,7 @@ export interface ViewState {
 export interface Snapshot { state: ViewState; icons: Record<string, string> }
 export interface Hit { face: Face; slot: number | null }
 export interface TargetRequest { face: Face; slot: number; kind: 'application' | 'folder' }
+export interface InstalledApplication { id: string; name: string; detail: string }
 export interface DesktopBridge {
     getSnapshot(): Promise<Snapshot>;
     onState(callback: (state: ViewState) => void): () => void;
@@ -46,6 +47,9 @@ export interface DesktopBridge {
     endPointer(request: { gestureId: number; button: 0 | 2; hit: Hit | null; cancelled?: boolean }): Promise<void>;
     applyConfiguration(configuration: Configuration): Promise<void>;
     chooseTarget(request: TargetRequest): Promise<void>;
+    listInstalledApplications(refresh?: boolean): Promise<InstalledApplication[]>;
+    installedApplicationIcons(ids: string[]): Promise<Record<string, string>>;
+    addInstalledApplication(request: { face: Face; slot: number; applicationId: string }): Promise<void>;
     dropTargets(request: { paths: string[]; face: Face; slot?: number }): Promise<void>;
     removeTarget(request: { face: Face; slot: number }): Promise<void>;
     moveTarget(request: { face: Face; source: number; destination: number }): Promise<void>;

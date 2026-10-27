@@ -10,6 +10,7 @@ import { IconCache } from './icons';
 import { CHANNELS, registerIPC } from './ipc';
 import type { WindowRole } from './ipc';
 import { validateLocalTarget } from './targets';
+import { createApplicationCatalog } from './application-discovery';
 
 export function userDataDirectory(platform: string, appData: string, override = process.env.TCUBE_USER_DATA_DIR): string {
     return override ? path.resolve(override) : path.join(appData, platform === 'darwin' ? 'T-Cube-Windows-Preview' : 'T-Cube');
@@ -69,7 +70,8 @@ export class DesktopApplication {
             },
             quit: () => app.quit(), refreshIcons: config => this.iconCache.forConfiguration(config)
         });
-        registerIPC(ipcMain, this.host, sender => this.roles.get(sender.id) ?? null);
+        registerIPC(ipcMain, this.host, sender => this.roles.get(sender.id) ?? null,
+            createApplicationCatalog(this.directory, app.getPath('userData')));
         this.widget.setAlwaysOnTop(true, 'floating');
         await this.widget.loadFile(this.html('widget'));
         this.widget.show();

@@ -191,6 +191,11 @@ export class LauncherHost {
         await this.update(config => addTarget(config, request.face, item, request.slot, true));
         await this.refreshIcons();
     }
+    async addApplication(request: { face: Face; slot: number }, item: LauncherItem): Promise<void> {
+        const validated = await this.services.validateTarget(item.path, 'application');
+        await this.update(config => addTarget(config, request.face, { ...validated, name: item.name }, request.slot, true));
+        await this.refreshIcons();
+    }
     async dropTargets(request: { paths: string[]; face: Face; slot?: number }): Promise<void> {
         const items = await Promise.all(request.paths.map(value => this.services.validateTarget(value)));
         await this.update(config => {
