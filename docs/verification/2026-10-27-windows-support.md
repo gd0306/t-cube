@@ -11,6 +11,8 @@ Date: 2026-10-27. Windows client version: 0.13.0. Target: Windows 10 22H2 (19045
 - Corrected Windows captures were downloaded and inspected: transparent curved body and icon decals, readable light settings, and an icon-only translucent expansion. Checked-in Windows screenshots come from this run; only transparent views use a capture backdrop.
 - Source review covered configuration corruption/backup, atomic serialized updates, native-release ordering, cancellation, deferred I/O, sender/frame IPC authorization, install/runtime layout and renderer state. All task reviews and the whole-branch review approved the implementation.
 
+Follow-up [run 40453987010](https://github.com/gd0306/t-cube/actions/runs/40453987010), commit `2e64db6`, also passed both runners after extending the native drag to 240 × 130 DIP, beyond its original resting bounds. Only documentation changes followed.
+
 ## Coverage distinctions
 
 Direct target dispatch, both-button drag/cancellation ordering, absent-renderer release fallback, two-axis rotation without snapping, reduced-motion behavior, geometry picking, rapid preference edits, and corrupt-file preservation have focused behavior tests. Launch tests capture the host launch callback; smoke changes direct-launch mode without opening external applications. No unrelated user applications were launched.

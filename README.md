@@ -33,12 +33,12 @@ Native app renders with sample system icons, enlarged for detail. All previews s
 - **Light, transparent glass.** Soft corners, shallow curved faces, subtle reflections, and crisp icons that wrap around the surface.
 - **Six groups, four shortcuts each.** Add local apps or folders; empty slots stay blank. Click areas follow the curved icons.
 - **Free rotation and positioning.** Scroll in either direction; the cube stays where you stop while hovered. Drag with either mouse button to move it.
-- **Quick placement.** Put the cube in any corner or the center of its screen from the menu bar or Appearance settings. Positions save immediately, with room for the menu bar and Dock.
+- **Quick placement.** Put the cube in any corner or the center of its screen from the menu bar or Appearance settings. Positions save immediately, with room for system bars.
 - **Wandering idle rotation.** Slowly drift through changing directions; hover to stop instantly and leave to resume. Disable it under **Appearance → Dynamic rotation (动态旋转)**. Reduce Motion pauses it automatically.
 - **Hover to enlarge.** Return to the resting size when the pointer leaves; zoom is adjustable from 1.1× to 4×.
 - **Two launch modes.** Expand a face before choosing an icon, or launch directly from icons on the cube.
 - **Personalized glass.** Nine presets, custom two-color gradients, glass materials, and automatic theme cycling every 10 or 20 seconds.
-- **Menu-bar access.** Configure, show, hide, or quit without a Dock icon. Motion respects macOS Reduce Motion.
+- **Menu-bar or tray access.** Configure, show, hide, or quit from system controls. Motion respects system animation preferences.
 
 ## Windows source installation
 
@@ -73,7 +73,7 @@ Copy this prompt to an agent with terminal access:
 Install T-Cube from https://github.com/gd0306/t-cube (master). Follow the README to build, install to /Applications, and launch it. Quit the old version first and preserve its configuration. Tell me if Xcode/SDK requirements or macOS security approvals need attention.
 ```
 
-## Configure and use
+## Configure and use on macOS
 
 Settings open on first launch. Reopen them by right-clicking the cube or using its menu-bar icon.
 
@@ -95,11 +95,11 @@ Settings open on first launch. Reopen them by right-clicking the cube or using i
 
 Expanded faces contain only four icons. macOS 26+ uses Clear Liquid Glass; earlier supported systems use frosted glass. Quit from the settings footer or menu-bar menu.
 
-## Local data
+## macOS local data
 
 Configuration lives at `~/Library/Application Support/T-Cube/configuration.json`. It stores shortcuts, appearance, interaction preferences, and window position. Removing a shortcut does not delete its target. Corrupt configuration is preserved rather than overwritten with defaults.
 
-## Development
+## macOS development
 
 ```bash
 swift test --scratch-path .build/tests
