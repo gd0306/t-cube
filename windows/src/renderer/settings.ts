@@ -22,13 +22,13 @@ const nameDraft = new NameDraft();
 const labels: Record<ThemeId, string> = {
     aurora: '极光',
     ocean: '海洋',
-    sunset: '日落',
+    sunset: '晚霞',
     starfield: '星空',
-    blossom: '花漾',
+    blossom: '花海',
     forest: '森林',
-    prism: '棱镜',
-    moonstone: '月光石',
-    auroraFlow: '流光极光',
+    prism: '幻彩水晶',
+    moonstone: '月光凝露',
+    auroraFlow: '极光流体',
 };
 function run(action: Promise<void>) {
     error.textContent = '';
@@ -199,7 +199,18 @@ function renderGroups(data: Snapshot) {
 }
 function renderAppearance(data: Snapshot) {
     const config = data.state.configuration;
-    heading('外观与主题', '选择色彩，或创建自己的玻璃外观。');
+    heading('外观与主题', '玻璃与史莱姆共用所有主题、配色和光效。');
+    content.append(element('h3', '立方体材质'));
+    const material = element('select');
+    for (const [value, title] of [['glass', '玻璃'], ['slime', '史莱姆']]) {
+        const option = element('option', title);
+        option.value = value;
+        material.append(option);
+    }
+    material.value = config.appearance.material;
+    material.onchange = () => save(c => { c.appearance.material = material.value as Configuration['appearance']['material']; });
+    row('材质', material);
+    content.append(element('p', '史莱姆随鼠标牵引并弹性回弹，图标保持稳定；切换或轮换主题不会改变材质。'));
     content.append(element('h3', '主题预设'));
     const themes = element('div', undefined, 'themes');
     for (const id of Object.keys(THEMES) as ThemeId[]) {
@@ -207,7 +218,7 @@ function renderAppearance(data: Snapshot) {
             labels[id],
             () =>
                 save((c) => {
-                    c.appearance = { ...THEMES[id], glowIntensity: c.appearance.glowIntensity };
+                    c.appearance = { ...THEMES[id], glowIntensity: c.appearance.glowIntensity, material: c.appearance.material };
                 }),
             JSON.stringify(THEMES[id]) ===
                 JSON.stringify({
@@ -219,6 +230,7 @@ function renderAppearance(data: Snapshot) {
                 : '',
         );
         const swatch = element('span', undefined, 'swatch');
+        b.disabled = config.themeCycle.isEnabled;
         swatch.style.background = `linear-gradient(135deg, ${THEMES[id].primaryHex}, ${THEMES[id].secondaryHex})`;
         b.prepend(swatch);
         themes.append(b);
@@ -231,6 +243,7 @@ function renderAppearance(data: Snapshot) {
         const color = element('input');
         color.type = 'color';
         color.value = config.appearance[key];
+        color.disabled = config.themeCycle.isEnabled;
         color.onchange = () =>
             save((c) => {
                 c.appearance[key] = color.value;
@@ -251,21 +264,22 @@ function renderAppearance(data: Snapshot) {
     row('光晕强度', glow, glowOut);
     const style = element('select');
     for (const [value, title] of [
-        ['clear', '通透'],
-        ['iridescent', '虹彩'],
-        ['moonstone', '月光石'],
-        ['aurora', '极光'],
+        ['clear', '通透柔边'],
+        ['iridescent', '幻彩折光'],
+        ['moonstone', '月光柔雾'],
+        ['aurora', '极光流体'],
     ]) {
         const option = element('option', title);
         option.value = value;
         style.append(option);
     }
     style.value = config.appearance.surfaceStyle;
+    style.disabled = config.themeCycle.isEnabled;
     style.onchange = () =>
         save((c) => {
             c.appearance.surfaceStyle = style.value as Configuration['appearance']['surfaceStyle'];
         });
-    row('表面效果', style);
+    row('光效样式', style);
     content.append(element('h3', '主题轮换'));
     row(
         '启用轮换',

@@ -6,6 +6,12 @@ A transparent glass launcher that floats on your desktop. Keep favorite apps and
 
 **macOS 15+ (native Swift) · Windows 10/11 (Electron + Three.js)**
 
+## Download installers
+
+Version **0.15.0**: [macOS Apple Silicon (.dmg)](https://github.com/gd0306/t-cube/releases/download/v0.15.0/T-Cube-0.15.0-macos-arm64.dmg) · [Windows x64 installer (.exe)](https://github.com/gd0306/t-cube/releases/download/v0.15.0/T-Cube-0.15.0-windows-x64-setup.exe) · [Release notes and SHA-256 checksums](https://github.com/gd0306/t-cube/releases/tag/v0.15.0).
+
+The Windows installer includes its runtime and needs no Node.js installation. Quit an existing T-Cube before updating; shortcut configuration is preserved. These builds are unsigned/ad-hoc signed, not notarized or Developer ID/Authenticode signed.
+
 ## Preview
 
 A lighter glass shell lets the desktop show through. Hover to reveal icons that follow its curved surface.
@@ -32,18 +38,18 @@ Native app renders with sample system icons, enlarged for detail. All previews s
 
 - **Light, transparent glass.** Soft corners, shallow curved faces, subtle reflections, and crisp icons that wrap around the surface.
 - **Six groups, four shortcuts each.** Add local apps or folders; empty slots stay blank. Click areas follow the curved icons.
-- **Free rotation and positioning.** Scroll in either direction; the cube stays where you stop while hovered. Drag with either mouse button to move it.
+- **Free rotation and positioning.** Scroll in either direction; the cube stays where you stop while hovered. Left drag moves it; right drag rotates it.
 - **Quick placement.** Put the cube in any corner or the center of its screen from the menu bar or Appearance settings. Positions save immediately, with room for system bars.
 - **Wandering idle rotation.** Slowly drift through changing directions; hover to stop instantly and leave to resume. Disable it under **Appearance → Dynamic rotation (动态旋转)**. Reduce Motion pauses it automatically.
 - **Hover to enlarge.** Return to the resting size when the pointer leaves; zoom is adjustable from 1.1× to 4×.
 - **Two launch modes.** Expand a face before choosing an icon, or launch directly from icons on the cube.
 - **Personalized glass.** Color presets, custom two-color gradients, glass materials, and automatic theme cycling every 10 or 20 seconds.
-- **Glass or Slime material on macOS.** Use any theme with either material. Slime follows the pointer and springs back while icons stay stable; glass remains the default.
+- **Glass or Slime material on both platforms.** Use any theme with either material. Slime follows the pointer and springs back while icons stay stable; glass remains the default.
 - **Menu-bar or tray access.** Configure, show, hide, or quit from system controls. Motion respects system animation preferences.
 
 ## Windows source installation
 
-Windows 10 22H2 / Windows 11 (x64) have a separate client with the same six shortcut groups, curved icons, theme cycling, hover zoom, dragging, rotation and tray controls. Choose installed applications from a searchable name-and-icon list; portable apps can be added by file. No installer download is needed; see the [Windows guide](windows/README.md). The previews above show the native macOS client.
+Windows 10 22H2 / Windows 11 (x64) have a separate client with the same six shortcut groups, curved icons, shared glass/slime materials and themes, hover zoom, dragging, rotation and tray controls. Choose installed applications from a searchable name-and-icon list; portable apps can be added by file. Use the installer above or follow the source installation in the [Windows guide](windows/README.md). The previews above show the native macOS client.
 
 Give a local AI agent this prompt:
 
@@ -53,7 +59,7 @@ Install https://github.com/gd0306/t-cube (master) on Windows. Follow windows/REA
 
 ## macOS install and run
 
-Current version: **0.12.4**. Use the **master** branch.
+Current version: **0.15.0**. Use the **master** branch.
 
 Running requires macOS 15+. Building requires full Xcode with Swift 6 and the **macOS 27 SDK**. Current local packages target Apple Silicon and use ad-hoc signing; they are not notarized.
 
@@ -64,7 +70,7 @@ bash scripts/build-app.sh
 open build/T-Cube.app
 ```
 
-For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.12.4.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are not included in the repository; macOS security approvals remain with the user.
+For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.15.0.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are distributed through Releases; macOS security approvals remain with the user.
 
 ### Let an agent install it
 

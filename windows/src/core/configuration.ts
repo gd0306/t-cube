@@ -1,7 +1,7 @@
 import type { Appearance, Configuration, Face, FaceGroup, LauncherItem, Slots, ThemeId } from '../shared/contracts';
 import { FACES } from '../shared/contracts';
 
-export const THEMES: Record<ThemeId, Omit<Appearance, 'glowIntensity'>> = {
+export const THEMES: Record<ThemeId, Omit<Appearance, 'glowIntensity' | 'material'>> = {
     aurora: { primaryHex: '#65DEFF', secondaryHex: '#B793FF', surfaceStyle: 'clear' },
     ocean: { primaryHex: '#4CB8FF', secondaryHex: '#3EE4CF', surfaceStyle: 'clear' },
     sunset: { primaryHex: '#FFAA73', secondaryHex: '#EE79B5', surfaceStyle: 'clear' },
@@ -18,7 +18,7 @@ export function defaultConfiguration(): Configuration {
     return {
         version: 1,
         groups: Object.fromEntries(FACES.map((face, index) => [face, { name: names[index], slots: [null, null, null, null] }])) as Record<Face, FaceGroup>,
-        appearance: { ...THEMES.aurora, glowIntensity: 0.55 },
+        appearance: { ...THEMES.aurora, glowIntensity: 0.55, material: 'glass' },
         themeCycle: { isEnabled: false, themes: ['aurora', 'ocean', 'sunset'], intervalSeconds: 10 },
         hover: { isEnabled: true, multiplier: 4 },
         expandsFacesOnClick: true, autoRotatesWhenIdle: true, scale: 1, windowPosition: null,
@@ -86,8 +86,10 @@ export function normalizeConfiguration(input: unknown): Configuration {
     if (![rawAppearance.primaryHex, rawAppearance.secondaryHex].every(value => typeof value === 'string' && /^#[\da-f]{6}$/i.test(value))) throw new Error('Invalid appearance');
     const surfaceStyle = rawAppearance.surfaceStyle === undefined ? 'clear' : rawAppearance.surfaceStyle;
     if (!['clear', 'iridescent', 'moonstone', 'aurora'].includes(surfaceStyle as string)) throw new Error('Invalid appearance');
+    const material = rawAppearance.material === undefined ? 'glass' : rawAppearance.material;
+    if (material !== 'glass' && material !== 'slime') throw new Error('Invalid appearance material');
     const appearance: Appearance = { primaryHex: rawAppearance.primaryHex as string, secondaryHex: rawAppearance.secondaryHex as string,
-        glowIntensity: number(rawAppearance.glowIntensity, 0, 1, 'appearance'), surfaceStyle: surfaceStyle as Appearance['surfaceStyle'] };
+        glowIntensity: number(rawAppearance.glowIntensity, 0, 1, 'appearance'), surfaceStyle: surfaceStyle as Appearance['surfaceStyle'], material };
     const cycle = source.themeCycle === undefined ? defaults.themeCycle : object(source.themeCycle, 'theme cycle');
     const enabled = boolean(cycle.isEnabled, 'theme cycle');
     if (!Array.isArray(cycle.themes) || cycle.themes.some(t => typeof t !== 'string' || !Object.hasOwn(THEMES, t))
@@ -109,7 +111,7 @@ export function resolveAppearance(config: Configuration, elapsedSeconds: number)
     if (!config.themeCycle.isEnabled) return { appearance: { ...config.appearance }, theme: null };
     const elapsed = Number.isFinite(elapsedSeconds) ? Math.max(0, elapsedSeconds) : 0;
     const theme = config.themeCycle.themes[Math.floor(elapsed / config.themeCycle.intervalSeconds) % config.themeCycle.themes.length];
-    return { appearance: { ...THEMES[theme], glowIntensity: config.appearance.glowIntensity }, theme };
+    return { appearance: { ...THEMES[theme], glowIntensity: config.appearance.glowIntensity, material: config.appearance.material }, theme };
 }
 
 function slotIndex(slot: number): void {

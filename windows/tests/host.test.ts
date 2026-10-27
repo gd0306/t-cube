@@ -179,6 +179,105 @@ test('theme state publishes the displayed colors and reduced-motion preference',
     } finally { await f.dispose(); }
 });
 
+test('cycle changes restart at their first theme while appearance and launcher edits retain the active phase', async () => {
+    const f = await fixture();
+    try {
+        f.host.poll(13);
+        const enabled = f.store.snapshot;
+        enabled.themeCycle = { isEnabled: true, themes: ['ocean', 'sunset'], intervalSeconds: 10 };
+        await f.host.applyConfiguration(enabled);
+        assert.equal(f.host.snapshot.state.activeTheme, 'ocean');
+        f.host.poll(23);
+        assert.equal(f.host.snapshot.state.activeTheme, 'sunset');
+        const appearance = f.store.snapshot;
+        appearance.appearance.material = 'slime';
+        appearance.appearance.primaryHex = '#123456';
+        appearance.appearance.glowIntensity = 0.8;
+        await f.host.applyConfiguration(appearance);
+        assert.equal(f.host.snapshot.state.activeTheme, 'sunset');
+        assert.equal(f.host.snapshot.state.displayedAppearance.material, 'slime');
+        assert.equal(f.host.snapshot.state.displayedAppearance.glowIntensity, 0.8);
+        await f.host.renameGroup({ face: 'front', name: 'Work' });
+        await f.host.place('center');
+        assert.equal(f.host.snapshot.state.activeTheme, 'sunset');
+        f.host.poll(33);
+        assert.equal(f.host.snapshot.state.activeTheme, 'ocean');
+        f.host.poll(37);
+        const selected = f.store.snapshot;
+        selected.themeCycle.themes = ['sunset', 'ocean'];
+        await f.host.applyConfiguration(selected);
+        assert.equal(f.host.snapshot.state.activeTheme, 'sunset');
+        f.host.poll(47);
+        assert.equal(f.host.snapshot.state.activeTheme, 'ocean');
+        f.host.poll(48);
+        const interval = f.store.snapshot;
+        interval.themeCycle.intervalSeconds = 20;
+        await f.host.applyConfiguration(interval);
+        assert.equal(f.host.snapshot.state.activeTheme, 'sunset');
+        f.host.poll(58);
+        assert.equal(f.host.snapshot.state.activeTheme, 'sunset');
+        f.host.poll(68);
+        assert.equal(f.host.snapshot.state.activeTheme, 'ocean');
+    } finally { await f.dispose(); }
+});
+
+test('failed cycle saves preserve both the saved cycle and its elapsed phase', async t => {
+    const f = await fixture();
+    try {
+        const enabled = f.store.snapshot;
+        enabled.themeCycle = { isEnabled: true, themes: ['ocean', 'sunset'], intervalSeconds: 10 };
+        await f.host.applyConfiguration(enabled);
+        f.host.poll(13);
+        const changed = f.store.snapshot;
+        changed.themeCycle.themes = ['prism', 'forest'];
+        t.mock.method(f.store, 'update', async () => { throw new Error('disk failed'); });
+        await assert.rejects(f.host.applyConfiguration(changed), /disk failed/);
+        assert.equal(f.host.snapshot.state.activeTheme, 'sunset');
+        f.host.poll(20);
+        assert.equal(f.host.snapshot.state.activeTheme, 'ocean');
+    } finally { await f.dispose(); }
+});
+
+test('queued saves of the same cycle restart only when that cycle is first acknowledged', async t => {
+    const f = await fixture();
+    let finishFirst!: () => void;
+    let finishSecond!: () => void;
+    const firstGate = new Promise<void>(resolve => { finishFirst = resolve; });
+    const secondGate = new Promise<void>(resolve => { finishSecond = resolve; });
+    const pending: Promise<void>[] = [];
+    try {
+        const enabled = f.store.snapshot;
+        enabled.themeCycle = { isEnabled: true, themes: ['ocean', 'sunset'], intervalSeconds: 10 };
+        await f.host.applyConfiguration(enabled);
+        const update = f.store.update.bind(f.store);
+        let writes = 0;
+        t.mock.method(f.store, 'update', async (edit: Parameters<typeof update>[0]) => {
+            const ordinal = ++writes;
+            const saved = await update(edit);
+            await (ordinal === 1 ? firstGate : secondGate);
+            return saved;
+        });
+        f.host.poll(13);
+        const first = f.store.snapshot;
+        first.themeCycle.themes = ['prism', 'ocean'];
+        const second = structuredClone(first);
+        second.appearance.material = 'slime';
+        pending.push(f.host.applyConfiguration(first), f.host.applyConfiguration(second));
+        await eventually(() => writes === 2);
+        f.host.poll(37);
+        assert.equal(f.host.snapshot.state.activeTheme, 'sunset');
+        finishFirst();
+        await pending[0];
+        assert.equal(f.host.snapshot.state.activeTheme, 'prism');
+        f.host.poll(48);
+        assert.equal(f.host.snapshot.state.activeTheme, 'ocean');
+        finishSecond();
+        await pending[1];
+        assert.equal(f.host.snapshot.state.activeTheme, 'ocean');
+        assert.equal(f.host.snapshot.state.displayedAppearance.material, 'slime');
+    } finally { finishFirst(); finishSecond(); await Promise.allSettled(pending); await f.dispose(); }
+});
+
 test('releasing an enlarged drag outside the old bounds stays enlarged under the pointer', async () => {
     const f = await fixture();
     try {

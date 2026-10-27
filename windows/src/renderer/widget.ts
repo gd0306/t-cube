@@ -5,7 +5,10 @@ import {
     ICON_RECTS,
     TEXTURE_SIZE,
     pickCube,
+    pickSurfacePoint,
 } from '../core/geometry';
+import { SlimeMotion } from '../core/slime';
+import { SlimeShell } from '../core/slime-geometry';
 import { applyScrollRotation, DragRotation, IdleRotation, PrismMotion } from '../core/rotation';
 import { FACES, type Appearance, type Face, type Snapshot } from '../shared/contracts';
 import { padTransparentRGB, subscribe, wheelDelta } from './util';
@@ -30,6 +33,11 @@ const idle = new IdleRotation(),
     motion = new PrismMotion();
 cube.quaternion.copy(idle.orientation);
 const body = createBodyGeometry();
+let slimeShell: SlimeShell | undefined;
+let slime = new SlimeMotion();
+let physicalMaterial: Appearance['material'] = 'glass';
+let hoverPointer: { x: number; y: number } | null = null;
+const contactRay = new THREE.Raycaster();
 const glass = new THREE.Mesh(body, createGlassMaterial());
 glass.name = 'glass-shell';
 cube.add(glass);
@@ -80,9 +88,10 @@ function optical(layer: 'pearl' | 'chroma' | 'energy', appearance: Appearance): 
             let color: THREE.Color, alpha: number;
             if (layer === 'pearl') {
                 color = new THREE.Color().setRGB(0.94, 0.98, 1);
+                const soft = appearance.material === 'slime';
                 alpha =
-                    (0.2 * gaussian(v, 0.7 + 0.12 * Math.cos(2 * Math.PI * u), 0.055) +
-                        0.035 * gaussian(v, 0.72, 0.22)) *
+                    ((soft ? 0.68 : 0.2) * gaussian(v, 0.7 + 0.12 * Math.cos(2 * Math.PI * u), soft ? 0.045 : 0.055) +
+                        (soft ? 0.10 : 0.035) * gaussian(v, 0.72, soft ? 0.20 : 0.22)) *
                     (0.35 + 0.65 * wave * wave);
             } else {
                 const mix =
@@ -141,6 +150,14 @@ function updateAppearance(appearance: Appearance) {
     const key = JSON.stringify(appearance);
     if (key === appearanceKey) return;
     appearanceKey = key;
+    if (appearance.material !== physicalMaterial) {
+        physicalMaterial = appearance.material;
+        slime = new SlimeMotion();
+        if (physicalMaterial === 'slime') slimeShell ??= new SlimeShell(body);
+        slimeShell?.reset();
+        const geometry = physicalMaterial === 'slime' ? slimeShell!.geometry : body;
+        for (const mesh of [glass, pearl, chroma]) mesh.geometry = geometry;
+    }
     for (const [mesh, layer] of [
         [pearl, 'pearl'],
         [chroma, 'chroma'],
@@ -226,18 +243,33 @@ function render() {
             !state.configuration.autoRotatesWhenIdle;
     cube.quaternion.copy(idle.step(dt, paused));
     motion.step(dt, state.hovered, state.reducedMotion);
+    for (const material of faceMaterials.values()) material.opacity = state.hovered ? 1 : 0;
+    if (physicalMaterial === 'slime') {
+        const rect = renderer.domElement.getBoundingClientRect();
+        const x = hoverPointer ? hoverPointer.x - window.screenX - rect.left : -1;
+        const y = hoverPointer ? hoverPointer.y - window.screenY - rect.top : -1;
+        if (hoverPointer && state.hovered && !state.interactionActive && !active && !state.reducedMotion
+            && x >= 0 && y >= 0 && x <= rect.width && y <= rect.height) {
+            contactRay.setFromCamera(new THREE.Vector2(x / rect.width * 2 - 1, 1 - y / rect.height * 2), camera);
+            slime.setContact(pickSurfacePoint(contactRay.ray, cube.quaternion));
+        } else slime.setContact(null);
+        const wasActive = slime.isActive;
+        slime.step(dt || 1 / 30, state.reducedMotion);
+        if (wasActive || slime.isActive || state.reducedMotion) slimeShell!.update(slime.deformation);
+    }
     updateGlassMaterial(glass.material, state.displayedAppearance, motion.engagement);
     pearl.material.map!.offset.x = -motion.phase;
     chroma.material.map!.offset.x = motion.phase;
     energy.material.map!.offset.x = motion.phase;
-    pearl.material.opacity = 0.25 * (0.55 + 0.2 * motion.engagement);
+    const opacity = physicalMaterial === 'slime' ? 0.55 : 0.25;
+    pearl.material.opacity = opacity * (0.55 + 0.2 * motion.engagement);
     chroma.material.opacity =
-        0.25 *
+        opacity *
         state.displayedAppearance.glowIntensity *
         (0.55 + 0.25 * motion.engagement) *
         (0.94 + 0.06 * Math.sin(motion.phase * 2 * Math.PI));
     energy.material.opacity =
-        0.25 *
+        opacity *
         state.displayedAppearance.glowIntensity *
         (state.displayedAppearance.surfaceStyle === 'moonstone' ? 0.1 : 0.2) *
         (1 - 0.86 * motion.engagement);
@@ -247,6 +279,7 @@ function render() {
         !state.reducedMotion &&
         (!paused ||
             state.displayedAppearance.glowIntensity > 0 ||
+            (physicalMaterial === 'slime' && slime.isActive) ||
             Math.abs(motion.engagement - (state.hovered ? 1 : 0)) > 0.001);
     timer = animated ? window.setTimeout(render, 1000 / 30) : 0;
 }
@@ -271,6 +304,7 @@ subscribe((data) => {
     idle.orientation.copy(dragRotation.apply(data.state.rotationDrag, idle.orientation));
     cube.quaternion.copy(idle.orientation);
     snapshot = data;
+    if (!data.state.hovered || data.state.interactionActive || !data.state.visible) hoverPointer = null;
     updateAppearance(data.state.displayedAppearance);
     void updateIcons(data);
     requestUpdate();
@@ -283,12 +317,21 @@ window.tcube.onError((message) => {
     }, 5000);
 });
 let active: { button: 0 | 2; id: Promise<number>; ended: boolean } | null = null;
+function followPointer(event: MouseEvent) {
+    hoverPointer = event.buttons === 0 ? { x: event.screenX, y: event.screenY } : null;
+    if (physicalMaterial === 'slime') requestUpdate();
+}
+renderer.domElement.addEventListener('pointerenter', followPointer);
+renderer.domElement.addEventListener('pointermove', followPointer);
+renderer.domElement.addEventListener('pointerleave', () => { hoverPointer = null; requestUpdate(); });
+window.addEventListener('blur', () => { hoverPointer = null; requestUpdate(); });
 renderer.domElement.addEventListener('contextmenu', (event) => event.preventDefault());
 renderer.domElement.addEventListener('pointerdown', (event) => {
     if (event.button !== 0 && event.button !== 2) return;
     if (active && !snapshot?.state.interactionActive) active = null;
     if (active) return;
     event.preventDefault();
+    hoverPointer = null;
     renderer.domElement.setPointerCapture(event.pointerId);
     const button = event.button as 0 | 2;
     active = { button, id: window.tcube.beginPointer(button), ended: false };
@@ -334,6 +377,7 @@ renderer.domElement.addEventListener(
     'wheel',
     (event) => {
         event.preventDefault();
+        followPointer(event);
         const delta = wheelDelta(event.deltaX, event.deltaY, event.shiftKey, event.deltaMode);
         idle.orientation.copy(
             applyScrollRotation(idle.orientation, delta.dx, delta.dy, delta.precise),

@@ -144,3 +144,14 @@ export function pickCube(ray: Ray, quaternion: Quaternion, direct: boolean): Hit
     const face: Face = x >= y && x >= z ? (p.x >= 0 ? 'right' : 'left') : y >= z ? (p.y >= 0 ? 'top' : 'bottom') : (p.z >= 0 ? 'front' : 'back');
     return { face, slot: null };
 }
+
+/** Contact point on the undeformed shell, in cube coordinates, just like native picking. */
+export function pickSurfacePoint(ray: Ray, quaternion: Quaternion): Vector3 | null {
+    if (![...ray.origin.toArray(), ...ray.direction.toArray(), ...quaternion.toArray()].every(Number.isFinite)
+        || ray.direction.lengthSq() === 0 || quaternion.lengthSq() === 0) return null;
+    const inverse = quaternion.clone().normalize().invert();
+    const local = new Ray(ray.origin.clone().applyQuaternion(inverse), ray.direction.clone().applyQuaternion(inverse).normalize());
+    if (!local.intersectsBox(bounds)) return null;
+    body ??= createBodyGeometry();
+    return intersect(local, body, false)?.point ?? null;
+}

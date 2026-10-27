@@ -6,7 +6,8 @@ export interface Size { width: number; height: number }
 export interface Rect extends Point, Size {}
 export type ThemeId = 'aurora' | 'ocean' | 'sunset' | 'starfield' | 'blossom' | 'forest' | 'prism' | 'moonstone' | 'auroraFlow';
 export type SurfaceStyle = 'clear' | 'iridescent' | 'moonstone' | 'aurora';
-export interface Appearance { primaryHex: string; secondaryHex: string; glowIntensity: number; surfaceStyle: SurfaceStyle }
+export type Material = 'glass' | 'slime';
+export interface Appearance { primaryHex: string; secondaryHex: string; glowIntensity: number; surfaceStyle: SurfaceStyle; material: Material }
 export interface LauncherItem { id: string; path: string; name: string; kind: 'application' | 'folder' }
 export type Slots = [LauncherItem | null, LauncherItem | null, LauncherItem | null, LauncherItem | null];
 export interface FaceGroup { name: string; slots: Slots }

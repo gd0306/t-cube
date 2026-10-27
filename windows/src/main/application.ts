@@ -44,6 +44,7 @@ export class LauncherHost {
     private lastState = '';
     private lastFrame = '';
     private elapsed = 0;
+    private cycleEpoch = 0;
     private iconGeneration = 0;
     private position: Point | null = null;
     private readonly pendingSideEffects = new Set<Promise<void>>();
@@ -56,7 +57,7 @@ export class LauncherHost {
         this.publish();
     }
     get snapshot(): Snapshot {
-        const resolved = resolveAppearance(this.configuration, this.elapsed);
+        const resolved = resolveAppearance(this.configuration, this.elapsed - this.cycleEpoch);
         return { state: { configuration: structuredClone(this.configuration), displayedAppearance: resolved.appearance,
             activeTheme: resolved.theme, hovered: this.geometry.hovered, controlHeld: this.controlHeld,
             interactionActive: Boolean(this.gesture && !this.gesture.released), rotationDrag: this.rotationDrag, reducedMotion: this.reducedMotion,
@@ -80,7 +81,16 @@ export class LauncherHost {
     private async update(edit: (config: Configuration) => Configuration | void): Promise<void> {
         const pending = this.store.update(edit);
         this.pendingPersistence.add(pending);
-        try { this.configuration = await pending; this.publish(); }
+        try {
+            const configuration = await pending;
+            const previousCycle = this.configuration.themeCycle, nextCycle = configuration.themeCycle;
+            // Compare acknowledged saves, so queued edits of the same cycle do not restart it twice.
+            if (previousCycle.isEnabled !== nextCycle.isEnabled || previousCycle.intervalSeconds !== nextCycle.intervalSeconds
+                || previousCycle.themes.length !== nextCycle.themes.length
+                || previousCycle.themes.some((theme, index) => theme !== nextCycle.themes[index])) this.cycleEpoch = this.elapsed;
+            this.configuration = configuration;
+            this.publish();
+        }
         finally { this.pendingPersistence.delete(pending); }
     }
     private async savePosition(): Promise<void> {

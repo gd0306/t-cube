@@ -1,0 +1,53 @@
+name: Windows installer
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Exact commit or ref to package
+        type: string
+        required: true
+        default: master
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: windows-2022
+    defaults:
+      run:
+        working-directory: windows
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Build x64 per-user NSIS installer
+        run: npm run package:win
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Verify actual installed application
+        run: ./scripts/verify-installer.ps1 -InstallDirectory "$env:RUNNER_TEMP/T-Cube-Installer-Check"
+      - name: Record source commit
+        run: git rev-parse HEAD | Set-Content -Encoding ascii release/SOURCE_COMMIT.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: t-cube-windows-installer
+          path: |
+            windows/release/*-setup.exe
+            windows/release/*-setup.exe.sha256
+            windows/release/SOURCE_COMMIT.txt
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-installer-diagnostics
+          path: windows/.cache/smoke/
+          if-no-files-found: warn

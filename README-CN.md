@@ -6,6 +6,12 @@
 
 **macOS 15+（原生 Swift） · Windows 10/11（Electron + Three.js）**
 
+## 下载安装包
+
+版本 **0.15.0**：[macOS Apple Silicon（.dmg）](https://github.com/gd0306/t-cube/releases/download/v0.15.0/T-Cube-0.15.0-macos-arm64.dmg) · [Windows x64 安装程序（.exe）](https://github.com/gd0306/t-cube/releases/download/v0.15.0/T-Cube-0.15.0-windows-x64-setup.exe) · [发布说明与 SHA-256 校验](https://github.com/gd0306/t-cube/releases/tag/v0.15.0)。
+
+Windows 安装包自带运行时，无需安装 Node.js。更新前先退出旧版，原有入口配置会保留。当前 macOS 使用本地签名、未公证，Windows 安装程序未做 Authenticode 签名。
+
 ## 效果预览
 
 玻璃外壳、反光与光晕更轻，让桌面背景清晰透出。悬停后，图标沿曲面显示。
@@ -38,12 +44,12 @@
 - **悬停放大**：移入自动放大、移出恢复，倍率可调为 1.1×～4×。
 - **两种打开方式**：先展开面板选择图标，或直接点击立方体面上的图标打开。
 - **个性化玻璃**：主题预设、自定义双色渐变、玻璃材质，以及 10 秒／20 秒主题轮换。
-- **macOS 玻璃／史莱姆材质**：所有主题都能搭配任一材质。史莱姆随鼠标牵引并弹性回弹，图标保持稳定；默认仍为玻璃。
+- **双端玻璃／史莱姆材质**：所有主题都能搭配任一材质。史莱姆随鼠标牵引并弹性回弹，图标保持稳定；默认仍为玻璃。
 - **状态栏常驻**：设置、显示、隐藏与退出集中管理，不占 Dock；光效支持系统「减少动态效果」。
 
 ## Windows 源码安装
 
-Windows 10 22H2 / Windows 11（x64）使用独立客户端，支持同样的六组入口、曲面图标、主题轮换、悬停放大、拖动、旋转与托盘设置。添加应用时可直接搜索、选择已安装应用，便携程序可浏览文件添加。无需下载安装包，具体步骤见 [Windows 指南](windows/README.md)。上面的效果图来自 macOS 原生版。
+Windows 10 22H2 / Windows 11（x64）使用独立客户端，支持同样的六组入口、曲面图标、玻璃／史莱姆材质与共享主题、悬停放大、拖动、旋转与托盘设置。添加应用时可直接搜索、选择已安装应用，便携程序可浏览文件添加。可使用上方安装包，也可按 [Windows 指南](windows/README.md) 从源码安装。上面的效果图来自 macOS 原生版。
 
 给本地 AI agent 的简短提示词：
 
@@ -53,7 +59,7 @@ Windows 10 22H2 / Windows 11（x64）使用独立客户端，支持同样的六�
 
 ## macOS 安装与运行
 
-当前版本为 **0.12.4**，使用 **master** 分支。
+当前版本为 **0.15.0**，使用 **master** 分支。
 
 运行需要 macOS 15+；源码构建需要完整 Xcode、Swift 6 和 **macOS 27 SDK**。当前本地打包产物面向 Apple Silicon，使用 ad-hoc 签名，尚未公证。
 
@@ -64,7 +70,7 @@ bash scripts/build-app.sh
 open build/T-Cube.app
 ```
 
-需要拖拽安装时，运行 `bash scripts/build-dmg.sh`，打开 `build/T-Cube-0.12.4.dmg`，将应用拖入 **Applications**。更新前先退出旧版，保留原配置。构建产物不随源码提交；系统安全授权由用户确认。
+需要自行构建拖拽安装包时，运行 `bash scripts/build-dmg.sh`，打开 `build/T-Cube-0.15.0.dmg`，将应用拖入 **Applications**。更新前先退出旧版，保留原配置。构建产物通过 Releases 分发；系统安全授权由用户确认。
 
 ### 让 agent 帮忙安装
 

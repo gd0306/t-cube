@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addTarget, defaultConfiguration, moveTarget, normalizeConfiguration, removeTarget, renameGroup, resolveAppearance } from '../src/core/configuration';
+import { addTarget, defaultConfiguration, moveTarget, normalizeConfiguration, removeTarget, renameGroup, resolveAppearance, THEMES } from '../src/core/configuration';
 const item = (id: string, path = `C:\\Apps\\${id}.exe`) => ({ id, path, name: id, kind: 'application' as const });
 
 test('older configurations gain new defaults without filling sparse slots', () => {
@@ -13,8 +13,43 @@ test('older configurations gain new defaults without filling sparse slots', () =
     assert.equal(restored.groups.front.slots[2]?.id, 'third');
     assert.equal(restored.hover.multiplier, 4);
     assert.equal(restored.appearance.surfaceStyle, 'clear');
+    assert.equal(restored.appearance.material, 'glass');
     assert.equal(restored.expandsFacesOnClick, true);
     assert.equal(restored.autoRotatesWhenIdle, true);
+});
+
+test('material defaults to glass for existing appearance settings and preserves an explicit slime selection', () => {
+    const original = defaultConfiguration();
+    assert.equal(original.appearance.material, 'glass');
+    const legacy = structuredClone(original) as any;
+    delete legacy.appearance.material;
+    assert.deepEqual(normalizeConfiguration(legacy).appearance, original.appearance);
+    const slime = structuredClone(original);
+    slime.appearance.material = 'slime';
+    assert.equal(normalizeConfiguration(slime).appearance.material, 'slime');
+    assert.equal(original.appearance.material, 'glass');
+});
+
+test('malformed material values fail instead of replacing a saved selection', () => {
+    for (const material of [null, '', 'jelly', 1, {}, []]) {
+        const config = defaultConfiguration();
+        assert.throws(() => normalizeConfiguration({ ...config, appearance: { ...config.appearance, material } }), /appearance|material/i);
+    }
+});
+
+test('all nine themes cycle their palette while retaining the selected physical material', () => {
+    const config = defaultConfiguration();
+    config.appearance.material = 'slime';
+    config.appearance.glowIntensity = 0.8;
+    config.themeCycle = { isEnabled: true, themes: Object.keys(THEMES) as (keyof typeof THEMES)[], intervalSeconds: 10 };
+    assert.equal(config.themeCycle.themes.length, 9);
+    for (const [index, theme] of config.themeCycle.themes.entries()) {
+        assert.deepEqual(resolveAppearance(config, index * 10), {
+            theme, appearance: { ...THEMES[theme], material: 'slime', glowIntensity: 0.8 },
+        });
+    }
+    config.themeCycle.isEnabled = false;
+    assert.equal(resolveAppearance(config, 100).appearance.material, 'slime');
 });
 
 test('target edits preserve holes, shift intervening slots, and isolate duplicate validation to each group', () => {

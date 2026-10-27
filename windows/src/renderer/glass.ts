@@ -14,6 +14,7 @@ export function createGlassMaterial(): ShaderMaterial {
             secondary: { value: new Color('#B793FF') },
             glow: { value: 0.55 },
             engagement: { value: 0 },
+            slime: { value: 0 },
         },
         vertexShader: `
             varying vec3 viewNormal;
@@ -30,6 +31,7 @@ export function createGlassMaterial(): ShaderMaterial {
             uniform vec3 secondary;
             uniform float glow;
             uniform float engagement;
+            uniform float slime;
             varying vec3 viewNormal;
             varying vec3 towardCamera;
             void main() {
@@ -42,7 +44,11 @@ export function createGlassMaterial(): ShaderMaterial {
                 float outer = smoothstep(0.60, 0.96, grazing);
                 reflection = mix(reflection, vec3(0.025, 0.04, 0.065), outer * 0.88);
                 float alpha = 0.018 + rim * (0.32 + 0.035 * engagement);
-                gl_FragColor = vec4(reflection, alpha);
+                vec3 light = normalize(vec3(-0.5, 0.8, 1.0));
+                float wet = pow(max(dot(reflect(-light, normal), normalize(towardCamera)), 0.0), 36.0);
+                vec3 gel = mix(tint, vec3(1.0), 0.15) + vec3(0.35 * wet);
+                float gelAlpha = 0.22 + rim * 0.30 + wet * 0.16;
+                gl_FragColor = vec4(mix(reflection, gel, slime), mix(alpha, gelAlpha, slime));
                 #include <colorspace_fragment>
             }
         `,
@@ -54,4 +60,5 @@ export function updateGlassMaterial(material: ShaderMaterial, appearance: Appear
     material.uniforms.secondary.value.set(appearance.secondaryHex);
     material.uniforms.glow.value = appearance.glowIntensity;
     material.uniforms.engagement.value = engagement;
+    material.uniforms.slime.value = appearance.material === 'slime' ? 1 : 0;
 }

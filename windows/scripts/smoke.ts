@@ -106,6 +106,11 @@ try {
     }
     await move(2, 2);
     await until(bounds, frame => frame.width === 164, 'Resting size incorrect');
+    await until(() => widget.evaluate(async () => {
+        const { controller } = await import(new URL('widget.js', location.href).href);
+        return controller.cube.children.filter((mesh: any) => mesh.geometry?.getAttribute('position').count === 1089)
+            .every((mesh: any) => mesh.material.opacity === 0);
+    }), Boolean, 'Launcher icons must be hidden at rest, matching macOS');
     const contour = await widget.evaluate(async () => {
         const { controller } = await import(new URL('widget.js', location.href).href);
         const faces = controller.cube.children.filter((mesh: any) => mesh.geometry?.getAttribute('position').count === 1089);
@@ -153,6 +158,11 @@ try {
         const faces = controller.cube.children.filter((mesh: any) => mesh.geometry?.getAttribute('position').count === 1089);
         return faces.length === 6 && faces.every((mesh: any) => mesh.material.map?.image.data.some((value: number, index: number) => index % 4 === 3 && value > 0));
     }), Boolean, 'Curved face textures are not ready');
+    await until(() => widget.evaluate(async () => {
+        const { controller } = await import(new URL('widget.js', location.href).href);
+        return controller.cube.children.filter((mesh: any) => mesh.geometry?.getAttribute('position').count === 1089)
+            .every((mesh: any) => mesh.material.opacity === 1);
+    }), Boolean, 'Hover must reveal launcher icons');
     await capture(widget, 'widget-hover.png');
     await capture(widget, 'widget-hover-light.png', true, '#f5f6f8');
     results.push('Native cursor hover enlarged to 4x with configured icons.');
@@ -278,13 +288,71 @@ try {
         }
         results.push('Real Windows application discovery, name search and click-to-add passed.');
     }
+    await settings.getByRole('button', { name: '外观与主题', exact: true }).click();
+    const materialControl = settings.getByRole('combobox', { name: '材质', exact: true });
+    assert.equal(await materialControl.inputValue(), 'glass');
+    const readShell = () => widget.evaluate(async () => {
+        const { controller } = await import(new URL('widget.js', location.href).href);
+        const shell: any = controller.cube.getObjectByName('glass-shell');
+        return Array.from(shell.geometry.getAttribute('position').array) as number[];
+    });
+    const rigidShell = await readShell();
+    const iconsBefore = await widget.evaluate(async () => {
+        const { controller } = await import(new URL('widget.js', location.href).href);
+        return controller.cube.children.filter((mesh: any) => mesh.geometry?.getAttribute('position').count === 1089)
+            .map((mesh: any) => [mesh.geometry.uuid, mesh.geometry.getAttribute('position').version]);
+    });
+    await materialControl.selectOption('slime');
+    await until(snapshot, value => value.state.configuration.appearance.material === 'slime', 'Material selector did not persist slime');
+    await settings.getByRole('button', { name: '海洋', exact: true }).click();
+    await until(snapshot, value => value.state.configuration.appearance.primaryHex === '#4CB8FF', 'Shared theme did not apply');
+    assert.equal((await snapshot()).state.displayedAppearance.material, 'slime', 'Selecting a theme must preserve material');
+    const cycling = structuredClone((await snapshot()).state.configuration);
+    cycling.themeCycle = { isEnabled: true, themes: ['ocean', 'sunset'], intervalSeconds: 10 };
+    await settings.evaluate(config => window.tcube.applyConfiguration(config), cycling);
+    await until(snapshot, value => value.state.activeTheme === 'ocean', 'Theme cycling did not start');
+    assert.equal((await snapshot()).state.displayedAppearance.material, 'slime');
+    await capture(settings, 'settings-materials.png', false);
+    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(win => win.webContents.getURL().endsWith('/settings.html'))?.hide());
+    const slimeResting = await bounds();
+    await move(slimeResting.x + slimeResting.width / 2, slimeResting.y + slimeResting.height / 2);
+    await until(bounds, frame => frame.width > 300, 'Slime hover enlargement failed');
+    const slimeFrame = await bounds();
+    await move(slimeFrame.x + slimeFrame.width / 2, slimeFrame.y + slimeFrame.height / 2);
+    const shellDistance = () => widget.evaluate(async (original: number[]) => {
+        const { controller } = await import(new URL('widget.js', location.href).href);
+        const shell: any = controller.cube.getObjectByName('glass-shell');
+        const points = shell.geometry.getAttribute('position').array;
+        let largest = 0;
+        for (let i = 0; i < points.length; i += 3) largest = Math.max(largest,
+            Math.hypot(points[i] - original[i], points[i + 1] - original[i + 1], points[i + 2] - original[i + 2]));
+        return largest;
+    }, rigidShell);
+    await until(shellDistance, value => value > 0.04, 'Actual native pointer motion did not deform the slime shell');
+    const iconsAfter = await widget.evaluate(async () => {
+        const { controller } = await import(new URL('widget.js', location.href).href);
+        return controller.cube.children.filter((mesh: any) => mesh.geometry?.getAttribute('position').count === 1089)
+            .map((mesh: any) => [mesh.geometry.uuid, mesh.geometry.getAttribute('position').version]);
+    });
+    assert.deepEqual(iconsAfter, iconsBefore, 'Slime must not deform launcher decals');
+    await capture(widget, 'widget-slime-hover.png');
+    await capture(widget, 'widget-slime-hover-light.png', true, '#f5f6f8');
+    await move(2, 2);
+    await until(shellDistance, value => value < 0.0001, 'Slime did not settle after native pointer exit');
+    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(win => win.webContents.getURL().endsWith('/settings.html'))?.show());
+    await materialControl.selectOption('glass');
+    await until(snapshot, value => value.state.displayedAppearance.material === 'glass', 'Glass selection failed during cycling');
+    assert.deepEqual(await readShell(), rigidShell, 'Glass must restore the original rigid geometry');
+    results.push('Independent material UI, shared theme/cycling, native slime pointer deformation, stable icon decals, rebound and glass restoration passed.');
+
     const saved = await snapshot();
     const updated = structuredClone(saved.state.configuration);
     updated.expandsFacesOnClick = false;
     updated.hover.multiplier = 2;
     updated.themeCycle = { isEnabled: true, themes: ['ocean', 'sunset'], intervalSeconds: 10 };
     await settings.evaluate(config => window.tcube.applyConfiguration(config), updated);
-    await until(snapshot, value => !value.state.configuration.expandsFacesOnClick && value.state.activeTheme === 'ocean', 'Preference change not applied');
+    await until(snapshot, value => !value.state.configuration.expandsFacesOnClick
+        && (value.state.activeTheme === 'ocean' || value.state.activeTheme === 'sunset'), 'Preference change not applied');
     await settings.evaluate(() => window.tcube.place('bottomRight'));
     const placed = (await snapshot()).state.configuration.windowPosition;
     const expected = await app.evaluate(({ screen }, size) => {
