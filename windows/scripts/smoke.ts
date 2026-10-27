@@ -31,6 +31,9 @@ let previewIcons: Record<string, string> | undefined;
 const catalogExecutable = path.join(data, 'catalog-smoke.exe');
 const catalogRegistryKey = `HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\tcube-${path.basename(data)}.exe`;
 let catalogRegistered = false;
+const catalogDisplayName = `T-Cube catalog smoke ${path.basename(data)}`;
+const catalogShortcut = process.platform === 'win32' ? path.join(process.env.APPDATA!, 'Microsoft', 'Windows', 'Start Menu', 'Programs', `${catalogDisplayName}.lnk`) : '';
+let catalogShortcutCreated = false;
 async function sendPreviewIcons() {
     if (!previewIcons) return;
     await app!.evaluate(({ BrowserWindow }, icons) => {
@@ -71,7 +74,7 @@ try {
         await copyFile(path.join(process.env.WINDIR!, 'System32', 'notepad.exe'), catalogExecutable);
         execFileSync('reg.exe', ['ADD', catalogRegistryKey, '/ve', '/t', 'REG_SZ', '/d', catalogExecutable, '/f'], { windowsHide: true });
         catalogRegistered = true;
-        execFileSync('reg.exe', ['ADD', catalogRegistryKey, '/v', 'FriendlyAppName', '/t', 'REG_SZ', '/d', 'T-Cube catalog smoke', '/f'], { windowsHide: true });
+        execFileSync('reg.exe', ['ADD', catalogRegistryKey, '/v', 'FriendlyAppName', '/t', 'REG_SZ', '/d', catalogDisplayName, '/f'], { windowsHide: true });
     }
     const executablePath = process.env.TCUBE_SMOKE_EXECUTABLE;
     app = await _electron.launch({
@@ -81,6 +84,13 @@ try {
         timeout: 30_000
     });
     originalCursor = await app.evaluate(({ screen }) => screen.getCursorScreenPoint());
+    if (process.platform === 'win32') {
+        await mkdir(path.dirname(catalogShortcut), { recursive: true });
+        catalogShortcutCreated = await app.evaluate(({ shell }, fixture) => shell.writeShortcutLink(fixture.link, 'create', {
+            target: fixture.executable, cwd: fixture.directory, description: fixture.name, appUserModelId: fixture.id,
+        }), { link: catalogShortcut, executable: catalogExecutable, directory: data, name: catalogDisplayName, id: `TCube.Smoke.${path.basename(data)}` });
+        assert.ok(catalogShortcutCreated);
+    }
     const launchContext = await app.evaluate(({ app }) => ({ directory: app.getPath('userData'), override: process.env.TCUBE_USER_DATA_DIR, appPath: app.getAppPath() }));
     console.log('Smoke launch context:', JSON.stringify(launchContext));
     assert.equal(path.resolve(launchContext.directory), path.resolve(data), 'Electron must use the explicit isolated configuration directory');
@@ -198,8 +208,11 @@ try {
         await capture(settings, 'application-picker.png', false);
         await result.click();
         await settings.locator('.application-picker').waitFor({ state: 'hidden' });
-        await until(snapshot, value => value.state.configuration.groups.right.slots[0]?.path === catalogExecutable, 'Catalog selection did not reach the requested slot');
-        assert.equal((await snapshot()).state.configuration.groups.right.slots[0]?.name, 'T-Cube catalog smoke');
+        await until(snapshot, value => value.state.configuration.groups.right.slots[0]?.path === catalogShortcut, 'Catalog selection did not preserve the original launch shortcut');
+        assert.equal((await snapshot()).state.configuration.groups.right.slots[0]?.name, catalogDisplayName);
+        const originalLink = await app.evaluate(({ shell }, file) => shell.readShortcutLink(file), catalogShortcut);
+        assert.equal(originalLink.cwd, data);
+        assert.equal(originalLink.args ?? '', '');
         const catalog = await settings.evaluate(() => window.tcube.listInstalledApplications());
         assert.ok(catalog.length > 1, 'The catalog should include real installed applications');
         const virtual = catalog.find(entry => entry.detail === 'Windows 应用');
@@ -263,6 +276,7 @@ try {
     if (process.platform === 'win32') { input.control(false); input.button(0, false); input.button(2, false); }
     if (originalCursor) await move(originalCursor.x, originalCursor.y).catch(() => {});
     await app?.close().catch(() => {});
+    if (catalogShortcutCreated) await rm(catalogShortcut, { force: true });
     if (catalogRegistered) execFileSync('reg.exe', ['DELETE', catalogRegistryKey, '/f'], { windowsHide: true });
     await rm(data, { recursive: true, force: true });
 }

@@ -11,7 +11,7 @@ test('registered apps are normalized, deduplicated and exclude non-launchable fi
         { name: 'Uninstall', path: 'C:\\Apps\\unins000.exe' },
         { name: 'Remote', path: '\\\\server\\app.exe' },
         { name: 'Injected', path: 'App & calc.exe' },
-        { name: 'Link', path: 'C:\\Menu\\App.lnk' },
+        { name: 'Link', path: 'C:\\Menu\\App.lnk', target: 'C:\\Other\\App.exe' },
     ]);
     assert.equal(apps.length, 3);
     assert.deepEqual(
@@ -22,6 +22,45 @@ test('registered apps are normalized, deduplicated and exclude non-launchable fi
     assert.equal(
         normalizeApplications([{ name: 'Editor', path: 'C:\\Apps\\Editor.exe' }])[0].id,
         apps.find((app) => app.name === 'Editor')!.id,
+    );
+});
+
+test('shortcuts retain launch context while exact executable and app-ID aliases are deduplicated', () => {
+    const apps = normalizeApplications([
+        { name: 'Editor executable', path: 'C:\\Apps\\Editor.exe' },
+        { name: 'Editor', path: 'Vendor.Editor' },
+        {
+            name: 'Editor',
+            path: 'C:\\Menu\\Editor.lnk',
+            target: 'C:\\Apps\\Editor.exe',
+            arguments: '',
+            workingDirectory: 'C:\\Workspace',
+            appId: 'Vendor.Editor',
+        },
+        {
+            name: 'Duplicate link',
+            path: 'C:\\OtherMenu\\Editor.lnk',
+            target: 'C:\\Apps\\Editor.exe',
+            arguments: '',
+            workingDirectory: 'C:\\Workspace',
+        },
+        {
+            name: 'Another workspace',
+            path: 'C:\\Menu\\Editor2.lnk',
+            target: 'C:\\Apps\\Editor.exe',
+            arguments: '',
+            workingDirectory: 'C:\\Workspace2',
+        },
+        { name: 'Folder link', path: 'C:\\Menu\\Tools.lnk', target: 'C:\\Tools' },
+        {
+            name: 'Uninstaller link',
+            path: 'C:\\Menu\\Remove.lnk',
+            target: 'C:\\Apps\\uninstall.exe',
+        },
+    ]);
+    assert.deepEqual(
+        apps.map((app) => app.path).sort(),
+        ['C:\\Menu\\Editor.lnk', 'C:\\Menu\\Editor2.lnk'].sort(),
     );
 });
 

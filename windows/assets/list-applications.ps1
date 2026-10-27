@@ -2,31 +2,44 @@ $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
 $records = New-Object System.Collections.ArrayList
 $shell = New-Object -ComObject Shell.Application
+$links = New-Object -ComObject WScript.Shell
+function Add-ApplicationShortcut([string]$name, [string]$file) {
+    try {
+        $link = $links.CreateShortcut($file)
+        $target = [Environment]::ExpandEnvironmentVariables([string]$link.TargetPath)
+        if ($target -notmatch '^[a-zA-Z]:\\.*\.exe$' -or -not (Test-Path -LiteralPath $target -PathType Leaf)) { return }
+        if ([IO.Path]::GetFileName($target) -match '^(unins\d*|uninstall(er)?|setup)\.exe$') { return }
+        $appId = ''
+        try {
+            $parent = $shell.NameSpace([IO.Path]::GetDirectoryName($file))
+            $appId = [string]$parent.ParseName([IO.Path]::GetFileName($file)).ExtendedProperty('System.AppUserModel.ID')
+        } catch { }
+        [void]$records.Add(@{
+            name = $name; path = $file; target = $target
+            arguments = [string]$link.Arguments
+            workingDirectory = [Environment]::ExpandEnvironmentVariables([string]$link.WorkingDirectory)
+            appId = $appId
+        })
+    } catch { }
+}
 $folder = $shell.NameSpace('shell:::{4234d49b-0245-4df3-b780-3893943456e1}')
 if ($null -eq $folder) { throw 'Windows application catalog is unavailable.' }
 foreach ($entry in $folder.Items()) {
     try {
         $entryPath = [string]$entry.Path
-        try {
-            $resolved = [string]$entry.ExtendedProperty('System.Link.TargetParsingPath')
-            $arguments = [string]$entry.ExtendedProperty('System.Link.Arguments')
-            if ($resolved -match '^[a-zA-Z]:\\.*\.exe$' -and [string]::IsNullOrWhiteSpace($arguments) -and (Test-Path -LiteralPath $resolved -PathType Leaf)) { $entryPath = $resolved }
-        } catch { }
+        if ($entryPath -match '^[a-zA-Z]:\\.*\.lnk$') {
+            Add-ApplicationShortcut ([string]$entry.Name) $entryPath
+            continue
+        }
         if (-not [string]::IsNullOrWhiteSpace($entry.Name) -and -not [string]::IsNullOrWhiteSpace($entryPath)) {
             [void]$records.Add(@{ name = [string]$entry.Name; path = $entryPath })
         }
     } catch { continue }
 }
-$links = New-Object -ComObject WScript.Shell
 foreach ($startMenu in @([Environment]::GetFolderPath('Programs'), [Environment]::GetFolderPath('CommonPrograms'))) {
     foreach ($file in (Get-ChildItem -LiteralPath $startMenu -Filter '*.lnk' -Recurse -File -ErrorAction SilentlyContinue)) {
         try {
-            $link = $links.CreateShortcut($file.FullName)
-            $target = [Environment]::ExpandEnvironmentVariables([string]$link.TargetPath)
-            if ($target -notmatch '^[a-zA-Z]:\\.*\.exe$' -or -not (Test-Path -LiteralPath $target -PathType Leaf)) { continue }
-            if ([IO.Path]::GetFileName($target) -match '^(unins\d*|uninstall(er)?|setup)\.exe$') { continue }
-            $launch = if ([string]::IsNullOrWhiteSpace($link.Arguments)) { $target } else { $file.FullName }
-            [void]$records.Add(@{ name = $file.BaseName; path = $launch })
+            Add-ApplicationShortcut $file.BaseName $file.FullName
         } catch { continue }
     }
 }

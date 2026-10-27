@@ -16,6 +16,10 @@ export interface ApplicationServices {
 export function normalizeApplications(input: unknown): ApplicationCandidate[] {
     if (!Array.isArray(input) || input.length > 5000) throw new Error('无法读取已安装应用列表');
     const apps = new Map<string, ApplicationCandidate>();
+    const links = new Map<
+        string,
+        { identity: string; target: string; arguments: string; appId: string }
+    >();
     for (const value of input) {
         if (!value || typeof value !== 'object') continue;
         const { name, path } = value;
@@ -37,10 +41,32 @@ export function normalizeApplications(input: unknown): ApplicationCandidate[] {
         if (!file && !shell) continue;
         if (file && /^(?:unins\d*|uninstall(?:er)?|setup)\.exe$/i.test(win32.basename(path)))
             continue;
+        const isLink = file && /\.lnk$/i.test(path);
+        const linkTarget = typeof value.target === 'string' ? value.target : '';
+        if (
+            isLink &&
+            (!/^[a-z]:[\\/].*\.exe$/i.test(linkTarget) ||
+                /[\0-\x1f"<>|?*]/.test(linkTarget) ||
+                linkTarget.slice(2).includes(':') ||
+                /^(?:unins\d*|uninstall(?:er)?|setup)\.exe$/i.test(win32.basename(linkTarget)))
+        )
+            continue;
         const target = file ? win32.normalize(path) : path;
         const key = file ? target.toLowerCase() : `shell:${target}`;
         if (apps.has(key)) continue;
         const id = createHash('sha256').update(key).digest('hex').slice(0, 32);
+        if (isLink) {
+            const targetKey = win32.normalize(linkTarget).toLowerCase();
+            const argumentsText = typeof value.arguments === 'string' ? value.arguments : '';
+            const directory =
+                typeof value.workingDirectory === 'string' ? value.workingDirectory : '';
+            links.set(id, {
+                target: targetKey,
+                arguments: argumentsText,
+                identity: JSON.stringify([targetKey, argumentsText, directory.toLowerCase()]),
+                appId: typeof value.appId === 'string' ? value.appId : '',
+            });
+        }
         apps.set(key, {
             id,
             name: name.trim(),
@@ -49,11 +75,26 @@ export function normalizeApplications(input: unknown): ApplicationCandidate[] {
             kind: file ? 'file' : 'shell',
         });
     }
-    return [...apps.values()].sort(
-        (a, b) =>
-            a.name.localeCompare(b.name, 'zh-CN', { sensitivity: 'base', numeric: true }) ||
-            a.id.localeCompare(b.id),
-    );
+    const preferredLinks = new Map<string, string>(),
+        defaultTargets = new Set<string>(),
+        appIds = new Set<string>();
+    for (const [id, link] of links) {
+        if (!preferredLinks.has(link.identity)) preferredLinks.set(link.identity, id);
+        if (!link.arguments.trim()) defaultTargets.add(link.target);
+        if (link.appId) appIds.add(link.appId);
+    }
+    return [...apps.values()]
+        .filter((entry) => {
+            const link = links.get(entry.id);
+            if (link) return preferredLinks.get(link.identity) === entry.id;
+            if (entry.kind === 'shell') return !appIds.has(entry.path);
+            return !defaultTargets.has(entry.path.toLowerCase());
+        })
+        .sort(
+            (a, b) =>
+                a.name.localeCompare(b.name, 'zh-CN', { sensitivity: 'base', numeric: true }) ||
+                a.id.localeCompare(b.id),
+        );
 }
 
 export class InstalledApplications {
