@@ -72,6 +72,8 @@ try {
     await move(initial.x + initial.width / 2, initial.y + initial.height / 2);
     await until(bounds, frame => frame.width === 656, 'Hover did not enlarge to 4x');
     await until(snapshot, value => value.state.hovered, 'Hover state not published');
+    await until(snapshot, value => Object.keys(value.icons).length === 24, 'Native target icons did not load');
+    assert.equal(await widget.locator('canvas').count(), 1);
     await capture(widget, 'widget-hover.png');
     results.push('Native cursor hover enlarged to 4x with configured icons.');
 
@@ -144,7 +146,7 @@ try {
     throw error;
 } finally {
     if (process.platform === 'win32') { input.control(false); input.button(0, false); input.button(2, false); }
-    if (originalCursor) input.move(originalCursor.x, originalCursor.y);
-    await app?.close();
+    if (originalCursor) await move(originalCursor.x, originalCursor.y).catch(() => {});
+    await app?.close().catch(() => {});
     await rm(data, { recursive: true, force: true });
 }
