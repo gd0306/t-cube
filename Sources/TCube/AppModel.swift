@@ -16,7 +16,8 @@ final class AppModel: ObservableObject {
     private(set) var loadFailure: Error?
 
     var displayedAppearance: CubeAppearance {
-        activeTheme?.appearance(glowIntensity: configuration.appearance.glowIntensity) ?? configuration.appearance
+        activeTheme?.appearance(glowIntensity: configuration.appearance.glowIntensity,
+                                material: configuration.appearance.material) ?? configuration.appearance
     }
 
     init(store: ConfigurationStore = ConfigurationStore(url: ConfigurationStore.defaultURL)) {

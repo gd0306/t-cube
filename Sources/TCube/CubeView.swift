@@ -115,7 +115,7 @@ final class CubeView: ARView {
 
     func refreshAppearance() {
         let appearance = model.displayedAppearance
-        let enabled = appearance.surfaceStyle == .slime
+        let enabled = appearance.material == .slime
         if enabled != slimeEnabled {
             slime = SlimeMotion()
             slimeEnabled = enabled

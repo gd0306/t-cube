@@ -1,5 +1,7 @@
 # macOS slime hover experiment
 
+Historical prototype record. The integrated version exposes slime as an independent material, shared by all themes; see [material selection verification](2026-10-28-material-selection.md).
+
 Branch: `experiment/slime-hover`, based on `450a54f` on `master`.
 
 ## Behavior

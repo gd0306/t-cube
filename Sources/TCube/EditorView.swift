@@ -174,6 +174,7 @@ private struct AppearanceSettingsView: View {
     @State private var secondary = Color.purple
     @State private var glowIntensity = 0.55
     @State private var surfaceStyle: CubeSurfaceStyle = .clear
+    @State private var material: CubeMaterial = .glass
     @State private var scale = 1.0
     @State private var cycleEnabled = false
     @State private var cycleThemes: [CubeThemePreset] = [.aurora, .ocean, .sunset]
@@ -186,7 +187,7 @@ private struct AppearanceSettingsView: View {
     private var stagedAppearance: CubeAppearance {
         CubeAppearance(primaryHex: NSColor(primary).hexRGB,
                        secondaryHex: NSColor(secondary).hexRGB,
-                       glowIntensity: glowIntensity, surfaceStyle: surfaceStyle)
+                       glowIntensity: glowIntensity, surfaceStyle: surfaceStyle, material: material)
     }
 
     private var selectedPreset: String {
@@ -218,6 +219,16 @@ private struct AppearanceSettingsView: View {
         VStack(spacing: 0) {
             Form {
                 Section {
+                    Picker("材质", selection: $material) {
+                        ForEach(CubeMaterial.allCases) { material in Text(material.name).tag(material) }
+                    }
+                    .pickerStyle(.segmented)
+                } header: {
+                    Text("立方体材质")
+                } footer: {
+                    Text(material == .slime ? "鼠标划过时牵引果冻表面，移开后弹性回弹；所有主题都可使用史莱姆材质。" : "原有的通透玻璃外观；所有主题都可使用玻璃材质。")
+                }
+                Section {
                     LabeledContent("主题预设") {
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 8) {
                             ForEach(CubeThemePreset.allCases) { preset in presetButton(preset) }
@@ -225,7 +236,7 @@ private struct AppearanceSettingsView: View {
                         .frame(width: 330)
                     }
                     .disabled(cycleEnabled)
-                    Picker("外壳材质", selection: $surfaceStyle) {
+                    Picker("光效样式", selection: $surfaceStyle) {
                         ForEach(CubeSurfaceStyle.allCases) { style in Text(style.name).tag(style) }
                     }
                     .disabled(cycleEnabled)
@@ -244,7 +255,7 @@ private struct AppearanceSettingsView: View {
                 } header: {
                     Text("主题与光晕")
                 } footer: {
-                    Text(cycleEnabled ? "轮换使用所选主题的配色、材质与当前光晕强度；关闭轮换后恢复上方保存的主题。" : surfaceStyle == .slime ? "史莱姆：鼠标划过时牵引果冻表面，移开后弹性回弹；应用图标保持稳定。" : "静置时显示透明立方体与渐变光晕；鼠标移入后显示应用图标。")
+                    Text(cycleEnabled ? "轮换使用所选主题的配色与光效，保留上方选择的材质；关闭轮换后恢复保存的主题。" : "主题配色与光效适用于所有材质；鼠标移入后显示应用图标。")
                 }
                 Section {
                     Toggle("自动轮换主题", isOn: $cycleEnabled)
@@ -387,6 +398,7 @@ private struct AppearanceSettingsView: View {
         secondary = Color(nsColor: NSColor(hexRGB: appearance.secondaryHex) ?? .purple)
         glowIntensity = appearance.glowIntensity
         surfaceStyle = appearance.surfaceStyle
+        material = appearance.material
         scale = model.configuration.scale
         cycleEnabled = model.configuration.themeCycle.isEnabled
         cycleThemes = model.configuration.themeCycle.themes

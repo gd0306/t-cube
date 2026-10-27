@@ -3,20 +3,26 @@ import Testing
 @testable import CubeCore
 
 struct SoftGlassThemeTests {
-    @Test func slimeIsAnExplicitPersistentThemeAndNeverAnImplicitDefault() throws {
-        #expect(CubeAppearance().surfaceStyle == .clear)
-        #expect(CubeConfiguration().appearance.surfaceStyle == .clear)
-        #expect(!CubeThemeCycle().themes.contains(.slime))
+    @Test func materialsAreIndependentOfEveryThemeAndPersistWithoutChangingDefaults() throws {
+        #expect(CubeAppearance().material == .glass)
+        #expect(CubeConfiguration().appearance.material == .glass)
+        for theme in CubeThemePreset.allCases {
+            let glass = theme.appearance(glowIntensity: 0.63, material: .glass)
+            let slime = theme.appearance(glowIntensity: 0.63, material: .slime)
+            #expect(glass.primaryHex == slime.primaryHex)
+            #expect(glass.secondaryHex == slime.secondaryHex)
+            #expect(glass.surfaceStyle == slime.surfaceStyle)
+            #expect(slime.material == .slime)
+        }
         var configuration = CubeConfiguration()
-        configuration.appearance = CubeThemePreset.slime.appearance(glowIntensity: 0.63)
-        configuration.themeID = CubeThemePreset.slime.id
-        configuration.themeCycle = CubeThemeCycle(isEnabled: true, themes: [.prism, .slime])
+        configuration.appearance = CubeThemePreset.prism.appearance(glowIntensity: 0.63, material: .slime)
+        configuration.themeCycle = CubeThemeCycle(isEnabled: true, themes: [.prism, .moonstone])
         let restored = try JSONDecoder().decode(CubeConfiguration.self, from: JSONEncoder().encode(configuration))
         #expect(restored == configuration)
-        #expect(restored.appearance.surfaceStyle == .slime)
+        #expect(restored.appearance.material == .slime)
+        #expect(restored.appearance.surfaceStyle == .iridescent)
         #expect(restored.appearance.glowIntensity == 0.63)
-        #expect(restored.themeCycle.next(after: .prism) == .slime)
-        #expect(restored.themeCycle.next(after: .slime) == .prism)
+        #expect(restored.themeCycle.next(after: .prism) == .moonstone)
         try restored.validate()
     }
 
@@ -36,6 +42,7 @@ struct SoftGlassThemeTests {
         let json = Data(##"{"primaryHex":"#345678","secondaryHex":"#ABCDEF","glowIntensity":0.42}"##.utf8)
         let restored = try JSONDecoder().decode(CubeAppearance.self, from: json)
         #expect(restored.surfaceStyle == .clear)
+        #expect(restored.material == .glass)
         #expect(restored.primaryHex == "#345678")
         #expect(restored.secondaryHex == "#ABCDEF")
         #expect(restored.glowIntensity == 0.42)

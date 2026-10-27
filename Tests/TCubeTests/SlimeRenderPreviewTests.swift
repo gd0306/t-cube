@@ -15,7 +15,7 @@ struct SlimeRenderPreviewTests {
         let store = ConfigurationStore(url: directory.appendingPathComponent("configuration.json"))
         var configuration = CubeConfiguration()
         configuration.autoRotatesWhenIdle = false
-        configuration.appearance.surfaceStyle = .slime
+        configuration.appearance.material = .slime
         for face in CubeFace.allCases {
             for name in ["Messages", "Calendar", "Music", "Notes"] {
                 try configuration.add(LauncherItem(url: URL(fileURLWithPath: "/System/Applications/\(name).app"), name: name, kind: .application), to: face)

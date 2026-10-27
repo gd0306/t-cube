@@ -4,7 +4,7 @@ import RealityKit
 import CubeCore
 import simd
 
-/// The original glass shell, with opt-in gel rendering for the slime theme.
+/// Glass and deformable gel share the same theme colors and optical styles.
 /// Launcher icons remain independent of both optical surfaces.
 @MainActor
 final class CubeAura {
@@ -59,8 +59,9 @@ final class CubeAura {
 
     func update(appearance: CubeAppearance) {
         guard appearance != self.appearance else { return }
-        let isSlime = appearance.surfaceStyle == .slime
-        if appearance.surfaceStyle != self.appearance?.surfaceStyle {
+        let isSlime = appearance.material == .slime
+        let materialChanged = appearance.material != self.appearance?.material
+        if materialChanged {
             if isSlime {
                 if slimeMesh == nil { slimeMesh = try? SlimeShellMesh() }
                 slimeMesh?.update(SlimeDeformation())
@@ -74,7 +75,7 @@ final class CubeAura {
             pearlMaterial = Self.material(texture: isSlime ? Self.slimePearlTexture : Self.pearlTexture)
             gel?.isEnabled = isSlime
         }
-        if appearance.primaryHex != self.appearance?.primaryHex || appearance.secondaryHex != self.appearance?.secondaryHex || appearance.surfaceStyle != self.appearance?.surfaceStyle {
+        if materialChanged || appearance.primaryHex != self.appearance?.primaryHex || appearance.secondaryHex != self.appearance?.secondaryHex || appearance.surfaceStyle != self.appearance?.surfaceStyle {
             if isSlime { gel?.model?.materials = [Self.material(texture: Self.opticalTexture(layer: .gel, appearance: appearance))] }
             chromaMaterial = Self.material(texture: Self.opticalTexture(layer: .chroma, appearance: appearance))
             energyMaterial = appearance.surfaceStyle == .clear ? nil : Self.material(texture: Self.opticalTexture(layer: .energy, appearance: appearance))
@@ -84,7 +85,7 @@ final class CubeAura {
     }
 
     func deform(_ deformation: SlimeDeformation) {
-        guard appearance?.surfaceStyle == .slime else { return }
+        guard appearance?.material == .slime else { return }
         slimeMesh?.update(deformation)
     }
 
@@ -195,7 +196,7 @@ final class CubeAura {
                     case .moonstone:
                         color = blend * 0.35 + SIMD3(repeating: 0.65)
                         alpha = gaussian(v, 0.52, 0.28) * (0.04 + 0.08 * wave)
-                    case .aurora, .slime:
+                    case .aurora:
                         color = blend * 0.85 + SIMD3(repeating: 0.15)
                         let fold = 0.45 + 0.15 * sin(2 * .pi * u)
                         alpha = gaussian(v, fold, 0.16) * (0.07 + 0.12 * wave * wave)

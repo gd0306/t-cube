@@ -8,13 +8,13 @@ import simd
 @MainActor
 @Suite(.serialized)
 struct SlimeInteractionTests {
-    @Test func themeCycleEnablesSlimeOnlyOnItsTurnAndRestoresTheSavedManualTheme() throws {
+    @Test func cyclingThemesPreservesMaterialAndChangingMaterialKeepsTheActiveTheme() throws {
         _ = NSApplication.shared
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let store = ConfigurationStore(url: directory.appendingPathComponent("configuration.json"))
         var configuration = CubeConfiguration()
-        configuration.appearance = CubeThemePreset.slime.appearance(glowIntensity: 0.55)
-        configuration.themeCycle = CubeThemeCycle(isEnabled: true, themes: [.prism, .slime])
+        configuration.appearance = CubeThemePreset.moonstone.appearance(glowIntensity: 0.55, material: .slime)
+        configuration.themeCycle = CubeThemeCycle(isEnabled: true, themes: [.prism, .auroraFlow])
         try store.save(configuration)
         let model = AppModel(store: store)
         defer { model.stopThemeCycle(); try? FileManager.default.removeItem(at: directory) }
@@ -22,20 +22,27 @@ struct SlimeInteractionTests {
         model.onAppearanceChange = { [weak view] in view?.refreshAppearance() }
         model.onChange = { [weak view] in view?.refreshTextures() }
         let shell = try #require(view.cube.findEntity(named: "glass-shell") as? ModelEntity)
-        #expect(shell.model?.mesh.lowLevelMesh == nil)
+        #expect(shell.model?.mesh.lowLevelMesh != nil)
+        #expect(model.displayedAppearance.surfaceStyle == .iridescent)
         model.advanceTheme()
         #expect(shell.model?.mesh.lowLevelMesh != nil)
         #expect(view.cube.findEntity(named: "slime-gel")?.isEnabled == true)
-        model.advanceTheme()
+        #expect(model.displayedAppearance.surfaceStyle == .aurora)
+        model.change { $0.appearance.material = .glass }
         #expect(shell.model?.mesh.lowLevelMesh == nil)
+        #expect(model.activeTheme == .auroraFlow)
+        #expect(model.displayedAppearance.primaryHex == CubeThemePreset.auroraFlow.primaryHex)
+        model.change { $0.appearance.material = .slime }
+        #expect(model.activeTheme == .auroraFlow)
         #expect(try store.load().appearance == configuration.appearance)
         model.change { $0.themeCycle.isEnabled = false }
         #expect(shell.model?.mesh.lowLevelMesh != nil)
-        #expect(model.displayedAppearance.surfaceStyle == .slime)
+        #expect(model.displayedAppearance.material == .slime)
+        #expect(model.displayedAppearance.surfaceStyle == .moonstone)
         #expect(try store.load().appearance == configuration.appearance)
     }
 
-    @Test func ordinaryThemesStayRigidWhenSwitchingIntoAndOutOfSlime() throws {
+    @Test func glassStaysRigidAcrossThemesAndSwitchingMaterialsRestoresTheRestingShape() throws {
         _ = NSApplication.shared
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let model = AppModel(store: ConfigurationStore(url: directory.appendingPathComponent("configuration.json")))
@@ -53,7 +60,7 @@ struct SlimeInteractionTests {
         #expect(try positions(of: shell) == initial, "Default glass must keep its original rigid surface")
         #expect(shell.model?.mesh.lowLevelMesh == nil, "Ordinary themes must not allocate a deforming mesh")
         #expect(view.cube.findEntity(named: "slime-gel")?.isEnabled != true)
-        model.change { $0.appearance.surfaceStyle = .slime }
+        model.change { $0.appearance.material = .slime }
         view.refreshAppearance()
         let restingSlime = try positions(of: shell)
         for _ in 0..<20 { view.advanceAnimations(deltaTime: 1.0 / 30, reducedMotion: false) }
@@ -61,7 +68,7 @@ struct SlimeInteractionTests {
         #expect(view.cube.findEntity(named: "slime-gel")?.isEnabled == true)
         #expect(zip(restingSlime, try positions(of: shell)).contains { simd_distance($0, $1) > 0.04 })
         for style in [CubeSurfaceStyle.clear, .iridescent, .moonstone, .aurora] {
-            model.change { $0.appearance.surfaceStyle = style }
+            model.change { $0.appearance.surfaceStyle = style; $0.appearance.material = .glass }
             view.refreshAppearance()
             surface.input.mouseMoved(with: event)
             for _ in 0..<20 { view.advanceAnimations(deltaTime: 1.0 / 30, reducedMotion: false) }
@@ -69,7 +76,7 @@ struct SlimeInteractionTests {
             #expect(shell.model?.mesh.lowLevelMesh == nil)
             #expect(view.cube.findEntity(named: "slime-gel")?.isEnabled != true)
         }
-        model.change { $0.appearance.surfaceStyle = .slime }
+        model.change { $0.appearance.material = .slime }
         view.refreshAppearance()
         #expect(try positions(of: shell) == restingSlime, "Re-entering slime must discard the previous deformation")
     }
@@ -79,7 +86,7 @@ struct SlimeInteractionTests {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let store = ConfigurationStore(url: directory.appendingPathComponent("configuration.json"))
         var configuration = CubeConfiguration()
-        configuration.appearance = CubeThemePreset.slime.appearance(glowIntensity: 0.55)
+        configuration.appearance = CubeThemePreset.auroraFlow.appearance(glowIntensity: 0.55, material: .slime)
         try store.save(configuration)
         let saved = try Data(contentsOf: store.url)
         let model = AppModel(store: store)

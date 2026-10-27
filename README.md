@@ -38,7 +38,7 @@ Native app renders with sample system icons, enlarged for detail. All previews s
 - **Hover to enlarge.** Return to the resting size when the pointer leaves; zoom is adjustable from 1.1× to 4×.
 - **Two launch modes.** Expand a face before choosing an icon, or launch directly from icons on the cube.
 - **Personalized glass.** Color presets, custom two-color gradients, glass materials, and automatic theme cycling every 10 or 20 seconds.
-- **Optional Slime theme on macOS.** Pull a translucent gel surface with the pointer and watch it spring back. The original glass remains the default; icons stay stable.
+- **Glass or Slime material on macOS.** Use any theme with either material. Slime follows the pointer and springs back while icons stay stable; glass remains the default.
 - **Menu-bar or tray access.** Configure, show, hide, or quit from system controls. Motion respects system animation preferences.
 
 ## Windows source installation
@@ -83,7 +83,7 @@ Settings open on first launch. Reopen them by right-clicking the cube or using i
 3. To launch directly, disable **Expand faces on click (点击面展开放大)** under **Launch behavior (打开方式)**, then click **Apply settings (应用设置)**. Blank areas and empty slots do nothing.
 4. Use **Quick placement (快捷位置)** in the menu bar or Appearance to move to a corner or the screen center. Placement applies and saves immediately.
 
-For the gel effect, choose **Appearance → Theme presets → Slime (史莱姆)** and click **Apply settings**. Turn off automatic theme cycling first to select a fixed theme, or explicitly include Slime in the cycling list. Switching to another theme restores its original glass appearance.
+For the gel effect, choose **Appearance → Material (材质) → Slime (史莱姆)** and click **Apply settings**. Themes, custom colors and automatic theme cycling work with both materials. Changing themes preserves the selected material; choose **Glass (玻璃)** to restore the original rigid shell.
 
 | Action | Result |
 | --- | --- |
