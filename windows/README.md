@@ -1,8 +1,12 @@
 # T-Cube for Windows
 
-Version **0.13.0** targets Windows 10 22H2 / Windows 11, x64. This client uses Electron and Three.js; the repository's macOS client remains native Swift. No installer download is required.
+Version **0.13.1** targets Windows 10 22H2 / Windows 11, x64. This client uses Electron and Three.js; the repository's macOS client remains native Swift. No installer download is required.
 
 ## Preview
+
+Resting size on dark and light backgrounds:
+
+<p><img src="../docs/images/windows-idle-dark.png" width="164" alt="Visible glass contour at resting size on a dark background"><img src="../docs/images/windows-idle-light.png" width="164" alt="Visible glass contour at resting size on a light background"></p>
 
 <p><img src="../docs/images/windows-hover.png" width="400" alt="Curved icons on a very transparent glass body"><img src="../docs/images/windows-expanded.png" width="180" alt="Four-icon translucent expansion panel"></p>
 
