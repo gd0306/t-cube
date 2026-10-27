@@ -108,8 +108,8 @@ try {
         input.button(0, true);
         await until(snapshot, value => value.state.interactionActive, 'Ctrl drag did not begin');
         input.control(false);
-        await move(pointer.x + 80, pointer.y + 35);
-        await until(bounds, frame => frame.x > before.x + 40 && frame.width === 164, 'Ctrl drag did not move at resting size');
+        await move(pointer.x + 240, pointer.y + 130);
+        await until(bounds, frame => frame.x > before.x + 160 && frame.width === 164, 'Ctrl drag did not move beyond its original bounds at resting size');
         input.button(0, false);
         await until(snapshot, value => !value.state.interactionActive, 'Outside release did not finish');
         await move(2, 2);

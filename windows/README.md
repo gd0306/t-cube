@@ -1,6 +1,14 @@
 # T-Cube for Windows
 
-Windows 10 22H2 / Windows 11, x64. This client uses Electron and Three.js; the repository's macOS client remains native Swift. No installer download is required.
+Version **0.13.0** targets Windows 10 22H2 / Windows 11, x64. This client uses Electron and Three.js; the repository's macOS client remains native Swift. No installer download is required.
+
+## Preview
+
+<p><img src="../docs/images/windows-hover.png" width="400" alt="Curved icons on a very transparent glass body"><img src="../docs/images/windows-expanded.png" width="180" alt="Four-icon translucent expansion panel"></p>
+
+<img src="../docs/images/windows-settings.png" width="760" alt="Windows client settings with six groups, four slots and quit control">
+
+Captured from the installed source client on Windows CI. The transparent widget and expansion are composited over a graphite background for readability. Settings use their actual light background.
 
 ## Let a local agent install it
 
@@ -49,6 +57,6 @@ npm run build
 npm start
 ```
 
-`npm run smoke` launches the real Electron app with a temporary store. CI exercises source installation on Windows runners and saves screenshots/logs. See `docs/verification/` at the repository root for executed checks and remaining hardware validation. No installer is built or published.
+`npm run smoke` launches the real Electron app with a temporary store. CI exercises source installation on Windows runners and saves screenshots/logs. See the [verification record](../docs/verification/2026-10-27-windows-support.md) for executed checks and remaining hardware validation. No installer is built or published.
 
 `src/core/` contains reusable behavior and curved geometry, `src/main/` owns native windows and IPC, `src/native/` wraps Win32 input and shell icons, and `src/renderer/` contains widget/settings UI. The sandboxed preload exposes a narrow typed API; renderers cannot execute shell commands or read arbitrary files.
