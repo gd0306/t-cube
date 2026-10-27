@@ -352,3 +352,36 @@ test('right click waits for late renderer release before opening settings', asyn
         assert.equal(f.settings, 1);
     } finally { await f.dispose(); }
 });
+
+test('native right release opens settings after grace when renderer end is missing', async t => {
+    let time = 1000;
+    t.mock.method(Date, 'now', () => time);
+    const f = await fixture();
+    try {
+        f.input.primaryDown = false; f.input.secondaryDown = true;
+        const gestureId = f.host.beginPointer(2);
+        f.input.secondaryDown = false; f.host.poll();
+        time += 149; f.host.poll();
+        assert.equal(f.settings, 0);
+        time += 1; f.host.poll();
+        assert.equal(f.settings, 1);
+        await f.host.endPointer({ gestureId, button: 2, hit: null });
+        f.host.poll();
+        assert.equal(f.settings, 1);
+    } finally { await f.dispose(); }
+});
+
+test('native right fallback is suppressed by cancellation within grace', async t => {
+    let time = 1000;
+    t.mock.method(Date, 'now', () => time);
+    const f = await fixture();
+    try {
+        f.input.primaryDown = false; f.input.secondaryDown = true;
+        const gestureId = f.host.beginPointer(2);
+        f.input.secondaryDown = false; f.host.poll();
+        time += 149;
+        await f.host.endPointer({ gestureId, button: 2, hit: null, cancelled: true });
+        time += 100; f.host.poll();
+        assert.equal(f.settings, 0);
+    } finally { await f.dispose(); }
+});

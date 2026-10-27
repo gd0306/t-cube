@@ -118,6 +118,8 @@ export class LauncherHost {
             }
             if (input.available && !(gesture.button === 0 ? input.primaryDown : input.secondaryDown)) this.release(gesture);
         }
+        if (this.gesture?.released && this.gesture.button === 2 && this.gesture.hit === undefined
+            && Date.now() - this.gesture.releasedAt >= 150) this.dispatchClick(this.gesture);
         if (this.gesture?.released && Date.now() - this.gesture.releasedAt > 1500) this.gesture = null;
         // During a drag the platform frame follows the pointer; hover remains frozen until release.
         if (!this.gesture || this.gesture.released || !this.gesture.dragged) this.publish();

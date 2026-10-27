@@ -15,6 +15,7 @@ let snapshot: Snapshot | undefined,
     face: Face = 'front',
     page = 'groups';
 let preferences: PreferenceQueue | undefined;
+let contentPointerActive = false;
 const nameDraft = new NameDraft();
 const labels: Record<ThemeId, string> = {
     aurora: '极光',
@@ -135,7 +136,7 @@ function renderGroups(data: Snapshot) {
         });
     };
     input.onblur = () => {
-        queueMicrotask(render);
+        if (!contentPointerActive) setTimeout(render, 0);
     };
     nameRow.append(label, input);
     content.append(nameRow);
@@ -373,7 +374,8 @@ function renderBehavior(data: Snapshot) {
 }
 function render() {
     if (!snapshot) return;
-    if (shouldDeferSettingsRender(page, document.activeElement?.id ?? null)) return;
+    if (contentPointerActive || shouldDeferSettingsRender(page, document.activeElement?.id ?? null))
+        return;
     const data = {
         ...snapshot,
         state: {
@@ -415,3 +417,21 @@ subscribe((data) => {
         render();
     }
 });
+
+content.addEventListener(
+    'pointerdown',
+    () => {
+        contentPointerActive = true;
+    },
+    true,
+);
+function finishContentPointer() {
+    if (!contentPointerActive) return;
+    setTimeout(() => {
+        contentPointerActive = false;
+        render();
+    }, 0);
+}
+window.addEventListener('pointerup', finishContentPointer, true);
+window.addEventListener('pointercancel', finishContentPointer, true);
+window.addEventListener('blur', finishContentPointer);

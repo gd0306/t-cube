@@ -15,11 +15,11 @@ const scene = new THREE.Scene(),
     cube = new THREE.Group();
 scene.add(cube);
 const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
-camera.position.z = 3.8;
+camera.position.z = 3.45;
 const renderer = new THREE.WebGLRenderer({
     alpha: true,
     antialias: true,
-    premultipliedAlpha: false,
+    premultipliedAlpha: true,
 });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setClearColor(0, 0);
@@ -78,8 +78,8 @@ function optical(layer: 'pearl' | 'chroma' | 'energy', appearance: Appearance): 
     const w = 512,
         h = 256,
         pixels = new Uint8Array(w * h * 4),
-        a = new THREE.Color(appearance.primaryHex),
-        b = new THREE.Color(appearance.secondaryHex);
+        a = new THREE.Color(appearance.primaryHex).convertLinearToSRGB(),
+        b = new THREE.Color(appearance.secondaryHex).convertLinearToSRGB();
     const gaussian = (v: number, center: number, width: number) =>
         Math.exp(-(((v - center) / width) ** 2));
     for (let y = 0; y < h; y++)
