@@ -184,6 +184,9 @@ try {
     if (process.platform === 'win32') {
         await settings.getByRole('button', { name: '添加应用', exact: true }).first().click();
         const search = settings.getByRole('searchbox', { name: '搜索已安装的应用' });
+        await until(() => settings.locator('.application-result').count(), count => count > 1, 'Installed application list is empty');
+        await settings.locator('.application-icon img').first().waitFor({ state: 'visible', timeout: 10_000 });
+        await capture(settings, 'application-picker-all.png', false);
         await search.fill('T-Cube catalog smoke');
         const result = settings.locator('.application-result').filter({ hasText: 'T-Cube catalog smoke' }).first();
         await result.waitFor({ state: 'visible', timeout: 30_000 });

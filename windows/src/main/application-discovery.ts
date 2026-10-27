@@ -7,7 +7,10 @@ import { InstalledApplications, type ApplicationCandidate } from './applications
 import { validateLocalTarget } from './targets';
 import { extractIconInWorker } from '../native/icon-service';
 
-export function createApplicationCatalog(directory: string, userData: string): InstalledApplications {
+export function createApplicationCatalog(
+    directory: string,
+    userData: string,
+): InstalledApplications {
     const images = new Map<string, Promise<NativeImage | null>>();
     async function loadImage(entry: ApplicationCandidate): Promise<NativeImage | null> {
         const target = entry.kind === 'shell' ? `shell:AppsFolder\\${entry.path}` : entry.path;
@@ -15,32 +18,64 @@ export function createApplicationCatalog(directory: string, userData: string): I
             if (entry.kind === 'file') return await app.getFileIcon(entry.path, { size: 'large' });
             const bitmap = await extractIconInWorker(target);
             if (bitmap) {
-                const image = nativeImage.createFromBitmap(bitmap.pixels, { width: bitmap.width, height: bitmap.height });
+                const image = nativeImage.createFromBitmap(bitmap.pixels, {
+                    width: bitmap.width,
+                    height: bitmap.height,
+                });
                 if (!image.isEmpty()) return image;
             }
-        } catch { /* Missing icons do not remove launchable applications. */ }
+        } catch {
+            /* Missing icons do not remove launchable applications. */
+        }
         return null;
     }
     function image(entry: ApplicationCandidate): Promise<NativeImage | null> {
         let pending = images.get(entry.id);
-        if (!pending) { pending = loadImage(entry); images.set(entry.id, pending); }
+        if (!pending) {
+            pending = loadImage(entry);
+            images.set(entry.id, pending);
+        }
         return pending;
     }
     return new InstalledApplications({
         query: async () => {
-            if (process.platform !== 'win32') throw new Error('已安装应用列表仅在 Windows 上可用，请使用浏览文件');
-            const executable = path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+            if (process.platform !== 'win32')
+                throw new Error('已安装应用列表仅在 Windows 上可用，请使用浏览文件');
+            const executable = path.join(
+                process.env.SystemRoot ?? 'C:\\Windows',
+                'System32',
+                'WindowsPowerShell',
+                'v1.0',
+                'powershell.exe',
+            );
             try {
-                const { stdout } = await promisify(execFile)(executable,
-                    ['-NoProfile', '-NonInteractive', '-STA', '-ExecutionPolicy', 'Bypass', '-File', path.join(directory, 'assets', 'list-applications.ps1')],
-                    { encoding: 'utf8', windowsHide: true, timeout: 20_000, maxBuffer: 4 * 1024 * 1024 });
+                const { stdout } = await promisify(execFile)(
+                    executable,
+                    [
+                        '-NoProfile',
+                        '-NonInteractive',
+                        '-STA',
+                        '-ExecutionPolicy',
+                        'Bypass',
+                        '-File',
+                        path.join(directory, 'assets', 'list-applications.ps1'),
+                    ],
+                    {
+                        encoding: 'utf8',
+                        windowsHide: true,
+                        timeout: 20_000,
+                        maxBuffer: 4 * 1024 * 1024,
+                    },
+                );
                 images.clear();
                 return JSON.parse(stdout.replace(/^\uFEFF/, '').trim() || '[]');
-            } catch { throw new Error('无法读取 Windows 应用列表，请刷新或使用浏览文件'); }
+            } catch {
+                throw new Error('无法读取 Windows 应用列表，请刷新或使用浏览文件');
+            }
         },
-        validate: target => validateLocalTarget(target, 'application'),
-        icon: async entry => (await image(entry))?.toDataURL() ?? null,
-        shortcut: async entry => {
+        validate: (target) => validateLocalTarget(target, 'application'),
+        icon: async (entry) => (await image(entry))?.toDataURL() ?? null,
+        shortcut: async (entry) => {
             // Only catalog-owned IDs enter these arguments; never accept shell text from a renderer.
             const folder = path.join(userData, 'applications');
             await mkdir(folder, { recursive: true });
@@ -49,16 +84,21 @@ export function createApplicationCatalog(directory: string, userData: string): I
             let icon: string | undefined;
             if (picture && !picture.isEmpty()) {
                 const resized = picture.resize({ width: 256, height: 256 });
-                const png = resized.toPNG(), header = Buffer.alloc(22);
-                header.writeUInt16LE(1, 2); header.writeUInt16LE(1, 4);
-                header.writeUInt16LE(1, 10); header.writeUInt16LE(32, 12);
-                header.writeUInt32LE(png.length, 14); header.writeUInt32LE(22, 18);
+                const png = resized.toPNG(),
+                    header = Buffer.alloc(22);
+                header.writeUInt16LE(1, 2);
+                header.writeUInt16LE(1, 4);
+                header.writeUInt16LE(1, 10);
+                header.writeUInt16LE(32, 12);
+                header.writeUInt32LE(png.length, 14);
+                header.writeUInt32LE(22, 18);
                 icon = path.join(folder, `${entry.id}.ico`);
                 await writeFile(icon, Buffer.concat([header, png]));
             }
             const success = shell.writeShortcutLink(shortcut, 'create', {
                 target: path.join(process.env.SystemRoot ?? 'C:\\Windows', 'explorer.exe'),
-                args: `shell:AppsFolder\\${entry.path}`, description: entry.name,
+                args: `shell:AppsFolder\\${entry.path}`,
+                description: entry.name,
                 ...(icon ? { icon, iconIndex: 0 } : {}),
             });
             if (!success) throw new Error('无法创建应用入口，请重试');

@@ -2,7 +2,10 @@ import { createHash } from 'node:crypto';
 import { win32 } from 'node:path';
 import type { InstalledApplication, LauncherItem } from '../shared/contracts';
 
-export interface ApplicationCandidate extends InstalledApplication { path: string; kind: 'file' | 'shell' }
+export interface ApplicationCandidate extends InstalledApplication {
+    path: string;
+    kind: 'file' | 'shell';
+}
 export interface ApplicationServices {
     query(): Promise<unknown>;
     validate(path: string): Promise<LauncherItem>;
@@ -16,18 +19,41 @@ export function normalizeApplications(input: unknown): ApplicationCandidate[] {
     for (const value of input) {
         if (!value || typeof value !== 'object') continue;
         const { name, path } = value;
-        if (typeof name !== 'string' || !name.trim() || name.length > 256 || typeof path !== 'string' || path.length > 32767 || /[\0-\x1f]/.test(name + path)) continue;
-        const file = /^[a-z]:[\\/]/i.test(path) && !/["<>|?*]/.test(path) && !path.slice(2).includes(':') && /\.(exe|lnk)$/i.test(path);
+        if (
+            typeof name !== 'string' ||
+            !name.trim() ||
+            name.length > 256 ||
+            typeof path !== 'string' ||
+            path.length > 32767 ||
+            /[\0-\x1f]/.test(name + path)
+        )
+            continue;
+        const file =
+            /^[a-z]:[\\/]/i.test(path) &&
+            !/["<>|?*]/.test(path) &&
+            !path.slice(2).includes(':') &&
+            /\.(exe|lnk)$/i.test(path);
         const shell = /^[a-z0-9][a-z0-9.!_{}-]{0,511}$/i.test(path);
         if (!file && !shell) continue;
-        if (file && /^(?:unins\d*|uninstall(?:er)?|setup)\.exe$/i.test(win32.basename(path))) continue;
+        if (file && /^(?:unins\d*|uninstall(?:er)?|setup)\.exe$/i.test(win32.basename(path)))
+            continue;
         const target = file ? win32.normalize(path) : path;
         const key = file ? target.toLowerCase() : `shell:${target}`;
         if (apps.has(key)) continue;
         const id = createHash('sha256').update(key).digest('hex').slice(0, 32);
-        apps.set(key, { id, name: name.trim(), detail: file ? target : 'Windows 应用', path: target, kind: file ? 'file' : 'shell' });
+        apps.set(key, {
+            id,
+            name: name.trim(),
+            detail: file ? target : 'Windows 应用',
+            path: target,
+            kind: file ? 'file' : 'shell',
+        });
     }
-    return [...apps.values()].sort((a, b) => a.name.localeCompare(b.name, 'zh-CN', { sensitivity: 'base', numeric: true }) || a.id.localeCompare(b.id));
+    return [...apps.values()].sort(
+        (a, b) =>
+            a.name.localeCompare(b.name, 'zh-CN', { sensitivity: 'base', numeric: true }) ||
+            a.id.localeCompare(b.id),
+    );
 }
 
 export class InstalledApplications {
@@ -40,13 +66,19 @@ export class InstalledApplications {
     async list(refresh = false): Promise<InstalledApplication[]> {
         if (this.loading) return this.loading;
         if (!refresh && this.loaded && Date.now() < this.validUntil) return this.publicEntries();
-        this.loading = this.services.query().then(raw => {
-            const entries = normalizeApplications(raw);
-            this.entries = new Map(entries.map(entry => [entry.id, entry]));
-            this.loaded = true; this.validUntil = Date.now() + 60_000;
-            this.images.clear();
-            return this.publicEntries();
-        }).finally(() => { this.loading = null; });
+        this.loading = this.services
+            .query()
+            .then((raw) => {
+                const entries = normalizeApplications(raw);
+                this.entries = new Map(entries.map((entry) => [entry.id, entry]));
+                this.loaded = true;
+                this.validUntil = Date.now() + 60_000;
+                this.images.clear();
+                return this.publicEntries();
+            })
+            .finally(() => {
+                this.loading = null;
+            });
         return this.loading;
     }
     private publicEntries(): InstalledApplication[] {
@@ -57,20 +89,30 @@ export class InstalledApplications {
         const entry = this.entries.get(id);
         if (!entry) throw new Error('应用列表已更新，请刷新后重新选择');
         const path = entry.kind === 'file' ? entry.path : await this.services.shortcut(entry);
-        const item = await this.services.validate(path);
+        let item: LauncherItem;
+        try {
+            item = await this.services.validate(path);
+        } catch {
+            throw new Error('所选应用已被移动或卸载，请刷新列表后重新选择');
+        }
         return { ...item, name: entry.name, kind: 'application' };
     }
     async icons(ids: string[]): Promise<Record<string, string>> {
         if (!Array.isArray(ids) || ids.length > 32) throw new Error('图标请求过多');
         const icons: Record<string, string> = {};
-        await Promise.all([...new Set(ids)].map(async id => {
-            const entry = this.entries.get(id);
-            if (!entry) return;
-            let image = this.images.get(id);
-            if (!image) { image = this.services.icon(entry).catch(() => null); this.images.set(id, image); }
-            const url = await image;
-            if (url) icons[id] = url;
-        }));
+        await Promise.all(
+            [...new Set(ids)].map(async (id) => {
+                const entry = this.entries.get(id);
+                if (!entry) return;
+                let image = this.images.get(id);
+                if (!image) {
+                    image = this.services.icon(entry).catch(() => null);
+                    this.images.set(id, image);
+                }
+                const url = await image;
+                if (url) icons[id] = url;
+            }),
+        );
         return icons;
     }
 }

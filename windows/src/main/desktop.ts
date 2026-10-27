@@ -63,8 +63,8 @@ export class DesktopApplication {
             validateTarget: validateLocalTarget,
             chooseTarget: async request => {
                 const options: Electron.OpenDialogOptions = request.kind === 'folder'
-                    ? { title: 'Choose a folder', properties: ['openDirectory'] }
-                    : { title: 'Choose an application or shortcut', properties: ['openFile'], filters: [{ name: 'Applications and shortcuts', extensions: ['exe', 'lnk'] }] };
+                    ? { title: '选择文件夹', properties: ['openDirectory'] }
+                    : { title: '选择应用程序文件', properties: ['openFile'], filters: [{ name: '应用程序', extensions: ['exe'] }, { name: '快捷方式', extensions: ['lnk'] }] };
                 const result = await dialog.showOpenDialog(this.settings ?? this.widget, options);
                 return result.canceled ? [] : result.filePaths;
             },
