@@ -26,6 +26,7 @@ const results: string[] = [];
 let app: ElectronApplication | undefined;
 let widget!: Page;
 let originalCursor: { x: number; y: number } | undefined;
+let originalAnimations: boolean | undefined;
 const input = nativeInput();
 let previewIcons: Record<string, string> | undefined;
 const catalogExecutable = path.join(data, 'catalog-smoke.exe');
@@ -41,8 +42,8 @@ async function sendPreviewIcons() {
     }, previewIcons);
 }
 
-async function until<T>(read: () => Promise<T>, check: (value: T) => boolean, message: string): Promise<T> {
-    const deadline = Date.now() + 10_000;
+async function until<T>(read: () => Promise<T>, check: (value: T) => boolean, message: string, timeout = 10_000): Promise<T> {
+    const deadline = Date.now() + timeout;
     let last: T;
     do {
         last = await read();
@@ -72,6 +73,9 @@ async function capture(page: Page, name: string, backdrop = true, background = '
 
 try {
     if (process.platform === 'win32') {
+        originalAnimations = input.animations();
+        input.animations(true);
+        assert.equal(input.animations(), true);
         await copyFile(path.join(process.env.WINDIR!, 'System32', 'notepad.exe'), catalogExecutable);
         execFileSync('reg.exe', ['ADD', catalogRegistryKey, '/ve', '/t', 'REG_SZ', '/d', catalogExecutable, '/f'], { windowsHide: true });
         catalogRegistered = true;
@@ -254,12 +258,13 @@ try {
         await settings.locator('.application-picker').waitFor({ state: 'hidden' });
         await settings.getByRole('button', { name: '添加应用', exact: true }).first().click();
         const search = settings.getByRole('searchbox', { name: '搜索已安装的应用' });
-        await until(() => settings.locator('.application-result').count(), count => count > 1, 'Installed application list is empty');
+        // The real discovery subprocess has a 20-second bound, plus UI delivery.
+        await until(() => settings.locator('.application-result').count(), count => count > 1, 'Installed application list is empty', 30_000);
         await settings.locator('.application-icon img').first().waitFor({ state: 'visible', timeout: 10_000 });
         await capture(settings, 'application-picker-all.png', false);
         await search.fill('T-Cube catalog smoke');
         await settings.getByRole('button', { name: '刷新列表', exact: true }).click();
-        await until(() => settings.getByRole('button', { name: '刷新列表', exact: true }).isEnabled(), Boolean, 'Application refresh did not finish');
+        await until(() => settings.getByRole('button', { name: '刷新列表', exact: true }).isEnabled(), Boolean, 'Application refresh did not finish', 30_000);
         const result = settings.locator('.application-result').filter({ hasText: 'T-Cube catalog smoke' }).first();
         await result.waitFor({ state: 'visible', timeout: 30_000 });
         assert.equal(await settings.locator('.application-result').filter({ hasText: 'T-Cube catalog smoke' }).count(), 1, 'Short paths and shortcut aliases should appear as one application');
@@ -335,6 +340,15 @@ try {
         return largest;
     }, rigidShell);
     await until(shellDistance, value => value > 0.04, 'Actual native pointer motion did not deform the slime shell');
+    if (process.platform === 'win32') {
+        input.animations(false);
+        await until(snapshot, value => value.state.reducedMotion, 'Native reduced-motion setting was not observed');
+        await until(shellDistance, value => value < 0.0001, 'Reduced Motion must restore an undeformed shell');
+        input.animations(true);
+        await until(snapshot, value => !value.state.reducedMotion, 'Native animation preference did not resume');
+        await until(shellDistance, value => value > 0.04, 'Slime did not resume under the stationary native pointer');
+        results.push('Actual Windows animation preference disabled deformation and restoring it resumed native pointer response.');
+    }
     const iconsAfter = await widget.evaluate(async () => {
         const { controller } = await import(new URL('widget.js', location.href).href);
         return controller.cube.children.filter((mesh: any) => mesh.geometry?.getAttribute('position').count === 1089)
@@ -399,7 +413,10 @@ try {
     if (widget) await capture(widget, 'failure.png').catch(() => {});
     throw error;
 } finally {
-    if (process.platform === 'win32') { input.control(false); input.button(0, false); input.button(2, false); }
+    if (process.platform === 'win32') {
+        try { input.control(false); input.button(0, false); input.button(2, false); }
+        finally { if (originalAnimations !== undefined) input.animations(originalAnimations); }
+    }
     if (originalCursor) await move(originalCursor.x, originalCursor.y).catch(() => {});
     await app?.close().catch(() => {});
     if (catalogShortcutCreated) await rm(catalogShortcut, { force: true });
