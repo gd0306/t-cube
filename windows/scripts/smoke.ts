@@ -205,6 +205,10 @@ try {
         await until(() => settings.getByRole('button', { name: '刷新列表', exact: true }).isEnabled(), Boolean, 'Application refresh did not finish');
         const result = settings.locator('.application-result').filter({ hasText: 'T-Cube catalog smoke' }).first();
         await result.waitFor({ state: 'visible', timeout: 30_000 });
+        const rawCatalog = JSON.parse(execFileSync(path.join(process.env.SystemRoot!, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
+            ['-NoProfile', '-NonInteractive', '-STA', '-ExecutionPolicy', 'Bypass', '-File', path.resolve('dist/assets/list-applications.ps1')],
+            { encoding: 'utf8', windowsHide: true, maxBuffer: 4 * 1024 * 1024 }).replace(/^\uFEFF/, ''));
+        console.log('Owned catalog fixture records:', JSON.stringify(rawCatalog.filter((entry: any) => entry.name === catalogDisplayName)));
         await capture(settings, 'application-picker.png', false);
         await result.click();
         await settings.locator('.application-picker').waitFor({ state: 'hidden' });
