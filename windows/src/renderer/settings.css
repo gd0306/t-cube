@@ -1,0 +1,213 @@
+:root {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #202b39;
+    background: #f4f6f9;
+    font-size: 14px;
+}
+* {
+    box-sizing: border-box;
+}
+body {
+    margin: 0;
+    min-width: 760px;
+    min-height: 580px;
+}
+header {
+    height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 32px;
+    border-bottom: 1px solid #dce2e9;
+    background: #fff;
+}
+h1 {
+    font-size: 23px;
+    letter-spacing: -0.03em;
+    margin: 3px 0 0;
+}
+small {
+    color: #7b8999;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+}
+main {
+    display: grid;
+    grid-template-columns: 180px minmax(0, 1fr);
+    min-height: calc(100vh - 90px);
+}
+nav {
+    padding: 24px 15px;
+    border-right: 1px solid #dce2e9;
+}
+nav button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: 0;
+    padding: 11px 14px;
+    color: #596879;
+}
+nav button.active {
+    background: #e0e9f5;
+    color: #225a91;
+    font-weight: 600;
+}
+section {
+    padding: 30px 38px 50px;
+    max-width: 850px;
+}
+h2 {
+    font-size: 21px;
+    margin: 0 0 6px;
+}
+h3 {
+    font-size: 15px;
+    margin: 26px 0 12px;
+}
+p {
+    color: #718092;
+    margin: 0 0 20px;
+    line-height: 1.5;
+}
+button,
+input,
+select {
+    font: inherit;
+}
+button {
+    border: 1px solid #cbd5e0;
+    border-radius: 7px;
+    background: #fff;
+    color: #26394e;
+    padding: 7px 11px;
+    cursor: pointer;
+}
+button:hover {
+    background: #eef4fb;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+    outline: 2px solid #4288cf;
+    outline-offset: 2px;
+}
+button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+.quiet {
+    border: 0;
+    color: #6e7c8c;
+}
+input[type='text'],
+select {
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    background: white;
+    padding: 7px;
+    color: #26394e;
+}
+input[type='range'] {
+    accent-color: #4288cf;
+}
+input[type='color'] {
+    width: 44px;
+    height: 32px;
+    border: 1px solid #cbd5e0;
+    border-radius: 5px;
+    background: white;
+}
+.tabs,
+.themes,
+.placements {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.tabs button.active,
+.themes button.active {
+    border-color: #568ec4;
+    background: #e5f0fc;
+}
+.name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 22px 0 12px;
+}
+.name input {
+    width: 210px;
+}
+.slots {
+    border-top: 1px solid #d6dee8;
+}
+.slot {
+    min-height: 59px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #d6dee8;
+    padding: 8px 0;
+}
+.slot img {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+}
+.slot .item {
+    flex: 1;
+    min-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.slot .number {
+    width: 24px;
+    color: #95a2b1;
+}
+.slot .empty {
+    color: #9aa7b5;
+}
+.row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #e0e6ed;
+}
+.row > label:first-child {
+    min-width: 150px;
+}
+.row output {
+    color: #6b7a8b;
+    min-width: 48px;
+}
+.themes button {
+    min-width: 94px;
+    text-align: left;
+}
+.swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    margin-right: 7px;
+    vertical-align: -2px;
+}
+.checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    padding: 8px 0;
+}
+.checks label {
+    white-space: nowrap;
+}
+#error:not(:empty) {
+    padding: 10px 32px;
+    background: #fff0ed;
+    color: #a33528;
+    border-bottom: 1px solid #f0c8c1;
+}

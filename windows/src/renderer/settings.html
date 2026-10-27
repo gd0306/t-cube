@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'"
+        />
+        <link rel="stylesheet" href="settings.css" />
+        <title>T-Cube 设置</title>
+    </head>
+    <body>
+        <header>
+            <div>
+                <small>桌面启动器</small>
+                <h1>T-Cube</h1>
+            </div>
+            <button id="quit" class="quiet">退出 T-Cube</button>
+        </header>
+        <div id="error" role="alert"></div>
+        <main>
+            <nav aria-label="设置页面">
+                <button data-page="groups" class="active">应用分组</button
+                ><button data-page="appearance">外观与主题</button
+                ><button data-page="behavior">交互与位置</button>
+            </nav>
+            <section id="content"></section>
+        </main>
+        <script type="module" src="settings.js"></script>
+    </body>
+</html>

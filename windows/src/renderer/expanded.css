@@ -1,0 +1,46 @@
+html,
+body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+}
+main {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    padding: 22px;
+    border-radius: 35px;
+    background: linear-gradient(
+        135deg,
+        rgba(235, 246, 255, 0.3),
+        rgba(148, 169, 200, 0.19) 45%,
+        rgba(231, 216, 248, 0.26)
+    );
+    border: 1px solid rgba(255, 255, 255, 0.38);
+    box-shadow: inset 0 1px 8px rgba(255, 255, 255, 0.25);
+}
+button {
+    padding: 7px;
+    border: 0;
+    background: transparent;
+    border-radius: 15px;
+    cursor: pointer;
+}
+button:hover,
+button:focus-visible {
+    background: rgba(255, 255, 255, 0.25);
+    outline: 1px solid rgba(255, 255, 255, 0.7);
+}
+button img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+button:disabled {
+    visibility: hidden;
+}
