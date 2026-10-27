@@ -27,6 +27,7 @@ let app: ElectronApplication | undefined;
 let widget!: Page;
 let originalCursor: { x: number; y: number } | undefined;
 let originalAnimations: boolean | undefined;
+let failed = false;
 const input = nativeInput();
 let previewIcons: Record<string, string> | undefined;
 const catalogExecutable = path.join(data, 'catalog-smoke.exe');
@@ -66,16 +67,23 @@ async function move(x: number, y: number) {
 async function capture(page: Page, name: string, backdrop = true, background = '#18212e') {
     // A capture-only backdrop makes alpha comparable; the shipping page stays transparent.
     const previous = await page.evaluate(() => document.body.style.background);
-    if (backdrop) await page.evaluate(value => { document.body.style.background = value; }, background);
-    await page.screenshot({ path: path.join(output, name), animations: 'disabled' });
-    await page.evaluate(value => { document.body.style.background = value; }, previous);
+    try {
+        if (backdrop) await page.evaluate(value => { document.body.style.background = value; }, background);
+        // Capture the actual Electron surface. Playwright's screenshot preparation can
+        // stall on the inactive transparent widget when Windows animations are enabled.
+        const png = await app!.evaluate(async ({ BrowserWindow }, url) => {
+            const window = BrowserWindow.getAllWindows().find(win => win.webContents.getURL() === url);
+            if (!window) throw new Error(`Capture window missing: ${url}`);
+            return (await window.webContents.capturePage()).toPNG().toString('base64');
+        }, page.url());
+        await writeFile(path.join(output, name), Buffer.from(png, 'base64'));
+    } finally {
+        await page.evaluate(value => { document.body.style.background = value; }, previous);
+    }
 }
 
 try {
     if (process.platform === 'win32') {
-        originalAnimations = input.animations();
-        input.animations(true);
-        assert.equal(input.animations(), true);
         await copyFile(path.join(process.env.WINDIR!, 'System32', 'notepad.exe'), catalogExecutable);
         execFileSync('reg.exe', ['ADD', catalogRegistryKey, '/ve', '/t', 'REG_SZ', '/d', catalogExecutable, '/f'], { windowsHide: true });
         catalogRegistered = true;
@@ -319,6 +327,12 @@ try {
     assert.equal((await snapshot()).state.displayedAppearance.material, 'slime');
     await capture(settings, 'settings-materials.png', false);
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(win => win.webContents.getURL().endsWith('/settings.html'))?.hide());
+    if (process.platform === 'win32') {
+        originalAnimations = input.animations();
+        input.animations(true);
+        assert.equal(input.animations(), true);
+        await until(snapshot, value => !value.state.reducedMotion, 'Native animation preference did not enable slime motion');
+    }
     const slimeResting = await bounds();
     await move(slimeResting.x + slimeResting.width / 2, slimeResting.y + slimeResting.height / 2);
     await until(bounds, frame => frame.width > 300, 'Slime hover enlargement failed');
@@ -409,17 +423,29 @@ try {
     console.log(results.join('\n'));
     await writeFile(path.join(output, 'results.json'), JSON.stringify({ platform: process.platform, results }, null, 2));
 } catch (error) {
+    failed = true;
     await writeFile(path.join(output, 'failure.txt'), error instanceof Error ? error.stack ?? error.message : String(error));
     if (widget) await capture(widget, 'failure.png').catch(() => {});
     throw error;
 } finally {
+    const cleanupErrors: unknown[] = [];
+    const clean = async (action: () => unknown) => {
+        try { await action(); } catch (error) { cleanupErrors.push(error); }
+    };
     if (process.platform === 'win32') {
-        try { input.control(false); input.button(0, false); input.button(2, false); }
-        finally { if (originalAnimations !== undefined) input.animations(originalAnimations); }
+        await clean(() => input.control(false));
+        await clean(() => input.button(0, false));
+        await clean(() => input.button(2, false));
+        if (originalAnimations !== undefined) await clean(() => input.animations(originalAnimations));
     }
-    if (originalCursor) await move(originalCursor.x, originalCursor.y).catch(() => {});
-    await app?.close().catch(() => {});
-    if (catalogShortcutCreated) await rm(catalogShortcut, { force: true });
-    if (catalogRegistered) execFileSync('reg.exe', ['DELETE', catalogRegistryKey, '/f'], { windowsHide: true });
-    await rm(data, { recursive: true, force: true });
+    if (originalCursor) await clean(() => move(originalCursor!.x, originalCursor!.y));
+    await clean(() => app?.close());
+    if (catalogShortcutCreated) await clean(() => rm(catalogShortcut, { force: true }));
+    if (catalogRegistered) await clean(() => execFileSync('reg.exe', ['DELETE', catalogRegistryKey, '/f'], { windowsHide: true }));
+    await clean(() => rm(data, { recursive: true, force: true }));
+    if (cleanupErrors.length) {
+        const error = new AggregateError(cleanupErrors, 'Smoke fixture cleanup failed');
+        if (failed) console.error(error);
+        else throw error;
+    }
 }
