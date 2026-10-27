@@ -124,6 +124,95 @@ test('polling unchanged input does not flood renderer state', async () => {
     finally { await f.dispose(); }
 });
 
+test('glass and an outside slime pointer do not broadcast global cursor movement', async () => {
+    const f = await fixture();
+    try {
+        assert.equal(f.host.snapshot.state.pointer, null);
+        f.host.poll();
+        assert.equal(f.host.snapshot.state.pointer, null);
+        const glassBroadcasts = f.broadcasts;
+        f.pointer(190, 195); f.host.poll();
+        assert.equal(f.host.snapshot.state.pointer, null);
+        assert.equal(f.broadcasts, glassBroadcasts);
+        const config = f.store.snapshot;
+        config.appearance.material = 'slime';
+        await f.host.applyConfiguration(config);
+        f.pointer(-100, -100); f.host.poll();
+        assert.equal(f.host.snapshot.state.pointer, null);
+        const outsideBroadcasts = f.broadcasts;
+        f.pointer(-200, -200); f.host.poll();
+        assert.equal(f.broadcasts, outsideBroadcasts);
+    } finally { await f.dispose(); }
+});
+
+test('native slime pointer uses the final clamped enlarged frame and keeps its position through Control resizing', async () => {
+    const f = await fixture();
+    try {
+        const config = f.store.snapshot;
+        config.appearance.material = 'slime';
+        config.hover.isEnabled = true;
+        await f.host.applyConfiguration(config);
+        f.pointer(150, 170); f.host.poll();
+        assert.deepEqual(f.host.geometry.displayFrame, { x: 0, y: 0, width: 656, height: 656 });
+        const expected = { x: 150 / 656, y: 170 / 656 };
+        assert.deepEqual(f.host.snapshot.state.pointer, expected);
+        f.input.controlHeld = true; f.host.poll();
+        assert.deepEqual(f.host.geometry.displayFrame, { x: 112.5, y: 127.5, width: 164, height: 164 });
+        assert.deepEqual(f.host.snapshot.state.pointer, expected);
+        f.input.controlHeld = false; f.host.poll();
+        assert.deepEqual(f.host.snapshot.state.pointer, expected);
+        f.pointer(400, 300); f.host.poll();
+        assert.deepEqual(f.host.snapshot.state.pointer, { x: 400 / 656, y: 300 / 656 });
+    } finally { await f.dispose(); }
+});
+
+test('material changes expose the latest sampled pointer without resetting the theme phase', async () => {
+    const f = await fixture();
+    try {
+        const config = f.store.snapshot;
+        config.themeCycle = { isEnabled: true, themes: ['ocean', 'sunset'], intervalSeconds: 10 };
+        await f.host.applyConfiguration(config);
+        f.pointer(161, 243); f.host.poll(13);
+        assert.equal(f.host.snapshot.state.activeTheme, 'sunset');
+        assert.equal(f.host.snapshot.state.pointer, null);
+        const slime = f.store.snapshot;
+        slime.appearance.material = 'slime';
+        await f.host.applyConfiguration(slime);
+        assert.deepEqual(f.host.snapshot.state.pointer, { x: 0.25, y: 0.75 });
+        assert.equal(f.host.snapshot.state.activeTheme, 'sunset');
+        const glass = f.store.snapshot;
+        glass.appearance.material = 'glass';
+        await f.host.applyConfiguration(glass);
+        assert.equal(f.host.snapshot.state.pointer, null);
+        assert.equal(f.host.snapshot.state.activeTheme, 'sunset');
+    } finally { await f.dispose(); }
+});
+
+test('native slime contact releases during gestures, on exit, and while hidden', async () => {
+    const f = await fixture();
+    try {
+        const config = f.store.snapshot;
+        config.appearance.material = 'slime';
+        await f.host.applyConfiguration(config);
+        f.host.poll();
+        assert.ok(f.host.snapshot.state.pointer);
+        const id = f.host.beginPointer(0);
+        assert.equal(f.host.snapshot.state.pointer, null);
+        f.pointer(181, 181); f.host.poll();
+        assert.equal(f.host.snapshot.state.pointer, null);
+        await f.host.endPointer({ gestureId: id, button: 0, hit: null });
+        f.input.primaryDown = false; f.host.poll();
+        assert.deepEqual(f.host.snapshot.state.pointer, { x: 61 / 164, y: 61 / 164 });
+        f.pointer(1000, 1000); f.host.poll();
+        assert.equal(f.host.snapshot.state.pointer, null);
+        f.pointer(180, 180); f.host.poll();
+        assert.ok(f.host.snapshot.state.pointer);
+        f.host.setVisible(false);
+        f.host.poll();
+        assert.equal(f.host.snapshot.state.pointer, null);
+    } finally { await f.dispose(); }
+});
+
 test('launch failures reach the user and never launch unconfigured paths', async () => {
     const f = await fixture({ openPath: async () => 'Access denied' });
     try {

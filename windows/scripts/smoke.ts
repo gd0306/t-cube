@@ -319,6 +319,12 @@ try {
     await until(bounds, frame => frame.width > 300, 'Slime hover enlargement failed');
     const slimeFrame = await bounds();
     await move(slimeFrame.x + slimeFrame.width / 2, slimeFrame.y + slimeFrame.height / 2);
+    console.log('Slime native input:', JSON.stringify(await widget.evaluate(async () => {
+        const { state } = await window.tcube.getSnapshot();
+        return { pointer: state.pointer, hovered: state.hovered, interactionActive: state.interactionActive,
+            reducedMotion: state.reducedMotion, material: state.displayedAppearance.material,
+            innerWidth, innerHeight, screenX, screenY, hidden: document.hidden };
+    })));
     const shellDistance = () => widget.evaluate(async (original: number[]) => {
         const { controller } = await import(new URL('widget.js', location.href).href);
         const shell: any = controller.cube.getObjectByName('glass-shell');

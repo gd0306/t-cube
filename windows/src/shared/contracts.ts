@@ -28,6 +28,8 @@ export interface ViewState {
     displayedAppearance: Appearance;
     activeTheme: ThemeId | null;
     hovered: boolean;
+    /** Native cursor normalized to [0, 1], from the displayed frame's top-left; active slime contact only. */
+    pointer: Point | null;
     controlHeld: boolean;
     interactionActive: boolean;
     rotationDrag: RotationDrag | null;

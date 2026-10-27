@@ -36,7 +36,6 @@ const body = createBodyGeometry();
 let slimeShell: SlimeShell | undefined;
 let slime = new SlimeMotion();
 let physicalMaterial: Appearance['material'] = 'glass';
-let hoverPointer: { x: number; y: number } | null = null;
 const contactRay = new THREE.Raycaster();
 const glass = new THREE.Mesh(body, createGlassMaterial());
 glass.name = 'glass-shell';
@@ -245,12 +244,12 @@ function render() {
     motion.step(dt, state.hovered, state.reducedMotion);
     for (const material of faceMaterials.values()) material.opacity = state.hovered ? 1 : 0;
     if (physicalMaterial === 'slime') {
-        const rect = renderer.domElement.getBoundingClientRect();
-        const x = hoverPointer ? hoverPointer.x - window.screenX - rect.left : -1;
-        const y = hoverPointer ? hoverPointer.y - window.screenY - rect.top : -1;
-        if (hoverPointer && state.hovered && !state.interactionActive && !active && !state.reducedMotion
-            && x >= 0 && y >= 0 && x <= rect.width && y <= rect.height) {
-            contactRay.setFromCamera(new THREE.Vector2(x / rect.width * 2 - 1, 1 - y / rect.height * 2), camera);
+        // Use the same native DIP cursor/frame sample that drives hover zoom.
+        // DOM enter/move events can be absent on an inactive transparent window.
+        const pointer = state.pointer;
+        if (pointer && state.hovered && !state.interactionActive && !state.reducedMotion
+            && pointer.x >= 0 && pointer.y >= 0 && pointer.x <= 1 && pointer.y <= 1) {
+            contactRay.setFromCamera(new THREE.Vector2(pointer.x * 2 - 1, 1 - pointer.y * 2), camera);
             slime.setContact(pickSurfacePoint(contactRay.ray, cube.quaternion));
         } else slime.setContact(null);
         const wasActive = slime.isActive;
@@ -304,7 +303,6 @@ subscribe((data) => {
     idle.orientation.copy(dragRotation.apply(data.state.rotationDrag, idle.orientation));
     cube.quaternion.copy(idle.orientation);
     snapshot = data;
-    if (!data.state.hovered || data.state.interactionActive || !data.state.visible) hoverPointer = null;
     updateAppearance(data.state.displayedAppearance);
     void updateIcons(data);
     requestUpdate();
@@ -317,21 +315,12 @@ window.tcube.onError((message) => {
     }, 5000);
 });
 let active: { button: 0 | 2; id: Promise<number>; ended: boolean } | null = null;
-function followPointer(event: MouseEvent) {
-    hoverPointer = event.buttons === 0 ? { x: event.screenX, y: event.screenY } : null;
-    if (physicalMaterial === 'slime') requestUpdate();
-}
-renderer.domElement.addEventListener('pointerenter', followPointer);
-renderer.domElement.addEventListener('pointermove', followPointer);
-renderer.domElement.addEventListener('pointerleave', () => { hoverPointer = null; requestUpdate(); });
-window.addEventListener('blur', () => { hoverPointer = null; requestUpdate(); });
 renderer.domElement.addEventListener('contextmenu', (event) => event.preventDefault());
 renderer.domElement.addEventListener('pointerdown', (event) => {
     if (event.button !== 0 && event.button !== 2) return;
     if (active && !snapshot?.state.interactionActive) active = null;
     if (active) return;
     event.preventDefault();
-    hoverPointer = null;
     renderer.domElement.setPointerCapture(event.pointerId);
     const button = event.button as 0 | 2;
     active = { button, id: window.tcube.beginPointer(button), ended: false };
@@ -377,7 +366,6 @@ renderer.domElement.addEventListener(
     'wheel',
     (event) => {
         event.preventDefault();
-        followPointer(event);
         const delta = wheelDelta(event.deltaX, event.deltaY, event.shiftKey, event.deltaMode);
         idle.orientation.copy(
             applyScrollRotation(idle.orientation, delta.dx, delta.dy, delta.precise),

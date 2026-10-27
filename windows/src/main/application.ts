@@ -47,6 +47,7 @@ export class LauncherHost {
     private cycleEpoch = 0;
     private iconGeneration = 0;
     private position: Point | null = null;
+    private pointer: Point | null = null;
     private readonly pendingSideEffects = new Set<Promise<void>>();
     private readonly pendingPersistence = new Set<Promise<unknown>>();
     constructor(private readonly store: ConfigurationStore, private readonly services: HostServices) {
@@ -58,9 +59,16 @@ export class LauncherHost {
     }
     get snapshot(): Snapshot {
         const resolved = resolveAppearance(this.configuration, this.elapsed - this.cycleEpoch);
+        const interactionActive = Boolean(this.gesture && !this.gesture.released);
+        let pointer: Point | null = null;
+        if (resolved.appearance.material === 'slime' && this.visible && this.geometry.hovered && !interactionActive && this.pointer) {
+            const frame = this.geometry.displayFrame;
+            pointer = { x: Math.max(0, Math.min(1, (this.pointer.x - frame.x) / frame.width)),
+                y: Math.max(0, Math.min(1, (this.pointer.y - frame.y) / frame.height)) };
+        }
         return { state: { configuration: structuredClone(this.configuration), displayedAppearance: resolved.appearance,
-            activeTheme: resolved.theme, hovered: this.geometry.hovered, controlHeld: this.controlHeld,
-            interactionActive: Boolean(this.gesture && !this.gesture.released), rotationDrag: this.rotationDrag, reducedMotion: this.reducedMotion,
+            activeTheme: resolved.theme, hovered: this.geometry.hovered, pointer, controlHeld: this.controlHeld,
+            interactionActive, rotationDrag: this.rotationDrag, reducedMotion: this.reducedMotion,
             visible: this.visible, expandedFace: this.expandedFace, platform: this.services.platform }, icons: { ...this.icons } };
     }
     reportError(error: unknown): void { this.services.error(error instanceof Error ? error.message : String(error)); }
@@ -115,6 +123,7 @@ export class LauncherHost {
     poll(elapsedSeconds = this.elapsed, reducedMotion = this.reducedMotion): void {
         this.elapsed = elapsedSeconds; this.reducedMotion = reducedMotion;
         const input = this.services.input(), pointer = this.services.cursor();
+        this.pointer = { ...pointer };
         // macOS preview updates Control using before-input-event instead of unavailable Win32 polling.
         if (input.available) this.controlHeld = input.controlHeld;
         this.geometry.pointerChanged(pointer); this.geometry.setControlHeld(this.controlHeld);
@@ -149,6 +158,7 @@ export class LauncherHost {
         const input = this.services.input();
         if (input.available) this.controlHeld = input.controlHeld;
         const origin = this.services.cursor();
+        this.pointer = { ...origin };
         this.geometry.pointerChanged(origin); this.geometry.setControlHeld(this.controlHeld);
         const frame = this.geometry.displayFrame;
         this.geometry.setInteractionActive(true);
