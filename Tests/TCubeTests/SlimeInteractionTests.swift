@@ -8,10 +8,81 @@ import simd
 @MainActor
 @Suite(.serialized)
 struct SlimeInteractionTests {
-    @Test func nativeMouseMotionBendsTheShellAndExitRestoresItWithoutMovingIcons() throws {
+    @Test func themeCycleEnablesSlimeOnlyOnItsTurnAndRestoresTheSavedManualTheme() throws {
+        _ = NSApplication.shared
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let store = ConfigurationStore(url: directory.appendingPathComponent("configuration.json"))
+        var configuration = CubeConfiguration()
+        configuration.appearance = CubeThemePreset.slime.appearance(glowIntensity: 0.55)
+        configuration.themeCycle = CubeThemeCycle(isEnabled: true, themes: [.prism, .slime])
+        try store.save(configuration)
+        let model = AppModel(store: store)
+        defer { model.stopThemeCycle(); try? FileManager.default.removeItem(at: directory) }
+        let view = CubeView(model: model)
+        model.onAppearanceChange = { [weak view] in view?.refreshAppearance() }
+        model.onChange = { [weak view] in view?.refreshTextures() }
+        let shell = try #require(view.cube.findEntity(named: "glass-shell") as? ModelEntity)
+        #expect(shell.model?.mesh.lowLevelMesh == nil)
+        model.advanceTheme()
+        #expect(shell.model?.mesh.lowLevelMesh != nil)
+        #expect(view.cube.findEntity(named: "slime-gel")?.isEnabled == true)
+        model.advanceTheme()
+        #expect(shell.model?.mesh.lowLevelMesh == nil)
+        #expect(try store.load().appearance == configuration.appearance)
+        model.change { $0.themeCycle.isEnabled = false }
+        #expect(shell.model?.mesh.lowLevelMesh != nil)
+        #expect(model.displayedAppearance.surfaceStyle == .slime)
+        #expect(try store.load().appearance == configuration.appearance)
+    }
+
+    @Test func ordinaryThemesStayRigidWhenSwitchingIntoAndOutOfSlime() throws {
         _ = NSApplication.shared
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let model = AppModel(store: ConfigurationStore(url: directory.appendingPathComponent("configuration.json")))
+        let view = CubeView(model: model)
+        let surface = CubeSurfaceView(cubeView: view)
+        let window = NSPanel(contentRect: NSRect(x: 160, y: 160, width: 300, height: 300), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        defer { window.orderOut(nil); try? FileManager.default.removeItem(at: directory) }
+        window.contentView = surface
+        window.orderFrontRegardless()
+        let shell = try #require(view.cube.findEntity(named: "glass-shell") as? ModelEntity)
+        let initial = try positions(of: shell)
+        let event = try #require(NSEvent.mouseEvent(with: .mouseMoved, location: NSPoint(x: 165, y: 160), modifierFlags: [], timestamp: 0, windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 0, pressure: 0))
+        surface.input.mouseMoved(with: event)
+        for _ in 0..<20 { view.advanceAnimations(deltaTime: 1.0 / 30, reducedMotion: false) }
+        #expect(try positions(of: shell) == initial, "Default glass must keep its original rigid surface")
+        #expect(shell.model?.mesh.lowLevelMesh == nil, "Ordinary themes must not allocate a deforming mesh")
+        #expect(view.cube.findEntity(named: "slime-gel")?.isEnabled != true)
+        model.change { $0.appearance.surfaceStyle = .slime }
+        view.refreshAppearance()
+        let restingSlime = try positions(of: shell)
+        for _ in 0..<20 { view.advanceAnimations(deltaTime: 1.0 / 30, reducedMotion: false) }
+        #expect(shell.model?.mesh.lowLevelMesh != nil)
+        #expect(view.cube.findEntity(named: "slime-gel")?.isEnabled == true)
+        #expect(zip(restingSlime, try positions(of: shell)).contains { simd_distance($0, $1) > 0.04 })
+        for style in [CubeSurfaceStyle.clear, .iridescent, .moonstone, .aurora] {
+            model.change { $0.appearance.surfaceStyle = style }
+            view.refreshAppearance()
+            surface.input.mouseMoved(with: event)
+            for _ in 0..<20 { view.advanceAnimations(deltaTime: 1.0 / 30, reducedMotion: false) }
+            #expect(try positions(of: shell) == initial)
+            #expect(shell.model?.mesh.lowLevelMesh == nil)
+            #expect(view.cube.findEntity(named: "slime-gel")?.isEnabled != true)
+        }
+        model.change { $0.appearance.surfaceStyle = .slime }
+        view.refreshAppearance()
+        #expect(try positions(of: shell) == restingSlime, "Re-entering slime must discard the previous deformation")
+    }
+
+    @Test func nativeMouseMotionBendsTheShellAndExitRestoresItWithoutMovingIcons() throws {
+        _ = NSApplication.shared
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let store = ConfigurationStore(url: directory.appendingPathComponent("configuration.json"))
+        var configuration = CubeConfiguration()
+        configuration.appearance = CubeThemePreset.slime.appearance(glowIntensity: 0.55)
+        try store.save(configuration)
+        let saved = try Data(contentsOf: store.url)
+        let model = AppModel(store: store)
         let view = CubeView(model: model)
         let surface = CubeSurfaceView(cubeView: view)
         let window = NSPanel(contentRect: NSRect(x: 160, y: 160, width: 300, height: 300), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
@@ -46,7 +117,7 @@ struct SlimeInteractionTests {
         for _ in 0..<120 { view.advanceAnimations(deltaTime: 1.0 / 30, reducedMotion: false) }
         let restored = try positions(of: shell)
         #expect(zip(initial, restored).allSatisfy { simd_distance($0, $1) < 0.0001 })
-        #expect(!FileManager.default.fileExists(atPath: directory.appendingPathComponent("configuration.json").path))
+        #expect(try Data(contentsOf: store.url) == saved)
     }
 
     private func positions(of entity: ModelEntity) throws -> [SIMD3<Float>] {

@@ -37,7 +37,8 @@ Native app renders with sample system icons, enlarged for detail. All previews s
 - **Wandering idle rotation.** Slowly drift through changing directions; hover to stop instantly and leave to resume. Disable it under **Appearance → Dynamic rotation (动态旋转)**. Reduce Motion pauses it automatically.
 - **Hover to enlarge.** Return to the resting size when the pointer leaves; zoom is adjustable from 1.1× to 4×.
 - **Two launch modes.** Expand a face before choosing an icon, or launch directly from icons on the cube.
-- **Personalized glass.** Nine presets, custom two-color gradients, glass materials, and automatic theme cycling every 10 or 20 seconds.
+- **Personalized glass.** Color presets, custom two-color gradients, glass materials, and automatic theme cycling every 10 or 20 seconds.
+- **Optional Slime theme on macOS.** Pull a translucent gel surface with the pointer and watch it spring back. The original glass remains the default; icons stay stable.
 - **Menu-bar or tray access.** Configure, show, hide, or quit from system controls. Motion respects system animation preferences.
 
 ## Windows source installation
@@ -81,6 +82,8 @@ Settings open on first launch. Reopen them by right-clicking the cube or using i
 2. In **Appearance (外观)**, choose themes, materials, cycling, and hover size. Click **Apply settings (应用设置)** to save.
 3. To launch directly, disable **Expand faces on click (点击面展开放大)** under **Launch behavior (打开方式)**, then click **Apply settings (应用设置)**. Blank areas and empty slots do nothing.
 4. Use **Quick placement (快捷位置)** in the menu bar or Appearance to move to a corner or the screen center. Placement applies and saves immediately.
+
+For the gel effect, choose **Appearance → Theme presets → Slime (史莱姆)** and click **Apply settings**. Turn off automatic theme cycling first to select a fixed theme, or explicitly include Slime in the cycling list. Switching to another theme restores its original glass appearance.
 
 | Action | Result |
 | --- | --- |

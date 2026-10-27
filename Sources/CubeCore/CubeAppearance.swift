@@ -1,7 +1,7 @@
 import Foundation
 
 public enum CubeSurfaceStyle: String, Codable, CaseIterable, Identifiable, Sendable {
-    case clear, iridescent, moonstone, aurora
+    case clear, iridescent, moonstone, aurora, slime
     public var id: String { rawValue }
     public var name: String {
         switch self {
@@ -9,6 +9,7 @@ public enum CubeSurfaceStyle: String, Codable, CaseIterable, Identifiable, Senda
         case .iridescent: "幻彩折光"
         case .moonstone: "月光柔雾"
         case .aurora: "极光流体"
+        case .slime: "史莱姆"
         }
     }
 }

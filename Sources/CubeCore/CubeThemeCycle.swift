@@ -2,7 +2,7 @@ import Foundation
 
 public enum CubeThemePreset: String, Codable, CaseIterable, Identifiable, Sendable {
     case aurora, ocean, sunset, starfield, blossom, forest
-    case prism, moonstone, auroraFlow
+    case prism, moonstone, auroraFlow, slime
     public var id: String { rawValue }
     public var name: String {
         switch self {
@@ -15,6 +15,7 @@ public enum CubeThemePreset: String, Codable, CaseIterable, Identifiable, Sendab
         case .prism: "幻彩水晶"
         case .moonstone: "月光凝露"
         case .auroraFlow: "极光流体"
+        case .slime: "史莱姆"
         }
     }
     private var colors: (String, String) {
@@ -28,6 +29,7 @@ public enum CubeThemePreset: String, Codable, CaseIterable, Identifiable, Sendab
         case .prism: ("#81DFFF", "#E5B2F8")
         case .moonstone: ("#D5E7FF", "#F3D9EF")
         case .auroraFlow: ("#64E4CF", "#ADA5FF")
+        case .slime: ("#64E4CF", "#ADA5FF")
         }
     }
     public var primaryHex: String { colors.0 }
@@ -37,6 +39,7 @@ public enum CubeThemePreset: String, Codable, CaseIterable, Identifiable, Sendab
         case .prism: .iridescent
         case .moonstone: .moonstone
         case .auroraFlow: .aurora
+        case .slime: .slime
         default: .clear
         }
     }

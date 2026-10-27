@@ -225,7 +225,7 @@ private struct AppearanceSettingsView: View {
                         .frame(width: 330)
                     }
                     .disabled(cycleEnabled)
-                    Picker("玻璃材质", selection: $surfaceStyle) {
+                    Picker("外壳材质", selection: $surfaceStyle) {
                         ForEach(CubeSurfaceStyle.allCases) { style in Text(style.name).tag(style) }
                     }
                     .disabled(cycleEnabled)
@@ -242,9 +242,9 @@ private struct AppearanceSettingsView: View {
                         }.frame(width: 270)
                     }
                 } header: {
-                    Text("玻璃与光晕")
+                    Text("主题与光晕")
                 } footer: {
-                    Text(cycleEnabled ? "轮换使用所选主题的配色与当前光晕强度；关闭轮换后恢复上方保存的配色。" : "静置时显示透明立方体与渐变光晕；鼠标移入后显示应用图标。")
+                    Text(cycleEnabled ? "轮换使用所选主题的配色、材质与当前光晕强度；关闭轮换后恢复上方保存的主题。" : surfaceStyle == .slime ? "史莱姆：鼠标划过时牵引果冻表面，移开后弹性回弹；应用图标保持稳定。" : "静置时显示透明立方体与渐变光晕；鼠标移入后显示应用图标。")
                 }
                 Section {
                     Toggle("自动轮换主题", isOn: $cycleEnabled)

@@ -123,15 +123,8 @@ struct GlassRenderPreviewTests {
         let darkCenter = try #require(idleBitmap.colorAt(x: idleBitmap.pixelsWide / 2, y: idleBitmap.pixelsHigh / 2)?.usingColorSpace(.sRGB))
         let lightCenter = try #require(lightBitmap.colorAt(x: lightBitmap.pixelsWide / 2, y: lightBitmap.pixelsHigh / 2)?.usingColorSpace(.sRGB))
         let backdropResponse = ((lightCenter.redComponent - darkCenter.redComponent) + (lightCenter.greenComponent - darkCenter.greenComponent) + (lightCenter.blueComponent - darkCenter.blueComponent)) / 3
-        let lightBackground = try #require(lightBitmap.colorAt(x: 2, y: 2)?.usingColorSpace(.sRGB))
-        let backdropDelta = ((lightBackground.redComponent - backgroundColor.redComponent) + (lightBackground.greenComponent - backgroundColor.greenComponent) + (lightBackground.blueComponent - backgroundColor.blueComponent)) / 3
-        let transmission = backdropResponse / backdropDelta
-        print("Gel center backdrop transmission: \(transmission)")
-        // This thicker gel must transmit at least 40% of the backdrop change.
-        // Clear-window coverage and visibility over white are checked separately
-        // in SlimeRenderPreviewTests. Normalize
-        // by the sampled backgrounds, which aren't pure black and white.
-        #expect(transmission > 0.40, "The gel center must remain translucent against both backdrops")
+        print("Glass center backdrop response: \(backdropResponse)")
+        #expect(backdropResponse > 0.70, "The glass center must clearly reveal the backdrop while retaining its silhouette")
         try #require(lightBitmap.representation(using: .png, properties: [:])).write(to: output.appendingPathComponent("soft-body-idle-light.png"))
 
         view.environment.background = .color(galleryBackground)

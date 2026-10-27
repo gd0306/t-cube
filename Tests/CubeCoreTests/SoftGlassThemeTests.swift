@@ -3,6 +3,23 @@ import Testing
 @testable import CubeCore
 
 struct SoftGlassThemeTests {
+    @Test func slimeIsAnExplicitPersistentThemeAndNeverAnImplicitDefault() throws {
+        #expect(CubeAppearance().surfaceStyle == .clear)
+        #expect(CubeConfiguration().appearance.surfaceStyle == .clear)
+        #expect(!CubeThemeCycle().themes.contains(.slime))
+        var configuration = CubeConfiguration()
+        configuration.appearance = CubeThemePreset.slime.appearance(glowIntensity: 0.63)
+        configuration.themeID = CubeThemePreset.slime.id
+        configuration.themeCycle = CubeThemeCycle(isEnabled: true, themes: [.prism, .slime])
+        let restored = try JSONDecoder().decode(CubeConfiguration.self, from: JSONEncoder().encode(configuration))
+        #expect(restored == configuration)
+        #expect(restored.appearance.surfaceStyle == .slime)
+        #expect(restored.appearance.glowIntensity == 0.63)
+        #expect(restored.themeCycle.next(after: .prism) == .slime)
+        #expect(restored.themeCycle.next(after: .slime) == .prism)
+        try restored.validate()
+    }
+
     @Test func newThemesKeepTheirMaterialWhenSavedAndCycled() throws {
         var config = CubeConfiguration()
         config.appearance = CubeThemePreset.prism.appearance(glowIntensity: 0.48)

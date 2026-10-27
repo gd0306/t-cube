@@ -4,12 +4,13 @@ import RealityKit
 import CubeCore
 import simd
 
-/// A continuous gel body with wet reflections and local elastic deformation.
-/// Launcher icons remain independent of the optical shell.
+/// The original glass shell, with opt-in gel rendering for the slime theme.
+/// Launcher icons remain independent of both optical surfaces.
 @MainActor
 final class CubeAura {
     private let root = Entity()
-    private let slimeMesh: SlimeShellMesh?
+    private var slimeMesh: SlimeShellMesh?
+    private var shell: ModelEntity?
     private var gel: ModelEntity?
     private var pearl: ModelEntity?
     private var chroma: ModelEntity?
@@ -21,30 +22,21 @@ final class CubeAura {
     private var motion = PrismMotion()
     private static let mesh = bodyMesh()
     private static let pearlTexture = opticalTexture(layer: .pearl)
+    private static let slimePearlTexture = opticalTexture(layer: .slimePearl)
 
     init(parent: Entity, appearance: CubeAppearance) {
-        slimeMesh = try? SlimeShellMesh()
         root.name = "cube-aura"
         // Fade only optical layers; launcher decals are siblings and stay crisp.
-        root.components.set(OpacityComponent(opacity: 0.55))
+        root.components.set(OpacityComponent(opacity: 0.25))
         parent.addChild(root)
-        if let mesh = slimeMesh?.resource ?? Self.mesh {
-            var glass = PhysicallyBasedMaterial()
-            glass.baseColor = .init(tint: NSColor(white: 1, alpha: 0.10))
-            glass.roughness = .init(floatLiteral: 0.10)
-            glass.specular = .init(floatLiteral: 0.50)
-            glass.clearcoat = .init(floatLiteral: 1)
-            glass.clearcoatRoughness = .init(floatLiteral: 0.08)
-            // Base-color alpha alone does not control PBR coverage. Set the
-            // actual blend opacity so reflections don't become an opaque plate.
-            glass.blending = .transparent(opacity: .init(floatLiteral: 0.28))
-            glass.faceCulling = .back
-            glass.writesDepth = false
-            let shell = ModelEntity(mesh: mesh, materials: [glass])
+        if let mesh = Self.mesh {
+            let shell = ModelEntity(mesh: mesh, materials: [Self.shellMaterial(slime: false)])
             shell.name = "glass-shell"
             root.addChild(shell)
+            self.shell = shell
             let gel = ModelEntity(mesh: mesh, materials: [Self.material(texture: nil)])
             gel.name = "slime-gel"
+            gel.isEnabled = false
             root.addChild(gel)
             self.gel = gel
             let pearlMaterial = Self.material(texture: Self.pearlTexture)
@@ -67,8 +59,23 @@ final class CubeAura {
 
     func update(appearance: CubeAppearance) {
         guard appearance != self.appearance else { return }
+        let isSlime = appearance.surfaceStyle == .slime
+        if appearance.surfaceStyle != self.appearance?.surfaceStyle {
+            if isSlime {
+                if slimeMesh == nil { slimeMesh = try? SlimeShellMesh() }
+                slimeMesh?.update(SlimeDeformation())
+            }
+            let activeMesh = isSlime ? (slimeMesh?.resource ?? Self.mesh) : Self.mesh
+            if let activeMesh {
+                for entity in [shell, gel, pearl, chroma] { entity?.model?.mesh = activeMesh }
+            }
+            root.components.set(OpacityComponent(opacity: isSlime ? 0.55 : 0.25))
+            shell?.model?.materials = [Self.shellMaterial(slime: isSlime)]
+            pearlMaterial = Self.material(texture: isSlime ? Self.slimePearlTexture : Self.pearlTexture)
+            gel?.isEnabled = isSlime
+        }
         if appearance.primaryHex != self.appearance?.primaryHex || appearance.secondaryHex != self.appearance?.secondaryHex || appearance.surfaceStyle != self.appearance?.surfaceStyle {
-            gel?.model?.materials = [Self.material(texture: Self.opticalTexture(layer: .gel, appearance: appearance))]
+            if isSlime { gel?.model?.materials = [Self.material(texture: Self.opticalTexture(layer: .gel, appearance: appearance))] }
             chromaMaterial = Self.material(texture: Self.opticalTexture(layer: .chroma, appearance: appearance))
             energyMaterial = appearance.surfaceStyle == .clear ? nil : Self.material(texture: Self.opticalTexture(layer: .energy, appearance: appearance))
         }
@@ -76,7 +83,10 @@ final class CubeAura {
         applyLight()
     }
 
-    func deform(_ deformation: SlimeDeformation) { slimeMesh?.update(deformation) }
+    func deform(_ deformation: SlimeDeformation) {
+        guard appearance?.surfaceStyle == .slime else { return }
+        slimeMesh?.update(deformation)
+    }
 
     func advance(deltaTime: TimeInterval, hovered: Bool, reducedMotion: Bool) {
         let previousPhase = motion.phase
@@ -112,6 +122,19 @@ final class CubeAura {
         chroma?.components.set(OpacityComponent(opacity: intensity * (0.55 + 0.25 * engagement) * breathing))
     }
 
+    private static func shellMaterial(slime: Bool) -> PhysicallyBasedMaterial {
+        var glass = PhysicallyBasedMaterial()
+        glass.baseColor = .init(tint: NSColor(white: 1, alpha: slime ? 0.10 : 0.035))
+        glass.roughness = .init(floatLiteral: slime ? 0.10 : 0.20)
+        glass.specular = .init(floatLiteral: 0.50)
+        glass.clearcoat = .init(floatLiteral: slime ? 1 : 0.55)
+        glass.clearcoatRoughness = .init(floatLiteral: slime ? 0.08 : 0.20)
+        glass.blending = .transparent(opacity: .init(floatLiteral: slime ? 0.28 : 1))
+        glass.faceCulling = .back
+        glass.writesDepth = false
+        return glass
+    }
+
     private static func material(texture: TextureResource?) -> UnlitMaterial {
         var material = UnlitMaterial(applyPostProcessToneMap: false)
         if let texture {
@@ -128,7 +151,7 @@ final class CubeAura {
         return material
     }
 
-    private enum OpticalLayer { case gel, pearl, chroma, energy }
+    private enum OpticalLayer: Equatable { case gel, pearl, slimePearl, chroma, energy }
 
     private static func opticalTexture(layer: OpticalLayer, appearance: CubeAppearance = CubeAppearance()) -> TextureResource? {
         let primary = (NSColor(hexRGB: appearance.primaryHex) ?? .cyan).usingColorSpace(.sRGB) ?? .cyan
@@ -154,10 +177,12 @@ final class CubeAura {
                     color = (a * (1 - mix) + b * mix) * 0.85 + SIMD3(repeating: 0.15)
                     let rim = pow(abs(2 * v - 1), 3)
                     alpha = 0.32 + 0.32 * rim + 0.12 * gaussian(v, 0.25, 0.18)
-                case .pearl:
+                case .pearl, .slimePearl:
                     color = SIMD3(0.94, 0.98, 1)
                     let crest = 0.70 + 0.12 * cos(2 * .pi * u)
-                    let profile = 0.68 * gaussian(v, crest, 0.045) + 0.10 * gaussian(v, 0.72, 0.20)
+                    let profile = layer == .slimePearl
+                        ? 0.68 * gaussian(v, crest, 0.045) + 0.10 * gaussian(v, 0.72, 0.20)
+                        : 0.20 * gaussian(v, crest, 0.055) + 0.035 * gaussian(v, 0.72, 0.22)
                     alpha = profile * (0.35 + 0.65 * wave * wave)
                 case .chroma:
                     let mix = 0.5 + 0.5 * sin(2 * .pi * (u + 0.12))
@@ -170,7 +195,7 @@ final class CubeAura {
                     case .moonstone:
                         color = blend * 0.35 + SIMD3(repeating: 0.65)
                         alpha = gaussian(v, 0.52, 0.28) * (0.04 + 0.08 * wave)
-                    case .aurora:
+                    case .aurora, .slime:
                         color = blend * 0.85 + SIMD3(repeating: 0.15)
                         let fold = 0.45 + 0.15 * sin(2 * .pi * u)
                         alpha = gaussian(v, fold, 0.16) * (0.07 + 0.12 * wave * wave)

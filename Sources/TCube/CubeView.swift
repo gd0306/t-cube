@@ -19,6 +19,7 @@ final class CubeView: ARView {
     private var rightDragOrientation = simd_quatf(real: 1, imag: .zero)
     private var idleRotation = CubeIdleRotation()
     private var slime = SlimeMotion()
+    private var slimeEnabled = false
     private var slimePointer: NSPoint?
     private var slimePointerNeedsUpdate = false
     private var slimePointerFrame = NSRect.zero
@@ -112,7 +113,16 @@ final class CubeView: ARView {
         }
     }
 
-    func refreshAppearance() { aura.update(appearance: model.displayedAppearance) }
+    func refreshAppearance() {
+        let appearance = model.displayedAppearance
+        let enabled = appearance.surfaceStyle == .slime
+        if enabled != slimeEnabled {
+            slime = SlimeMotion()
+            slimeEnabled = enabled
+            slimePointerNeedsUpdate = true
+        }
+        aura.update(appearance: appearance)
+    }
 
     func advanceAnimations(deltaTime: TimeInterval, reducedMotion: Bool) {
         guard window?.isVisible == true else { lightElapsed = 0; return }
@@ -123,11 +133,13 @@ final class CubeView: ARView {
             !model.configuration.autoRotatesWhenIdle || reducedMotion
         cube.orientation = idleRotation.advance(from: cube.orientation, deltaTime: lightElapsed, paused: paused)
         aura.advance(deltaTime: lightElapsed, hovered: isHovered, reducedMotion: reducedMotion)
-        if reducedMotion { slimePointerNeedsUpdate = true }
-        else { refreshSlimeContact() }
-        let previous = slime.deformation
-        slime.advance(deltaTime: lightElapsed, reducedMotion: reducedMotion)
-        if previous != slime.deformation { aura.deform(slime.deformation) }
+        if slimeEnabled {
+            if reducedMotion { slimePointerNeedsUpdate = true }
+            else { refreshSlimeContact() }
+            let previous = slime.deformation
+            slime.advance(deltaTime: lightElapsed, reducedMotion: reducedMotion)
+            if previous != slime.deformation { aura.deform(slime.deformation) }
+        }
         lightElapsed = 0
     }
 
