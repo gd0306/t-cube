@@ -39,7 +39,7 @@ export function createGlassMaterial(): ShaderMaterial {
                 vec3 tint = mix(primary, secondary, 0.5 + 0.5 * normal.x);
                 vec3 reflection = mix(vec3(0.92, 0.96, 1.0), tint, 0.20 * glow);
                 // A narrow dark refraction at the silhouette also reads on pale desktops.
-                float outer = smoothstep(0.94, 0.995, grazing);
+                float outer = smoothstep(0.60, 0.96, grazing);
                 reflection = mix(reflection, vec3(0.025, 0.04, 0.065), outer * 0.88);
                 float alpha = 0.018 + rim * (0.32 + 0.035 * engagement);
                 gl_FragColor = vec4(reflection, alpha);
