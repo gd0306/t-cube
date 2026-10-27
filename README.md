@@ -42,7 +42,7 @@ Native app renders with sample system icons, enlarged for detail. All previews s
 
 ## Windows source installation
 
-Windows 10 22H2 / Windows 11 (x64) have a separate client with the same six shortcut groups, curved icons, theme cycling, hover zoom, dragging, rotation and tray controls. No installer download is needed; see the [Windows guide](windows/README.md). The previews above show the native macOS client.
+Windows 10 22H2 / Windows 11 (x64) have a separate client with the same six shortcut groups, curved icons, theme cycling, hover zoom, dragging, rotation and tray controls. Choose installed applications from a searchable name-and-icon list; portable apps can be added by file. No installer download is needed; see the [Windows guide](windows/README.md). The previews above show the native macOS client.
 
 Give a local AI agent this prompt:
 
