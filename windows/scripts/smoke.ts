@@ -54,10 +54,10 @@ async function move(x: number, y: number) {
         : { x, y };
     input.move(point.x, point.y);
 }
-async function capture(page: Page, name: string) {
+async function capture(page: Page, name: string, backdrop = true) {
     // A capture-only backdrop makes alpha comparable; the shipping page stays transparent.
     const previous = await page.evaluate(() => document.body.style.background);
-    await page.evaluate(() => { document.body.style.background = '#18212e'; });
+    if (backdrop) await page.evaluate(() => { document.body.style.background = '#18212e'; });
     await page.screenshot({ path: path.join(output, name), animations: 'disabled' });
     await page.evaluate(value => { document.body.style.background = value; }, previous);
 }
@@ -124,6 +124,17 @@ try {
     await until(() => settings.locator('body').innerText(), value => value.includes('T-Cube'), 'Settings not rendered');
     await until(() => settings.locator('.slot').count(), count => count === 4, 'Settings slots not rendered');
     await sendPreviewIcons();
+    const nameInput = settings.locator('#group-name');
+    await nameInput.fill('Edited group');
+    const tab = settings.getByRole('button', { name: '开发', exact: true });
+    const tabBounds = await tab.boundingBox();
+    assert.ok(tabBounds);
+    // One actual press/release, without locator retries that can mask a lost click.
+    await settings.mouse.click(tabBounds.x + tabBounds.width / 2, tabBounds.y + tabBounds.height / 2);
+    await until(() => nameInput.inputValue(), value => value === '开发', 'First group-tab click was lost after input blur');
+    await until(snapshot, value => value.state.configuration.groups.front.name === 'Edited group', 'Blur did not persist the edited group name');
+    await settings.evaluate(() => window.tcube.renameGroup({ face: 'front', name: '常用' }));
+    results.push('Editing a group name preserves its draft and the first subsequent tab click.');
     const saved = await snapshot();
     const updated = structuredClone(saved.state.configuration);
     updated.expandsFacesOnClick = false;
@@ -138,7 +149,7 @@ try {
         return { x: area.x + area.width - size - 24, y: area.y + area.height - size - 24 };
     }, 164);
     assert.deepEqual(placed, expected);
-    await capture(settings, 'settings.png');
+    await capture(settings, 'settings.png', false);
     results.push('Settings applied direct launch, hover multiplier, theme cycling and persisted bottom-right placement.');
     updated.expandsFacesOnClick = true;
     updated.themeCycle.isEnabled = false;
