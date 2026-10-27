@@ -90,3 +90,10 @@ test('icon refresh defers settings redraw while group name is focused', () => {
     assert.equal(shouldDeferSettingsRender('groups', null), false);
     assert.equal(shouldDeferSettingsRender('appearance', 'group-name'), false);
 });
+
+test('settings refresh preserves focused native select menus on every page', () => {
+    assert.equal(shouldDeferSettingsRender('appearance', 'material', 'SELECT'), true);
+    assert.equal(shouldDeferSettingsRender('appearance', 'style', 'SELECT'), true);
+    assert.equal(shouldDeferSettingsRender('behavior', null, 'SELECT'), true);
+    assert.equal(shouldDeferSettingsRender('appearance', null, 'BUTTON'), false);
+});

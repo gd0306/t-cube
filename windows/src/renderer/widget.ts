@@ -263,7 +263,7 @@ function render() {
     const opacity = physicalMaterial === 'slime' ? 0.55 : 0.25;
     pearl.material.opacity = opacity * (0.55 + 0.2 * motion.engagement);
     chroma.material.opacity =
-        opacity *
+        opacity * 1.15 *
         state.displayedAppearance.glowIntensity *
         (0.55 + 0.25 * motion.engagement) *
         (0.94 + 0.06 * Math.sin(motion.phase * 2 * Math.PI));

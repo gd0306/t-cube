@@ -8,7 +8,7 @@
 
 ## 下载安装包
 
-版本 **0.15.0**：[macOS Apple Silicon（.dmg）](https://github.com/gd0306/t-cube/releases/download/v0.15.0/T-Cube-0.15.0-macos-arm64.dmg) · [Windows x64 安装程序（.exe）](https://github.com/gd0306/t-cube/releases/download/v0.15.0/T-Cube-0.15.0-windows-x64-setup.exe) · [发布说明与 SHA-256 校验](https://github.com/gd0306/t-cube/releases/tag/v0.15.0)。
+macOS **0.15.0** · Windows **0.15.1**：[macOS Apple Silicon（.dmg）](https://github.com/gd0306/t-cube/releases/download/v0.15.0/T-Cube-0.15.0-macos-arm64.dmg) · [Windows x64 安装程序（.exe）](https://github.com/gd0306/t-cube/releases/download/v0.15.1/T-Cube-0.15.1-windows-x64-setup.exe) · [发布说明与 SHA-256 校验](https://github.com/gd0306/t-cube/releases/tag/v0.15.1)。
 
 Windows 安装包自带运行时，无需安装 Node.js。更新前先退出旧版，原有入口配置会保留。当前 macOS 使用本地签名、未公证，Windows 安装程序未做 Authenticode 签名。
 

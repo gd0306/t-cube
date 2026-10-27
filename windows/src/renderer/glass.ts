@@ -39,15 +39,15 @@ export function createGlassMaterial(): ShaderMaterial {
                 float grazing = 1.0 - clamp(dot(normal, normalize(towardCamera)), 0.0, 1.0);
                 float rim = pow(grazing, 2.0);
                 vec3 tint = mix(primary, secondary, 0.5 + 0.5 * normal.x);
-                vec3 reflection = mix(vec3(0.92, 0.96, 1.0), tint, 0.20 * glow);
+                vec3 reflection = mix(vec3(0.92, 0.96, 1.0), tint, 0.28 * glow);
                 // A narrow dark refraction at the silhouette also reads on pale desktops.
                 float outer = smoothstep(0.60, 0.96, grazing);
                 reflection = mix(reflection, vec3(0.025, 0.04, 0.065), outer * 0.88);
                 float alpha = 0.018 + rim * (0.32 + 0.035 * engagement);
                 vec3 light = normalize(vec3(-0.5, 0.8, 1.0));
                 float wet = pow(max(dot(reflect(-light, normal), normalize(towardCamera)), 0.0), 36.0);
-                vec3 gel = mix(tint, vec3(1.0), 0.15) + vec3(0.35 * wet);
-                float gelAlpha = 0.22 + rim * 0.30 + wet * 0.16;
+                vec3 gel = mix(tint, vec3(1.0), 0.10) + vec3(0.35 * wet);
+                float gelAlpha = 0.25 + rim * 0.30 + wet * 0.16;
                 gl_FragColor = vec4(mix(reflection, gel, slime), mix(alpha, gelAlpha, slime));
                 #include <colorspace_fragment>
             }

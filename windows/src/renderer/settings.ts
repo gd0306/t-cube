@@ -18,6 +18,7 @@ let snapshot: Snapshot | undefined,
     page = 'groups';
 let preferences: PreferenceQueue | undefined;
 let contentPointerActive = false;
+let renderPending = false;
 const nameDraft = new NameDraft();
 const labels: Record<ThemeId, string> = {
     aurora: '极光',
@@ -393,8 +394,10 @@ function renderBehavior(data: Snapshot) {
 }
 function render() {
     if (!snapshot) return;
-    if (contentPointerActive || shouldDeferSettingsRender(page, document.activeElement?.id ?? null))
+    renderPending = true;
+    if (contentPointerActive || shouldDeferSettingsRender(page, document.activeElement?.id ?? null, document.activeElement?.tagName))
         return;
+    renderPending = false;
     const data = {
         ...snapshot,
         state: {
@@ -448,9 +451,12 @@ function finishContentPointer() {
     if (!contentPointerActive) return;
     setTimeout(() => {
         contentPointerActive = false;
-        render();
+        if (renderPending) render();
     }, 0);
 }
 window.addEventListener('pointerup', finishContentPointer, true);
 window.addEventListener('pointercancel', finishContentPointer, true);
 window.addEventListener('blur', finishContentPointer);
+content.addEventListener('focusout', () => {
+    setTimeout(() => { if (renderPending) render(); }, 0);
+});

@@ -4,8 +4,8 @@ export function gestureHit(type: string, pick: () => Hit | null): Hit | null {
     return type === 'pointerup' ? pick() : null;
 }
 
-export function shouldDeferSettingsRender(page: string, focusedId: string | null): boolean {
-    return page === 'groups' && focusedId === 'group-name';
+export function shouldDeferSettingsRender(page: string, focusedId: string | null, focusedTag?: string): boolean {
+    return focusedTag === 'SELECT' || (page === 'groups' && focusedId === 'group-name');
 }
 
 type Edit = (config: Configuration) => void;

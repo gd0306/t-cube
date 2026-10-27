@@ -7,6 +7,7 @@ import { _electron, type ElectronApplication, type Page } from 'playwright';
 import { defaultConfiguration } from '../src/core/configuration.js';
 import { FACES, type Configuration } from '../src/shared/contracts.js';
 import { nativeInput } from './native-input.js';
+import { verifyAppearanceControls } from './appearance-controls.js';
 
 const output = path.resolve('.cache/smoke');
 await mkdir(output, { recursive: true });
@@ -68,7 +69,10 @@ async function capture(page: Page, name: string, backdrop = true, background = '
     // A capture-only backdrop makes alpha comparable; the shipping page stays transparent.
     const previous = await page.evaluate(() => document.body.style.background);
     try {
-        if (backdrop) await page.evaluate(value => { document.body.style.background = value; }, background);
+        if (backdrop) await page.evaluate(async value => {
+            document.body.style.background = value;
+            await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+        }, background);
         // Capture the actual Electron surface. Playwright's screenshot preparation can
         // stall on the inactive transparent widget when Windows animations are enabled.
         const png = await app!.evaluate(async ({ BrowserWindow }, url) => {
@@ -302,6 +306,13 @@ try {
         results.push('Real Windows application discovery, name search and click-to-add passed.');
     }
     await settings.getByRole('button', { name: '外观与主题', exact: true }).click();
+    if (process.platform === 'win32') {
+        const before = (await snapshot()).state.configuration;
+        await verifyAppearanceControls(settings);
+        await settings.evaluate(config => window.tcube.applyConfiguration(config), before);
+        await until(() => settings.getByRole('combobox', { name: '材质', exact: true }).inputValue(), value => value === 'glass', 'Material control did not restore after menu checks');
+        results.push('Real click-open and keyboard selection persisted both material and optical-style choices without replacing native menus.');
+    }
     const materialControl = settings.getByRole('combobox', { name: '材质', exact: true });
     assert.equal(await materialControl.inputValue(), 'glass');
     const readShell = () => widget.evaluate(async () => {
