@@ -36,17 +36,19 @@
 
 - [x] Add a pinned electron-builder dependency and NSIS per-user configuration including Koffi binaries.
 - [x] Add packaging commands and a Windows workflow that checks/types/tests/builds, installs the actual generated executable silently to an isolated directory, and runs the existing smoke suite against that installed runtime.
-- [ ] Upload installer, checksum and smoke diagnostics as workflow artifacts; no automatic publication before validation.
+- [x] Upload installer, checksum and smoke diagnostics as workflow artifacts; no automatic publication before validation.
 
 ## Task 4: Same-commit verification and packages
 
 - [x] Run Windows tests/typecheck/build locally and native Mac tests.
-- [ ] Review changes, update both versions/docs, commit and push master.
-- [ ] Run Windows CI checks on both supported Windows runners and build/install/smoke-check the packaged x64 installer.
-- [ ] Build and mount/verify the release Mac DMG; retain generated packages under ignored `build/`.
+- [x] Review changes, update both versions/docs, commit and push master.
+- [x] Run Windows CI checks on both supported Windows runners and build/install/smoke-check the packaged x64 installer.
+- [x] Build and mount/verify the release Mac DMG; retain generated packages under ignored `build/`.
 
 ## Task 5: Publish Release
 
-- [ ] Confirm artifact commit/version matches verified source, collect checksums and release notes with precise architecture/signing information.
-- [ ] Create a draft release for v0.15.0, upload both installers/checksum manifest, verify assets, then publish it.
-- [ ] Return release/download links and a concise verification summary.
+- [x] Confirm artifact commit/version matches verified source, collect checksums and release notes with precise architecture/signing information.
+- [x] Create a draft release for v0.15.0, upload both installers/checksum manifest, verify assets, then publish it.
+- [x] Return release/download links and a concise verification summary.
+
+Completed release: [v0.15.0](https://github.com/gd0306/t-cube/releases/tag/v0.15.0). Both installers use source `7b02bf8d612687777a685ffa9541e5a110b762cd`; see [verification record](../../verification/2026-10-28-v0.15.0-release.md).
