@@ -64,6 +64,26 @@ test('shortcuts retain launch context while exact executable and app-ID aliases 
     );
 });
 
+test('Windows short-path aliases do not bypass preference for the original shortcut', () => {
+    const apps = normalizeApplications([
+        {
+            name: 'App',
+            path: 'C:\\PROGRA~1\\Editor\\App.exe',
+            canonicalPath: 'C:\\Program Files\\Editor\\App.exe',
+        },
+        {
+            name: 'App',
+            path: 'C:\\Menu\\App.lnk',
+            target: 'C:\\Program Files\\Editor\\App.exe',
+            workingDirectory: 'C:\\Workspace',
+        },
+    ]);
+    assert.deepEqual(
+        apps.map((app) => app.path),
+        ['C:\\Menu\\App.lnk'],
+    );
+});
+
 test('discovery shares in-flight work, caches results and refreshes explicitly', async () => {
     let calls = 0;
     const catalog = new InstalledApplications({

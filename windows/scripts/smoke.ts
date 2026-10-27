@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, writeFile, rm, copyFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile, rm, copyFile, realpath } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
@@ -49,7 +49,8 @@ async function until<T>(read: () => Promise<T>, check: (value: T) => boolean, me
         if (check(last)) return last;
         await new Promise(resolve => setTimeout(resolve, 50));
     } while (Date.now() < deadline);
-    throw new Error(`${message}: ${JSON.stringify(last!)}`);
+    const detail = JSON.stringify(last!, (key, value) => key === 'icons' ? '[icon data omitted]' : value);
+    throw new Error(`${message}: ${detail?.slice(0, 4000)}`);
 }
 async function snapshot() { return widget!.evaluate(() => window.tcube.getSnapshot()); }
 async function bounds() {
@@ -205,17 +206,18 @@ try {
         await until(() => settings.getByRole('button', { name: '刷新列表', exact: true }).isEnabled(), Boolean, 'Application refresh did not finish');
         const result = settings.locator('.application-result').filter({ hasText: 'T-Cube catalog smoke' }).first();
         await result.waitFor({ state: 'visible', timeout: 30_000 });
-        const rawCatalog = JSON.parse(execFileSync(path.join(process.env.SystemRoot!, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
-            ['-NoProfile', '-NonInteractive', '-STA', '-ExecutionPolicy', 'Bypass', '-File', path.resolve('dist/assets/list-applications.ps1')],
-            { encoding: 'utf8', windowsHide: true, maxBuffer: 4 * 1024 * 1024 }).replace(/^\uFEFF/, ''));
-        console.log('Owned catalog fixture records:', JSON.stringify(rawCatalog.filter((entry: any) => entry.name === catalogDisplayName)));
+        assert.equal(await settings.locator('.application-result').filter({ hasText: 'T-Cube catalog smoke' }).count(), 1, 'Short paths and shortcut aliases should appear as one application');
         await capture(settings, 'application-picker.png', false);
         await result.click();
         await settings.locator('.application-picker').waitFor({ state: 'hidden' });
-        await until(snapshot, value => value.state.configuration.groups.right.slots[0]?.path === catalogShortcut, 'Catalog selection did not preserve the original launch shortcut');
+        const expectedShortcut = await realpath(catalogShortcut);
+        await until(async () => {
+            const file = (await snapshot()).state.configuration.groups.right.slots[0]?.path;
+            return file && /\.lnk$/i.test(file) ? realpath(file).catch(() => '') : '';
+        }, value => value === expectedShortcut, 'Catalog selection did not preserve the original launch shortcut');
         assert.equal((await snapshot()).state.configuration.groups.right.slots[0]?.name, catalogDisplayName);
         const originalLink = await app.evaluate(({ shell }, file) => shell.readShortcutLink(file), catalogShortcut);
-        assert.equal(originalLink.cwd, data);
+        assert.equal(await realpath(originalLink.cwd!), await realpath(data));
         assert.equal(originalLink.args ?? '', '');
         const catalog = await settings.evaluate(() => window.tcube.listInstalledApplications());
         assert.ok(catalog.length > 1, 'The catalog should include real installed applications');

@@ -16,6 +16,7 @@ export interface ApplicationServices {
 export function normalizeApplications(input: unknown): ApplicationCandidate[] {
     if (!Array.isArray(input) || input.length > 5000) throw new Error('无法读取已安装应用列表');
     const apps = new Map<string, ApplicationCandidate>();
+    const paths = new Map<string, string>();
     const links = new Map<
         string,
         { identity: string; target: string; arguments: string; appId: string }
@@ -52,14 +53,29 @@ export function normalizeApplications(input: unknown): ApplicationCandidate[] {
         )
             continue;
         const target = file ? win32.normalize(path) : path;
-        const key = file ? target.toLowerCase() : `shell:${target}`;
+        const canonical =
+            file &&
+            typeof value.canonicalPath === 'string' &&
+            /^[a-z]:[\\/]/i.test(value.canonicalPath)
+                ? win32.normalize(value.canonicalPath)
+                : target;
+        const key = file ? canonical.toLowerCase() : `shell:${target}`;
         if (apps.has(key)) continue;
         const id = createHash('sha256').update(key).digest('hex').slice(0, 32);
+        if (file) paths.set(id, canonical.toLowerCase());
         if (isLink) {
-            const targetKey = win32.normalize(linkTarget).toLowerCase();
+            const targetKey = win32
+                .normalize(
+                    typeof value.canonicalTarget === 'string' ? value.canonicalTarget : linkTarget,
+                )
+                .toLowerCase();
             const argumentsText = typeof value.arguments === 'string' ? value.arguments : '';
             const directory =
-                typeof value.workingDirectory === 'string' ? value.workingDirectory : '';
+                typeof value.canonicalWorkingDirectory === 'string'
+                    ? value.canonicalWorkingDirectory
+                    : typeof value.workingDirectory === 'string'
+                      ? value.workingDirectory
+                      : '';
             links.set(id, {
                 target: targetKey,
                 arguments: argumentsText,
@@ -88,7 +104,7 @@ export function normalizeApplications(input: unknown): ApplicationCandidate[] {
             const link = links.get(entry.id);
             if (link) return preferredLinks.get(link.identity) === entry.id;
             if (entry.kind === 'shell') return !appIds.has(entry.path);
-            return !defaultTargets.has(entry.path.toLowerCase());
+            return !defaultTargets.has(paths.get(entry.id)!);
         })
         .sort(
             (a, b) =>

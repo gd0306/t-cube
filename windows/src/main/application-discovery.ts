@@ -1,7 +1,7 @@
 import { app, nativeImage, shell, type NativeImage } from 'electron';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { InstalledApplications, type ApplicationCandidate } from './applications';
 import { validateLocalTarget } from './targets';
@@ -68,7 +68,32 @@ export function createApplicationCatalog(
                     },
                 );
                 images.clear();
-                return JSON.parse(stdout.replace(/^\uFEFF/, '').trim() || '[]');
+                const records = JSON.parse(stdout.replace(/^\uFEFF/, '').trim() || '[]');
+                if (!Array.isArray(records)) return records;
+                await Promise.all(
+                    records.map(async (record) => {
+                        for (const [field, identity] of [
+                            ['path', 'canonicalPath'],
+                            ['target', 'canonicalTarget'],
+                            ['workingDirectory', 'canonicalWorkingDirectory'],
+                        ] as const) {
+                            if (
+                                typeof record[field] !== 'string' ||
+                                !/^[a-z]:[\\/]/i.test(record[field])
+                            )
+                                continue;
+                            try {
+                                record[identity] = (await realpath(record[field])).replace(
+                                    /^\\\\\?\\([a-z]:\\)/i,
+                                    '$1',
+                                );
+                            } catch {
+                                /* A removed target is revalidated when selected. */
+                            }
+                        }
+                    }),
+                );
+                return records;
             } catch {
                 throw new Error('无法读取 Windows 应用列表，请刷新或使用浏览文件');
             }
