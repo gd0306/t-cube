@@ -316,7 +316,7 @@ function renderAppearance(data: Snapshot) {
 }
 function renderBehavior(data: Snapshot) {
     const config = data.state.configuration;
-    heading('交互与位置', '调整立方体的大小和桌面行为。');
+    heading('交互与位置', '左键拖动位置 · 右键拖动旋转 · 滚轮旋转 · 右键轻点设置');
     row(
         '悬停放大',
         checkbox(config.hover.isEnabled, (v) =>

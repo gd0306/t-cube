@@ -6,7 +6,7 @@ import {
     TEXTURE_SIZE,
     pickCube,
 } from '../core/geometry';
-import { applyScrollRotation, IdleRotation, PrismMotion } from '../core/rotation';
+import { applyScrollRotation, DragRotation, IdleRotation, PrismMotion } from '../core/rotation';
 import { FACES, type Appearance, type Face, type Snapshot } from '../shared/contracts';
 import { padTransparentRGB, subscribe, wheelDelta } from './util';
 import { gestureHit } from './state';
@@ -26,6 +26,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setClearColor(0, 0);
 document.body.prepend(renderer.domElement);
 const idle = new IdleRotation(),
+    dragRotation = new DragRotation(),
     motion = new PrismMotion();
 cube.quaternion.copy(idle.orientation);
 const body = createBodyGeometry();
@@ -267,6 +268,8 @@ window.addEventListener('resize', resize);
 document.addEventListener('visibilitychange', requestUpdate);
 resize();
 subscribe((data) => {
+    idle.orientation.copy(dragRotation.apply(data.state.rotationDrag, idle.orientation));
+    cube.quaternion.copy(idle.orientation);
     snapshot = data;
     updateAppearance(data.state.displayedAppearance);
     void updateIcons(data);

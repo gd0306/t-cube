@@ -44,8 +44,8 @@ final class CubeInputOverlay: NSView {
     }
     func updateInteractionHelp(expandsFaces: Bool) {
         let click = expandsFaces ? "单击面展开入口" : "单击图标直接打开"
-        setAccessibilityLabel("立方体：按住 Ctrl 恢复原大小，Ctrl 加左键按原大小拖动，滚动旋转，\(click)")
-        toolTip = "Ctrl 恢复原大小 · Ctrl＋左键按原大小拖动 · 滚动旋转 · \(click) · 右键设置"
+        setAccessibilityLabel("立方体：左键拖动位置，右键拖动旋转，按住 Ctrl 恢复原大小，Ctrl 加左键按原大小拖动，滚动旋转，\(click)")
+        toolTip = "左键拖动位置 · 右键拖动旋转 · Ctrl 恢复原大小 · Ctrl＋左键按原大小拖动 · 滚动旋转 · \(click) · 右键设置"
     }
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("Use init(cubeView:)") }

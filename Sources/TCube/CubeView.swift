@@ -16,6 +16,7 @@ final class CubeView: ARView {
     private var leftTracker = PointerDragTracker()
     private var leftMoveOnly = false
     private var rightTracker = PointerDragTracker()
+    private var rightDragOrientation = simd_quatf(real: 1, imag: .zero)
     private var idleRotation = CubeIdleRotation()
     private var panelOrigin = NSPoint.zero
     private(set) var isHovered = false
@@ -89,8 +90,8 @@ final class CubeView: ARView {
     func refreshTextures() {
         refreshAppearance()
         setAccessibilityHelp(model.configuration.expandsFacesOnClick
-            ? "悬停显示入口；滚动旋转；按住拖动位置；单击面展开入口；右键单击设置。"
-            : "悬停显示入口；滚动旋转；按住拖动位置；单击图标直接打开；右键单击设置。")
+            ? "悬停显示入口；滚动旋转；左键拖动位置；右键拖动旋转；单击面展开入口；右键单击设置。"
+            : "悬停显示入口；滚动旋转；左键拖动位置；右键拖动旋转；单击图标直接打开；右键单击设置。")
         for (ordinal, face) in CubeFace.allCases.enumerated() {
             guard let image = CubeTheme.faceImage(group: model.configuration.group(for: face), ordinal: ordinal, appearance: model.configuration.appearance) else { continue }
             do {
@@ -192,12 +193,6 @@ final class CubeView: ARView {
     func cancelRightDrag() {
         guard rightTracker.origin != nil else { return }
         defer { interactionChanged?(false) }
-        if rightTracker.isDragging, let window {
-            let clamped = WindowPlacement.clamp(window.frame.origin, size: window.frame.size, screens: NSScreen.screens.map(\.visibleFrame))
-            window.setFrameOrigin(clamped)
-            if let positionCommitted { positionCommitted(window.frame) }
-            else { model.savePosition(clamped) }
-        }
         rightTracker = PointerDragTracker()
         NSCursor.arrow.set()
     }
@@ -219,24 +214,29 @@ final class CubeView: ARView {
     func beginSecondaryDrag(atScreenPoint point: NSPoint) {
         guard leftTracker.origin == nil else { return }
         rightTracker.start(at: [Float(point.x), Float(point.y)])
-        panelOrigin = window?.frame.origin ?? .zero
+        rightDragOrientation = cube.orientation
         interactionChanged?(true)
     }
     override func rightMouseDragged(with event: NSEvent) {
         guard rightTracker.update(to: pointer(event)) else { return }
-        window?.setFrameOrigin(NSPoint(x: panelOrigin.x + CGFloat(rightTracker.translation.x), y: panelOrigin.y + CGFloat(rightTracker.translation.y)))
+        applyRightDragRotation()
         NSCursor.closedHand.set()
     }
     override func rightMouseUp(with event: NSEvent) {
         guard rightTracker.origin != nil else { return }
-        defer { interactionChanged?(false) }
+        defer { NSCursor.arrow.set(); interactionChanged?(false) }
         let outcome = rightTracker.end(at: pointer(event))
         switch outcome {
         case .drag:
-            finishMove(translation: rightTracker.translation)
+            applyRightDragRotation()
         case .click: editRequested?()
         case .none: break
         }
+    }
+
+    private func applyRightDragRotation() {
+        cube.orientation = CubeRotation.dragged(from: rightDragOrientation, translation: rightTracker.translation)
+        model.selectedFace = CubeScrollMotion.targetFace(for: cube.orientation)
     }
 
     override func scrollWheel(with event: NSEvent) {

@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Vector3 } from 'three';
+import { Quaternion, Vector3 } from 'three';
 import { DISPLAY_TILT } from '../src/core/geometry';
-import { applyScrollRotation, IdleRotation, PrismMotion } from '../src/core/rotation';
+import { applyScrollRotation, DragRotation, IdleRotation, PrismMotion } from '../src/core/rotation';
 
 test('scroll turns continuously in tilt-relative axes with bounded precise deltas', () => {
     const horizontal = applyScrollRotation(DISPLAY_TILT, 1, 0, false);
@@ -40,4 +40,22 @@ test('prism light eases hover and freezes only flow with reduced motion', () => 
     p.step(0.1, false, true); assert.equal(p.engagement, 0);
     p.step(NaN, true, false); assert.equal(p.phase, phase);
     p.step(60, true, false); assert.ok(p.phase - phase < 0.01);
+});
+
+test('right-drag rotation follows screen axes, preserves total displacement and starts each gesture from the current pose', () => {
+    const drag = new DragRotation();
+    const start = new Quaternion();
+    drag.apply({ id: 1, x: 0, y: 0 }, start);
+    const right = drag.apply({ id: 1, x: 100, y: 0 }, start);
+    const normal = new Vector3(0, 0, 1).applyQuaternion(right);
+    assert.ok(normal.x > 0.8 && Math.abs(normal.y) < 1e-6);
+    const down = drag.apply({ id: 1, x: 0, y: 100 }, right);
+    assert.ok(new Vector3(0, 0, 1).applyQuaternion(down).y < -0.8);
+    assert.ok(drag.apply({ id: 1, x: 0, y: 0 }, down).angleTo(start) < 1e-6);
+    drag.apply({ id: 2, x: 0, y: 0 }, right);
+    const second = drag.apply({ id: 2, x: 0, y: 100 }, right);
+    assert.ok(second.angleTo(right) > 0.9);
+    // Unchanged state must not overwrite a later wheel or idle rotation.
+    assert.ok(drag.apply({ id: 2, x: 0, y: 100 }, start).angleTo(start) < 1e-6);
+    assert.ok(Math.abs(second.length() - 1) < 1e-9);
 });

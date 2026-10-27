@@ -175,6 +175,52 @@ try {
         results.push('Inactive-window Ctrl shrink, Ctrl-left drag, Ctrl release mid-drag and native mouse-up persisted position.');
     } else results.push('Native Windows Ctrl/button paths skipped on macOS preview.');
 
+    if (process.platform === 'win32') {
+        const pose = () => widget.evaluate(async () => {
+            const { controller } = await import(new URL('widget.js', location.href).href);
+            return controller.cube.quaternion.toArray() as number[];
+        });
+        const changed = (a: number[], b: number[]) => Math.abs(a.reduce((sum, value, i) => sum + value * b[i], 0)) < 0.99;
+        const resting = await bounds();
+        await move(resting.x + resting.width / 2, resting.y + resting.height / 2);
+        await until(bounds, frame => frame.width === 656, 'Right-drag hover did not enlarge');
+        const before = await bounds();
+        const saved = (await snapshot()).state.configuration.windowPosition;
+        const initialPose = await pose();
+        input.button(2, true);
+        await until(snapshot, value => value.state.interactionActive, 'Right rotation did not begin');
+        await move(before.x + before.width / 2 + 100, before.y + before.height / 2);
+        await until(pose, value => changed(value, initialPose), 'Horizontal right drag did not rotate');
+        const horizontalPose = await pose();
+        await move(before.x + before.width + 100, before.y + before.height + 100);
+        await until(pose, value => changed(value, horizontalPose), 'Outside vertical right drag did not rotate');
+        assert.deepEqual(await bounds(), before, 'Right dragging must not move the window');
+        input.button(2, false);
+        await until(snapshot, value => !value.state.interactionActive, 'Right rotation release was lost');
+        const stopped = await pose();
+        await new Promise(resolve => setTimeout(resolve, 200));
+        assert.ok(!changed(await pose(), stopped), 'Released rotation must not snap');
+        assert.deepEqual((await snapshot()).state.configuration.windowPosition, saved, 'Right rotation must not save a new position');
+        await move(2, 2);
+        await until(bounds, frame => frame.width === 164, 'Right-drag exit did not shrink');
+        const leftResting = await bounds();
+        await move(leftResting.x + 82, leftResting.y + 82);
+        await until(bounds, frame => frame.width === 656, 'Left-drag hover did not enlarge');
+        const leftBefore = await bounds();
+        const leftPose = await pose();
+        input.button(0, true);
+        await until(snapshot, value => value.state.interactionActive, 'Left move did not begin');
+        await move(leftBefore.x + leftBefore.width / 2 + 120, leftBefore.y + leftBefore.height / 2 + 60);
+        await until(bounds, frame => frame.x > leftBefore.x + 100 && frame.y > leftBefore.y + 40, 'Left drag did not move the window');
+        assert.ok(!changed(await pose(), leftPose), 'Left move must not rotate');
+        input.button(0, false);
+        await until(snapshot, value => !value.state.interactionActive, 'Left move release was lost');
+        await until(snapshot, value => JSON.stringify(value.state.configuration.windowPosition) !== JSON.stringify(saved), 'Left move did not persist position');
+        assert.equal((await snapshot()).state.expandedFace, null, 'A drag must not expand a face');
+        await move(2, 2);
+        results.push('Native left drag moved and saved; right drag rotated both axes outside widget bounds without moving, saving or snapping.');
+    }
+
     await widget.evaluate(() => window.tcube.showSettings());
     const settings = await until(async () => app!.windows(), pages => pages.some(page => page.url().endsWith('/settings.html')), 'Settings missing').then(pages => pages.find(page => page.url().endsWith('/settings.html'))!);
     await settings.waitForLoadState('domcontentloaded');

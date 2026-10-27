@@ -68,10 +68,10 @@ struct CubeInputTests {
         let isNativeInput = receiver is CubeInputOverlay
         #expect(isNativeInput)
         let start = window.frame.origin
-        receiver.rightMouseDown(with: try event(.rightMouseDown, at: CGPoint(x: 50, y: 50), in: window))
-        receiver.rightMouseDragged(with: try event(.rightMouseDragged, at: CGPoint(x: 85, y: 70), in: window))
+        receiver.mouseDown(with: try event(.leftMouseDown, at: CGPoint(x: 50, y: 50), in: window))
+        receiver.mouseDragged(with: try event(.leftMouseDragged, at: CGPoint(x: 85, y: 70), in: window))
         #expect(window.frame.origin == CGPoint(x: start.x + 35, y: start.y + 20))
-        receiver.rightMouseUp(with: try event(.rightMouseUp, at: CGPoint(x: 50, y: 50), in: window))
+        receiver.mouseUp(with: try event(.leftMouseUp, at: CGPoint(x: 50, y: 50), in: window))
         #expect(try store.load().windowPosition == WindowPosition(x: start.x + 35, y: start.y + 20))
     }
 
@@ -110,22 +110,35 @@ struct CubeInputTests {
         try #require(NSEvent.mouseEvent(with: type, location: point, modifierFlags: [], timestamp: 0, windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: clickCount, pressure: 1))
     }
 
-    @Test func rightDragMovesAndPersistsWithoutOpeningEditor() throws {
+    @Test func rightDragRotatesWithoutMovingSavingOrOpeningEditor() throws {
         let (view, window, model, store, directory) = try fixture()
         defer { try? FileManager.default.removeItem(at: directory) }
-        let start = window.frame.origin
+        let start = window.frame
+        let rotation = view.cube.orientation
         var editorRequests = 0
         view.editRequested = { editorRequests += 1 }
         view.rightMouseDown(with: try event(.rightMouseDown, at: CGPoint(x: 50, y: 50), in: window))
-        #expect(editorRequests == 0)
         view.rightMouseDragged(with: try event(.rightMouseDragged, at: CGPoint(x: 95, y: 80), in: window))
-        #expect(window.frame.origin == CGPoint(x: start.x + 45, y: start.y + 30))
-        #expect(model.configuration.windowPosition == nil)
+        #expect(window.frame == start)
+        #expect(abs(simd_dot(rotation.vector, view.cube.orientation.vector)) < 0.999)
         #expect(view.containsCube(atWindowPoint: CGPoint(x: -200, y: -200)))
-        view.rightMouseUp(with: try event(.rightMouseUp, at: CGPoint(x: 50, y: 50), in: window))
+        view.rightMouseUp(with: try event(.rightMouseUp, at: CGPoint(x: 110, y: 90), in: window))
+        let stopped = view.cube.orientation
+        #expect(abs(simd_length(stopped.vector) - 1) < 0.00001)
+        #expect(window.frame == start)
         #expect(editorRequests == 0)
-        #expect(try store.load().windowPosition == WindowPosition(x: start.x + 45, y: start.y + 30))
+        #expect(model.configuration.windowPosition == nil)
+        #expect(try store.load().windowPosition == nil)
         #expect(!view.containsCube(atWindowPoint: CGPoint(x: -200, y: -200)))
+        // A second drag starts from the last pose; zero displacement cannot reset it.
+        view.rightMouseDown(with: try event(.rightMouseDown, at: CGPoint(x: 60, y: 60), in: window))
+        view.rightMouseDragged(with: try event(.rightMouseDragged, at: CGPoint(x: 80, y: 60), in: window))
+        view.rightMouseDragged(with: try event(.rightMouseDragged, at: CGPoint(x: 60, y: 60), in: window))
+        #expect(abs(simd_dot(stopped.vector, view.cube.orientation.vector)) > 0.99999)
+        view.cancelRightDrag()
+        #expect(window.frame == start)
+        #expect(editorRequests == 0)
+        #expect(try store.load().windowPosition == nil)
     }
 
     @Test func rightClickOpensEditorOnlyAfterRelease() throws {

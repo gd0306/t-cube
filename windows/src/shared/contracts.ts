@@ -29,11 +29,13 @@ export interface ViewState {
     hovered: boolean;
     controlHeld: boolean;
     interactionActive: boolean;
+    rotationDrag: RotationDrag | null;
     reducedMotion: boolean;
     visible: boolean;
     expandedFace: Face | null;
     platform: string;
 }
+export interface RotationDrag extends Point { id: number }
 export interface Snapshot { state: ViewState; icons: Record<string, string> }
 export interface Hit { face: Face; slot: number | null }
 export interface TargetRequest { face: Face; slot: number; kind: 'application' | 'folder' }

@@ -2,7 +2,7 @@ import { addTarget, moveTarget, normalizeConfiguration, removeTarget, renameGrou
 import { HoverGeometry } from '../core/hover';
 import type { ConfigurationStore } from '../core/store';
 import type { InputState } from '../native/win32';
-import type { Configuration, Face, Hit, LauncherItem, Placement, Point, Rect, Snapshot, TargetRequest, ViewState } from '../shared/contracts';
+import type { Configuration, Face, Hit, LauncherItem, Placement, Point, Rect, RotationDrag, Snapshot, TargetRequest, ViewState } from '../shared/contracts';
 
 export interface HostServices {
     platform: string;
@@ -34,6 +34,7 @@ export class LauncherHost {
     readonly geometry: HoverGeometry;
     private configuration: Configuration;
     private gesture: Gesture | null = null;
+    private rotationDrag: RotationDrag | null = null;
     private sequence = 0;
     private visible = true;
     private reducedMotion = false;
@@ -58,7 +59,7 @@ export class LauncherHost {
         const resolved = resolveAppearance(this.configuration, this.elapsed);
         return { state: { configuration: structuredClone(this.configuration), displayedAppearance: resolved.appearance,
             activeTheme: resolved.theme, hovered: this.geometry.hovered, controlHeld: this.controlHeld,
-            interactionActive: Boolean(this.gesture && !this.gesture.released), reducedMotion: this.reducedMotion,
+            interactionActive: Boolean(this.gesture && !this.gesture.released), rotationDrag: this.rotationDrag, reducedMotion: this.reducedMotion,
             visible: this.visible, expandedFace: this.expandedFace, platform: this.services.platform }, icons: { ...this.icons } };
     }
     reportError(error: unknown): void { this.services.error(error instanceof Error ? error.message : String(error)); }
@@ -112,7 +113,9 @@ export class LauncherHost {
             gesture.moveOnly ||= this.controlHeld;
             const dx = pointer.x - gesture.origin.x, dy = pointer.y - gesture.origin.y;
             if (Math.hypot(dx, dy) >= 5) gesture.dragged = true;
-            if (gesture.dragged) {
+            if (gesture.dragged && gesture.button === 2) {
+                this.rotationDrag = { id: gesture.id, x: dx, y: dy };
+            } else if (gesture.dragged) {
                 gesture.movedFrame = { ...gesture.frame, x: gesture.frame.x + dx, y: gesture.frame.y + dy };
                 this.services.setFrame(gesture.movedFrame); this.lastFrame = JSON.stringify(gesture.movedFrame);
             }
@@ -141,6 +144,7 @@ export class LauncherHost {
         this.geometry.setInteractionActive(true);
         this.gesture = { id: ++this.sequence, button, origin, frame, movedFrame: frame, dragged: false,
             moveOnly: this.controlHeld, released: false, releasedAt: 0, hit: undefined };
+        this.rotationDrag = button === 2 ? { id: this.sequence, x: 0, y: 0 } : null;
         this.publish(); return this.gesture.id;
     }
     async endPointer(request: { gestureId: number; button: 0 | 2; hit: Hit | null; cancelled?: boolean }): Promise<void> {
@@ -157,7 +161,7 @@ export class LauncherHost {
     private release(gesture: Gesture): void {
         if (gesture.released) return;
         gesture.released = true; gesture.releasedAt = Date.now();
-        if (gesture.dragged) {
+        if (gesture.dragged && gesture.button === 0) {
             this.geometry.commitMovedFrame(gesture.movedFrame);
             // Refresh desired hover against the moved display while hover geometry is still frozen.
             this.geometry.pointerChanged(this.services.cursor());

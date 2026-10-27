@@ -16,7 +16,7 @@ struct EditorView: View {
             .padding(16)
             Divider()
             HStack {
-                Text("按住立方体拖动位置 · 单击面展开入口")
+                Text("左键拖动位置 · 右键拖动旋转")
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button("退出 T-Cube", systemImage: "power") { NSApp.terminate(nil) }
@@ -326,7 +326,7 @@ private struct AppearanceSettingsView: View {
                     Text(expandsFacesOnClick ? "先展开该面的四个图标，再点击图标打开应用。" : "直接点击立方体面上的图标打开；点击空白区域不执行操作。")
                 }
                 Section("操作方式") {
-                    Label("鼠标左键、右键或触控板按住拖动，调整桌面位置", systemImage: "cursorarrow.motionlines")
+                    Label("左键按住拖动调整位置；右键按住拖动旋转立方体", systemImage: "cursorarrow.motionlines")
                     Label("按住 Ctrl 恢复原大小；Ctrl＋左键按原大小拖动", systemImage: "control")
                     Label(expandsFacesOnClick ? "单击面立即展开；右键单击或从状态栏打开设置" : "单击图标直接打开；右键单击或从状态栏打开设置", systemImage: "square.on.square")
                     Label("触控板横向或纵向滚动，沿对应方向旋转", systemImage: "hand.draw")

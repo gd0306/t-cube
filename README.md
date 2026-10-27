@@ -52,7 +52,7 @@ Install https://github.com/gd0306/t-cube (master) on Windows. Follow windows/REA
 
 ## macOS install and run
 
-Current version: **0.12.3**. Use the **master** branch.
+Current version: **0.12.4**. Use the **master** branch.
 
 Running requires macOS 15+. Building requires full Xcode with Swift 6 and the **macOS 27 SDK**. Current local packages target Apple Silicon and use ad-hoc signing; they are not notarized.
 
@@ -63,7 +63,7 @@ bash scripts/build-app.sh
 open build/T-Cube.app
 ```
 
-For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.12.3.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are not included in the repository; macOS security approvals remain with the user.
+For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.12.4.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are not included in the repository; macOS security approvals remain with the user.
 
 ### Let an agent install it
 
@@ -87,7 +87,8 @@ Settings open on first launch. Reopen them by right-clicking the cube or using i
 | Hover / leave | Reveal / hide icons; pause / resume idle rotation when enabled |
 | Two-finger horizontal / vertical scroll | Rotate along the corresponding axis; stop without snapping |
 | Mouse wheel / Shift + wheel | Rotate vertically / horizontally |
-| Left- or right-button drag | Move and save the floating position |
+| Left-button drag | Move and save the floating position |
+| Right-button drag | Rotate the cube freely; release to keep the current angle |
 | Hold Ctrl over the cube | Temporarily restore the resting size |
 | Ctrl + left-button drag | Move at resting size, even if Ctrl is released mid-drag |
 | Click outside an expanded face / Esc | Dismiss the icon panel |

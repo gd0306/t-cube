@@ -137,7 +137,7 @@ test('launch failures reach the user and never launch unconfigured paths', async
     } finally { await f.dispose(); }
 });
 
-test('a right drag is move-only and macOS fallback completes on renderer release', async () => {
+test('a right drag rotates in place and preview fallback completes on renderer release', async () => {
     const f = await fixture();
     try {
         f.input.available = false;
@@ -148,7 +148,8 @@ test('a right drag is move-only and macOS fallback completes on renderer release
         assert.equal(f.host.snapshot.state.interactionActive, false);
         assert.equal(f.settings, 0);
         assert.deepEqual(f.launched, []);
-        assert.notEqual(f.store.snapshot.windowPosition, null);
+        assert.equal(f.store.snapshot.windowPosition, null);
+        assert.deepEqual(f.host.geometry.restingFrame, { x: 120, y: 120, width: 164, height: 164 });
     } finally { await f.dispose(); }
 });
 
@@ -395,5 +396,27 @@ test('native right fallback is suppressed by cancellation within grace', async t
         await f.host.endPointer({ gestureId, button: 2, hit: null, cancelled: true });
         time += 100; f.host.poll();
         assert.equal(f.settings, 0);
+    } finally { await f.dispose(); }
+});
+
+
+test('native right dragging publishes total rotation displacement without moving or saving the widget', async () => {
+    const f = await fixture();
+    try {
+        f.input.primaryDown = false; f.input.secondaryDown = true;
+        const before = f.host.geometry.displayFrame;
+        const gestureId = f.host.beginPointer(2);
+        f.pointer(240, 150); f.host.poll();
+        assert.deepEqual(f.host.geometry.displayFrame, before);
+        assert.deepEqual(f.frames.at(-1), before);
+        assert.deepEqual(f.host.snapshot.state.rotationDrag, { id: gestureId, x: 60, y: -30 });
+        f.pointer(180, 180); f.host.poll();
+        assert.deepEqual(f.host.snapshot.state.rotationDrag, { id: gestureId, x: 0, y: 0 });
+        f.input.secondaryDown = false; f.host.poll();
+        await f.host.endPointer({ gestureId, button: 2, hit: { face: 'front', slot: 0 } });
+        await f.host.whenIdle();
+        assert.equal(f.store.snapshot.windowPosition, null);
+        assert.equal(f.settings, 0);
+        assert.deepEqual(f.launched, []);
     } finally { await f.dispose(); }
 });

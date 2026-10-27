@@ -138,7 +138,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             submenu.addItem(option)
         }
         size.submenu = submenu; menu.addItem(size)
-        let help = NSMenuItem(title: "滚动旋转 · 按住拖动 · 点击使用入口", action: nil, keyEquivalent: "")
+        let help = NSMenuItem(title: "左键移动 · 右键旋转 · 滚动旋转 · 点击使用入口", action: nil, keyEquivalent: "")
         menu.addItem(help)
         menu.addItem(.separator())
         _ = item("退出 T-Cube", #selector(quit), key: "q")

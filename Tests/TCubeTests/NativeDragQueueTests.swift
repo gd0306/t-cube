@@ -1,6 +1,7 @@
 import AppKit
 import XCTest
 import CubeCore
+import simd
 @testable import TCube
 
 /// AppKit's nested event tracking is exercised synchronously, outside Swift
@@ -90,7 +91,7 @@ final class NativeDragQueueTests: XCTestCase {
         }
     }
 
-    func testRightDragConsumesNativeEventsAndPersistsPosition() throws {
+    func testRightDragConsumesNativeEventsAndRotatesWithoutMoving() throws {
         try MainActor.assumeIsolated {
             _ = NSApplication.shared
             let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -109,11 +110,16 @@ final class NativeDragQueueTests: XCTestCase {
                 let result = NSEvent.mouseEvent(with: type, location: point, modifierFlags: [], timestamp: 0, windowNumber: windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1)
                 return try XCTUnwrap(result)
             }
+            let initialRotation = view.cube.orientation
+            var openedSettings = false
+            view.editRequested = { openedSettings = true }
             NSApp.postEvent(try event(.rightMouseDragged, CGPoint(x: 90, y: 75)), atStart: false)
-            NSApp.postEvent(try event(.rightMouseUp, CGPoint(x: 50, y: 50)), atStart: false)
+            NSApp.postEvent(try event(.rightMouseUp, CGPoint(x: 100, y: 80)), atStart: false)
             surface.input.rightMouseDown(with: try event(.rightMouseDown, CGPoint(x: 50, y: 50)))
-            XCTAssertEqual(window.frame.origin, CGPoint(x: start.x + 40, y: start.y + 25))
-            XCTAssertEqual(try store.load().windowPosition, WindowPosition(x: start.x + 40, y: start.y + 25))
+            XCTAssertEqual(window.frame.origin, start)
+            XCTAssertLessThan(abs(simd_dot(initialRotation.vector, view.cube.orientation.vector)), 0.999)
+            XCTAssertNil(try store.load().windowPosition)
+            XCTAssertFalse(openedSettings)
         }
     }
 }

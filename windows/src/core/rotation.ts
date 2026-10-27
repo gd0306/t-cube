@@ -1,5 +1,22 @@
 import { Quaternion, Vector3 } from 'three';
 import { DISPLAY_TILT } from './geometry';
+import type { RotationDrag } from '../shared/contracts';
+
+/** Absolute screen-space displacement keeps native polling independent of renderer event delivery. */
+export class DragRotation {
+    private previous: RotationDrag | null = null;
+    private initial = new Quaternion();
+    apply(drag: RotationDrag | null, current: Quaternion): Quaternion {
+        if (!drag) { this.previous = null; return current.clone(); }
+        if (drag.id !== this.previous?.id) this.initial.copy(current);
+        if (drag.id === this.previous?.id && drag.x === this.previous.x && drag.y === this.previous.y) return current.clone();
+        this.previous = { ...drag };
+        const yaw = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), drag.x * 0.01);
+        // Windows global screen coordinates grow downwards.
+        const pitch = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), drag.y * 0.01);
+        return yaw.multiply(pitch).multiply(this.initial).normalize();
+    }
+}
 
 export function applyScrollRotation(quaternion: Quaternion, dx: number, dy: number, precise: boolean): Quaternion {
     if (!Number.isFinite(dx) || !Number.isFinite(dy)) return quaternion.clone();
