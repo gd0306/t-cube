@@ -1,17 +1,22 @@
 import assert from 'node:assert/strict';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import koffi from 'koffi';
 import type { ElectronApplication, Page } from 'playwright';
 import type { TextSnippet } from '../src/shared/productivity';
 
+function withDeadline<T>(pending:Promise<T>,label:string,milliseconds=10000):Promise<T> {
+    let timer:ReturnType<typeof setTimeout>;
+    return Promise.race([pending,new Promise<never>((_resolve,reject)=>{timer=setTimeout(()=>reject(new Error(`${label} timed out`)),milliseconds);})]).finally(()=>clearTimeout(timer));
+}
+
 async function until<T>(read: () => Promise<T>, check: (value: T) => boolean, message: string, timeout = 10_000): Promise<T> {
     const deadline = Date.now() + timeout;
     let last: T | undefined;
     do {
-        last = await read();
+        last = await withDeadline(read(),message);
         if (check(last)) return last;
         await new Promise(resolve => setTimeout(resolve, 50));
     } while (Date.now() < deadline);
@@ -68,13 +73,13 @@ export async function verifyLibrarySmoke(app: ElectronApplication, widget: Page)
         await writeFile(path.resolve('.cache/smoke', name), Buffer.from(png, 'base64'));
     }
     async function showLibrary(): Promise<Page> {
-        await widget.evaluate(() => window.tcube.showLibrary());
+        await withDeadline(widget.evaluate(() => window.tcube.showLibrary()),'showLibrary native focus capture');
         const pages = await until(async () => app.windows(), pages => pages.some(page => page.url().endsWith('/library.html')), 'Library window missing');
         const page = pages.find(page => page.url().endsWith('/library.html'))!;
         await page.waitForLoadState('domcontentloaded');
         return page;
     }
-    const stage = async (name:string) => { console.log(`Office smoke: ${name}`); await writeFile(path.resolve('.cache/smoke/office-progress.txt'),name); };
+    const stage = async (name:string) => { console.log(`Office smoke: ${name}`); await appendFile(path.resolve('.cache/smoke/office-progress.txt'),`${new Date().toISOString()} ${name}\n`); };
     try {
         await stage('snapshot clipboard');
         await app.evaluate(async ({ clipboard, ClipboardItem }, key) => {
@@ -125,20 +130,27 @@ $form.Dispose()
         receiver = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-STA', '-EncodedCommand', Buffer.from(command, 'utf16le').toString('base64')], { windowsHide: false, stdio: ['ignore', 'ignore', 'pipe'] });
         receiver.on('error', error => { receiverError = error.message; });
         receiver.stderr?.on('data', chunk => { receiverError += String(chunk).slice(0, 4000); });
+        await stage('find receiver window');
         receiverWindow = await until(async () => {
             if (receiverError) throw new Error(`Owned paste receiver failed: ${receiverError}`);
             if (receiver!.exitCode !== null) throw new Error(`Owned paste receiver exited (${receiver!.exitCode})`);
             return BigInt(find(null, title));
         }, value => value !== 0n, 'Owned WinForms receiver did not appear');
+        await stage('validate receiver PID');
         assert.ok(owns(receiverWindow), 'Receiver Form PID must match spawned PowerShell');
+        await stage('read receiver title');
         const titleBuffer = Buffer.alloc(1024); getTitle(receiverWindow, titleBuffer, 512);
         assert.equal(titleBuffer.toString('utf16le').split('\0')[0], title);
+        await stage('find receiver textbox');
         textbox = BigInt(child(receiverWindow, 5)); // GW_CHILD: the Form owns exactly one TextBox.
         assert.ok(owns(textbox), 'TextBox must belong to owned receiver');
+        await stage('read receiver class');
         const classBuffer = Buffer.alloc(1024); getClass(textbox, classBuffer, 512);
         assert.match(classBuffer.toString('utf16le').split('\0')[0], /^WindowsForms10\.EDIT/i, 'Receiver child must be an edit control');
+        await stage('activate receiver');
         activate(receiverWindow);
         await until(async () => BigInt(foreground()), value => value === receiverWindow, 'Owned receiver could not become foreground');
+        await stage('show library with receiver target');
         library = await showLibrary(); // evaluate does not activate the widget; capture the external TextBox.
         await stage('paste whole text');
         await library.getByRole('button', { name: '粘贴全部', exact: true }).click();
@@ -154,20 +166,24 @@ $form.Dispose()
         return results;
     } catch (error) {
         failed = true;
-        await capture('office-library-failure.png').catch(() => undefined);
+        await writeFile(path.resolve('.cache/smoke/office-error.txt'),error instanceof Error?error.stack??error.message:String(error));
+        await withDeadline(capture('office-library-failure.png'),'failure capture',5000).catch(() => undefined);
         throw error;
     } finally {
         await stage('cleanup');
         const cleanupErrors: unknown[] = [];
         const clean = async (action: () => unknown) => { try { await action(); } catch (error) { cleanupErrors.push(error); } };
         if (receiver) await clean(async () => {
+            await stage('cleanup receiver');
             if (owns(receiverWindow)) post(receiverWindow, 0x0010, 0, 0); // WM_CLOSE, owned PID only.
             const deadline = Date.now() + 2000;
             while (receiver!.exitCode === null && receiver!.signalCode === null && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 50));
             if (receiver!.exitCode === null && receiver!.signalCode === null) receiver!.kill();
         });
+        await stage('cleanup fixture');
         if (fixtureSaved && library && !library.isClosed()) await clean(() => library!.evaluate(id => window.tcube.deleteSnippet(id), snippet.id));
         if (library && !library.isClosed()) await clean(() => app.evaluate(({ BrowserWindow }, url) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL() === url)?.hide(), library!.url()));
+        await stage('restore clipboard');
         if (clipboardSaved) await clean(() => app.evaluate(async ({ clipboard }, key) => {
             const state = globalThis as unknown as Record<string, unknown>;
             const snapshot = state[key] as Electron.ClipboardItem[];
