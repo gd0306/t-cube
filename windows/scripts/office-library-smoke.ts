@@ -78,7 +78,7 @@ export async function verifyLibrarySmoke(app: ElectronApplication, widget: Page)
         await app.evaluate(async ({ clipboard, ClipboardItem }, key) => {
             // Materialize every format before changing the clipboard; keep native items in main.
             const items = await clipboard.read();
-            const snapshot = await Promise.all(items.map(async item => new ClipboardItem(Object.fromEntries(await Promise.all(item.types.map(async type => [type, await item.getType(type)] as const))))));
+            const snapshot = await Promise.all(items.filter(item => item.types.length > 0).map(async item => new ClipboardItem(Object.fromEntries(await Promise.all(item.types.map(async type => [type, await item.getType(type)] as const))))));
             (globalThis as unknown as Record<string, unknown>)[key] = snapshot;
         }, clipboardKey);
         clipboardSaved = true;
