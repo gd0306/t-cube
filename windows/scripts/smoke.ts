@@ -72,7 +72,7 @@ async function capture(page: Page, name: string, backdrop = true, background = '
     try {
         if (backdrop) await page.evaluate(async value => {
             document.body.style.background = value;
-            await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+            await Promise.race([new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))), new Promise<void>(resolve => setTimeout(resolve, 250))]);
         }, background);
         // Capture the actual Electron surface. Playwright's screenshot preparation can
         // stall on the inactive transparent widget when Windows animations are enabled.
