@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, writeFile, rm, copyFile, realpath } from 'node:fs/promises';
+import { appendFile, mkdir, mkdtemp, writeFile, rm, copyFile, realpath } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
@@ -104,6 +104,7 @@ try {
         env: { ...process.env, TCUBE_USER_DATA_DIR: data },
         timeout: 30_000
     });
+    app.process().stderr?.on('data', chunk => {void appendFile(path.join(output,'runtime-stderr.log'),String(chunk));});
     originalCursor = await app.evaluate(({ screen }) => screen.getCursorScreenPoint());
     if (process.platform === 'win32') {
         await mkdir(path.dirname(catalogShortcut), { recursive: true });

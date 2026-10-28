@@ -23,29 +23,35 @@ export function createPasteController(native: PasteBindings, pause: (millisecond
             generation++;
             try {
                 const window = native.foreground(), info = native.windowInfo(window);
-                if (!window || !info || info.processId === native.ownProcessId) return null;
+                if (!window || !info || info.processId === native.ownProcessId) {diagnostic('capture rejected: missing or own foreground'); return null;}
                 const focus = native.focus(info.threadId);
-                if (!focus || !native.belongsTo(window, focus)) return null;
+                if (!focus || !native.belongsTo(window, focus)) {diagnostic('capture rejected: missing or unrelated focus'); return null;}
+                diagnostic('capture succeeded');
                 return { ...info, window, focus };
             } catch { return null; }
         },
         async paste(target: PasteTarget | null, canPaste: () => boolean = () => true): Promise<boolean> {
             const request = ++generation;
             try {
-                if (!target || !canPaste() || !same(target) || !native.restore(target.window)) return false;
+                if (!target) {diagnostic('paste rejected: no target');return false;}
+                if (!canPaste()) {diagnostic('paste rejected: clipboard guard');return false;}
+                if (!same(target)) {diagnostic('paste rejected: target identity/focus changed');return false;}
+                if (!native.restore(target.window)) {diagnostic('paste rejected: foreground restore denied');return false;}
                 for (let attempt = 0; attempt < 20; attempt++) {
                     if (request !== generation || !canPaste() || !same(target)) return false;
                     if (native.foreground() === target.window) {
                         // Recheck immediately before one batch. No Enter or submit event is generated.
-                        return same(target) && native.foreground() === target.window && canPaste() && native.sendPaste();
+                        const sent = same(target) && native.foreground() === target.window && canPaste() && native.sendPaste();
+                        diagnostic(sent?'paste batch sent':'paste rejected before batch');return sent;
                     }
                     await pause(25);
                 }
-            } catch { /* Clipboard remains available when Windows denies access. */ }
+            } catch (error) {diagnostic(`paste binding failed: ${String(error)}`); /* Clipboard remains available when Windows denies access. */ }
             return false;
         }
     };
 }
+function diagnostic(message:string):void {if(process.env.TCUBE_USER_DATA_DIR)process.stderr.write(`[paste diagnostic] ${message}\n`);}
 function createWindowsBindings(): PasteBindings {
     const user = koffi.load('user32.dll'), kernel = koffi.load('kernel32.dll');
     const foreground = user.func('uintptr_t __stdcall GetForegroundWindow()');
@@ -91,7 +97,7 @@ function createWindowsBindings(): PasteBindings {
         },
         sendPaste() {
             // Held modifiers can change Ctrl+V semantics; fall back to copied text.
-            if ([0x10, 0x11, 0x12, 0x5b, 0x5c].some(code => (key(code) & 0x8000) !== 0)) return false;
+            if ([0x10, 0x11, 0x12, 0x5b, 0x5c].some(code => (key(code) & 0x8000) !== 0)) {diagnostic('paste batch rejected: held modifier');return false;}
             const size = pointerSize === 8 ? 40 : 28, offset = pointerSize === 8 ? 8 : 4;
             const events = Buffer.alloc(size * 4);
             [[0x11, 0], [0x56, 0], [0x56, 2], [0x11, 2]].forEach(([virtualKey, flags], index) => {
