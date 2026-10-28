@@ -112,6 +112,8 @@ export async function verifyLibrarySmoke(app: ElectronApplication, widget: Page)
         await app.evaluate(({ BrowserWindow }, url) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL() === url)?.hide(), library.url());
         await stage('spawn owned receiver');
         const command = `
+$ProgressPreference = 'SilentlyContinue'
+$ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms
 $form = New-Object System.Windows.Forms.Form
 $form.Text = '${title}'
@@ -132,8 +134,8 @@ $form.Dispose()
         receiver.stderr?.on('data', chunk => { receiverError += String(chunk).slice(0, 4000); });
         await stage('find receiver window');
         receiverWindow = await until(async () => {
-            if (receiverError) throw new Error(`Owned paste receiver failed: ${receiverError}`);
-            if (receiver!.exitCode !== null) throw new Error(`Owned paste receiver exited (${receiver!.exitCode})`);
+            if (!receiver!.pid && receiverError) throw new Error(`Owned paste receiver failed: ${receiverError}`);
+            if (receiver!.exitCode !== null) throw new Error(`Owned paste receiver exited (${receiver!.exitCode}): ${receiverError}`);
             return BigInt(find(null, title));
         }, value => value !== 0n, 'Owned WinForms receiver did not appear');
         await stage('validate receiver PID');

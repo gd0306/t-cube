@@ -1,6 +1,6 @@
 import koffi from 'koffi';
 
-/** Test-only native input: production reads OS state but never injects events. */
+/** Test-only pointer/preference fixture; production paste injects keyboard events only. */
 export function nativeInput() {
     if (process.platform === 'win32') {
         const user = koffi.load('user32.dll');
