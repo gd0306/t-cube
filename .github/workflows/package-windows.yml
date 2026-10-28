@@ -34,6 +34,7 @@ jobs:
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - name: Verify actual installed application
+        timeout-minutes: 4
         run: ./scripts/verify-installer.ps1 -InstallDirectory "$env:RUNNER_TEMP/T-Cube-Installer-Check"
       - name: Record source commit
         run: git rev-parse HEAD | Set-Content -Encoding ascii release/SOURCE_COMMIT.txt
