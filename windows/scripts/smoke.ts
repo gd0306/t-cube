@@ -406,8 +406,15 @@ try {
         const { controller } = await import(new URL('widget.js', location.href).href);
         return {...controller.metrics};
     });
-    await until(metrics, value => value.cadence === 0, 'Office idle must stop its animation timer');
-    const idleFrames = (await metrics()).frames;
+    // A main-process save can acknowledge before its final renderer update arrives.
+    // Wait for queued state/texture work to settle before measuring idle frames.
+    const settled = await until(async () => {
+        const before = await metrics();
+        await new Promise(resolve => setTimeout(resolve, 300));
+        return {before,after:await metrics()};
+    }, value => value.before.cadence === 0 && value.after.cadence === 0 && value.before.frames === value.after.frames,
+    'Office idle must stop its animation timer after applying state');
+    const idleFrames = settled.after.frames;
     await new Promise(resolve => setTimeout(resolve, 500));
     assert.equal((await metrics()).frames, idleFrames, 'Office idle must not keep rendering frames');
     if (process.platform === 'win32') {
