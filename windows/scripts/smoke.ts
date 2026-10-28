@@ -30,6 +30,9 @@ let widget!: Page;
 let originalCursor: { x: number; y: number } | undefined;
 let originalAnimations: boolean | undefined;
 let failed = false;
+const watchdog = setTimeout(() => {
+    void writeFile(path.join(output,'timeout.txt'),'Smoke exceeded 150 seconds; terminating only its owned application.').finally(() => app?.process().kill());
+},150_000);
 const input = nativeInput();
 let previewIcons: Record<string, string> | undefined;
 const catalogExecutable = path.join(data, 'catalog-smoke.exe');
@@ -478,6 +481,7 @@ try {
     if (widget) await capture(widget, 'failure.png').catch(() => {});
     throw error;
 } finally {
+    clearTimeout(watchdog);
     const cleanupErrors: unknown[] = [];
     const clean = async (action: () => unknown) => {
         try { await action(); } catch (error) { cleanupErrors.push(error); }

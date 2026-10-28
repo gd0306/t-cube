@@ -74,7 +74,9 @@ export async function verifyLibrarySmoke(app: ElectronApplication, widget: Page)
         await page.waitForLoadState('domcontentloaded');
         return page;
     }
+    const stage = async (name:string) => { console.log(`Office smoke: ${name}`); await writeFile(path.resolve('.cache/smoke/office-progress.txt'),name); };
     try {
+        await stage('snapshot clipboard');
         await app.evaluate(async ({ clipboard, ClipboardItem }, key) => {
             // Materialize every format before changing the clipboard; keep native items in main.
             const items = await clipboard.read();
@@ -82,15 +84,19 @@ export async function verifyLibrarySmoke(app: ElectronApplication, widget: Page)
             (globalThis as unknown as Record<string, unknown>)[key] = snapshot;
         }, clipboardKey);
         clipboardSaved = true;
+        await stage('create library fixture');
         library = await showLibrary();
+        library.setDefaultTimeout(15000);
         await library.evaluate(item => window.tcube.saveSnippet(item), snippet);
         fixtureSaved = true;
         // Reload through the actual capture/show path, then select the stored fixture.
+        await stage('reload library');
         await library.reload();
         await library.locator('#search').fill(snippet.title);
         await library.getByRole('button', { name: new RegExp(snippet.title) }).click();
         await library.getByRole('heading', { name: snippet.title, exact: true }).waitFor();
         await capture('office-library-structured.png');
+        await stage('copy text');
         await library.getByRole('button', { name: '复制全部', exact: true }).click();
         await until(() => app.evaluate(async ({ clipboard }) => clipboard.readText()), text => text === fullText, 'Whole-snippet copy did not reach clipboard');
         await library.getByRole('button', { name: `复制字段：${snippet.fields[0].label}`, exact: true }).click();
@@ -99,6 +105,7 @@ export async function verifyLibrarySmoke(app: ElectronApplication, widget: Page)
 
         // The next showLibrary call captures only when the panel is hidden.
         await app.evaluate(({ BrowserWindow }, url) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL() === url)?.hide(), library.url());
+        await stage('spawn owned receiver');
         const command = `
 Add-Type -AssemblyName System.Windows.Forms
 $form = New-Object System.Windows.Forms.Form
@@ -133,11 +140,13 @@ $form.Dispose()
         activate(receiverWindow);
         await until(async () => BigInt(foreground()), value => value === receiverWindow, 'Owned receiver could not become foreground');
         library = await showLibrary(); // evaluate does not activate the widget; capture the external TextBox.
+        await stage('paste whole text');
         await library.getByRole('button', { name: '粘贴全部', exact: true }).click();
         await until(async () => receiverText(), text => text === fullText, 'Native whole-text Ctrl+V did not populate owned receiver');
         assert.equal(BigInt(foreground()), receiverWindow, 'Paste must return foreground to original receiver');
         results.push('Native Windows paste restored the original WinForms TextBox and inserted the full structured text without submitting.');
         library = await showLibrary();
+        await stage('paste field');
         await library.getByRole('button', { name: `粘贴字段：${snippet.fields[0].label}`, exact: true }).click();
         await until(async () => receiverText(), text => text === `${fullText}${snippet.fields[0].value}`, 'Native individual-field Ctrl+V did not append into owned receiver');
         assert.equal(BigInt(foreground()), receiverWindow);
@@ -148,6 +157,7 @@ $form.Dispose()
         await capture('office-library-failure.png').catch(() => undefined);
         throw error;
     } finally {
+        await stage('cleanup');
         const cleanupErrors: unknown[] = [];
         const clean = async (action: () => unknown) => { try { await action(); } catch (error) { cleanupErrors.push(error); } };
         if (receiver) await clean(async () => {
