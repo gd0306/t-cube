@@ -12,7 +12,7 @@
 - [x] Lifecycle: login item toggle using SMAppService reflecting actual system status; signed-update check/settings using standard update framework, documented public-key/feed requirements; Developer ID/notarization support in packaging with explicit local fallback. Do not invent a distribution identity or commit secrets.
 - [x] Rendering: adaptive cadence and actual RealityKit pause while hidden/occluded or static; wake on input/config/show, stop offscreen animation work, retain slime/idle dynamics and Reduce Motion behavior.
 - [x] Integration: settings/menu wiring, targeted regressions and complete native tests, bundle/signature verification and local installed UI check. Document manual multi-monitor/performance/update-server/signing limitations.
-- [ ] Commit on current branch, review, fast-forward or non-destructively merge to master, push remote, verify remote HEAD and triggered checks.
+- [x] Commit on current branch, review, fast-forward or non-destructively merge to master, push remote, verify remote HEAD and triggered checks.
 
 ## Validation
 Run meaningful regression cases before implementations where practical. Run GUI-dependent suites only once at a time. One final full `swift test --scratch-path .build/tests`, release/debug bundle builds as appropriate, `git diff --check`, inspect native settings. Preserve user's real configuration; all fixtures in temporary stores. Updates must authenticate archives; missing signing configuration must be visible and never downgrade update verification.
