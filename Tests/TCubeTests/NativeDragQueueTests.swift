@@ -29,7 +29,7 @@ final class NativeDragQueueTests: XCTestCase {
         defer { window.orderOut(nil); try? FileManager.default.removeItem(at: directory) }
         window.contentView = surface
         window.orderFrontRegardless()
-        let hover = CubeHoverController(window: window, settings: CubeHoverSettings(multiplier: 4))
+        let hover = CubeHoverController(window: window, settings: CubeHoverSettings(multiplier: 4, delaySeconds: 0))
         surface.input.modifierFlagsChanged = { hover.modifierFlagsChanged($0, at: $1) }
         view.interactionChanged = { hover.setInteractionActive($0) }
         hover.onRestingPositionChange = { model.savePosition($0) }

@@ -31,6 +31,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var editor: NSWindow?
     private var screenObserver: NSObjectProtocol?
     private let snippetLibrary = SnippetLibraryController()
+    private let lifecycle = LifecycleController()
+    private var desktopPlacement: DesktopPlacementCoordinator?
+    private var accessibilityObserver: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         model.recoverIfNeeded()
@@ -70,8 +73,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let hover = CubeHoverController(window: panel, settings: model.configuration.hover)
         hoverController = hover
         model.onPlacementRequested = { [weak self] in self?.placeCube(at: $0) }
+        model.onConfigurationRestored = { [weak self] in
+            guard let self, let hover = self.hoverController else { return }
+            if let position = self.model.configuration.windowPosition {
+                hover.restoreRestingFrame(at: NSPoint(x: position.x, y: position.y))
+                do { try self.desktopPlacement?.recordRestingPosition() }
+                catch { self.model.report(error) }
+            }
+            self.surface.synchronizeRenderingVisibility()
+        }
         hover.onHoverChange = { [weak self] in self?.cubeView.setHovered($0); self?.surface.setContentButtonVisible($0) }
         hover.onRestingPositionChange = { [weak self] in self?.model.savePosition($0) }
+        hover.onRestingFrameCommitted = { [weak self] in
+            do { try self?.desktopPlacement?.recordRestingPosition() }
+            catch { self?.model.report(error) }
+        }
+        do { desktopPlacement = try DesktopPlacementCoordinator(hoverController: hover, panel: panel) }
+        catch { model.report(error) }
         surface.input.hoverChanged = { [weak hover] _ in hover?.checkPointer() }
         surface.input.hoverPointChanged = { [weak hover] in hover?.pointerChanged(to: $0) }
         surface.input.modifierFlagsChanged = { [weak hover] in hover?.modifierFlagsChanged($0, at: $1) }
@@ -80,12 +98,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             hover?.setInteractionActive(active)
         }
         cubeView.positionCommitted = { [weak hover] in hover?.commitMovedFrame($0) }
+        surface.enableRenderingManagement()
         panel.orderFrontRegardless()
+        surface.synchronizeRenderingVisibility()
         hover.startTrackingPointer()
         createMenu()
         snippetLibrary.start()
+        lifecycle.start()
+        accessibilityObserver = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { _ = self?.surface.resumeRendering() }
+        }
         screenObserver = NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.applySize() }
+            MainActor.assumeIsolated {
+                self?.applySize()
+                self?.desktopPlacement?.screenTopologyChanged()
+                self?.surface.synchronizeRenderingVisibility()
+            }
         }
         if model.isFirstLaunch { showEditor() }
         if ProcessInfo.processInfo.arguments.contains("--content-library") { snippetLibrary.show() }
@@ -131,6 +159,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         _ = item("隐藏立方体", #selector(toggleCube))
         _ = item("常用内容…    ⌘⇧Space", #selector(openContentLibrary))
         _ = item("设置…", #selector(openEditor), key: ",")
+        _ = item("检查更新…", #selector(checkUpdates))
         let placement = NSMenuItem(title: "快捷位置", action: nil, keyEquivalent: "")
         placement.submenu = CubePlacementMenu { [weak self] in self?.placeCube(at: $0) }
         menu.addItem(placement)
@@ -186,12 +215,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         faceExpansion.close()
         if panel.isVisible { hoverController?.resetHover(); cubeView.setHovered(false); panel.orderOut(nil) }
         else { panel.ignoresMouseEvents = false; panel.orderFrontRegardless(); hoverController?.checkPointer() }
+        surface.synchronizeRenderingVisibility()
     }
     @objc private func changeSize(_ sender: NSMenuItem) {
         guard let scale = sender.representedObject as? Double else { return }
         model.change { $0.scale = scale }
     }
     @objc private func openContentLibrary() { snippetLibrary.show() }
+    @objc private func checkUpdates() { lifecycle.checkForUpdates() }
     @objc private func openEditor() { showEditor() }
 
     private func placeCube(at placement: CubePlacement) {
@@ -207,9 +238,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         snippetLibrary.stop()
         model.stopThemeCycle()
+        cubeView.suspendAnimationUpdates()
         hoverController?.stopTrackingPointer()
         faceExpansion?.close()
         if let screenObserver { NotificationCenter.default.removeObserver(screenObserver) }
+        if let accessibilityObserver { NSWorkspace.shared.notificationCenter.removeObserver(accessibilityObserver) }
     }
 
     private func showEditor() {
@@ -218,7 +251,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 580), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
             window.title = "T-Cube · 设置"
             window.minSize = NSSize(width: 760, height: 540)
-            window.contentView = NSHostingView(rootView: EditorView(model: model))
+            window.contentView = NSHostingView(rootView: EditorView(model: model, lifecycle: lifecycle))
             window.isReleasedWhenClosed = false
             window.center()
             editor = window

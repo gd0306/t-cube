@@ -4,6 +4,7 @@ import CubeCore
 
 struct EditorView: View {
     @ObservedObject var model: AppModel
+    var lifecycle: LifecycleController? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -12,6 +13,12 @@ struct EditorView: View {
                     .tabItem { Label("立方体入口", systemImage: "cube") }
                 AppearanceSettingsView(model: model)
                     .tabItem { Label("外观", systemImage: "paintpalette") }
+                MaintenanceSettingsView(model: model)
+                    .tabItem { Label("配置与备份", systemImage: "externaldrive") }
+                if let lifecycle {
+                    LifecycleSettingsView(controller: lifecycle)
+                        .tabItem { Label("启动与更新", systemImage: "arrow.triangle.2.circlepath") }
+                }
             }
             .padding(16)
             Divider()
@@ -181,6 +188,7 @@ private struct AppearanceSettingsView: View {
     @State private var cycleInterval = 10
     @State private var hoverEnabled = true
     @State private var hoverMultiplier = 4.0
+    @State private var hoverDelay = 0.18
     @State private var expandsFacesOnClick = true
     @State private var autoRotatesWhenIdle = true
 
@@ -203,7 +211,7 @@ private struct AppearanceSettingsView: View {
     }
 
     private var stagedHover: CubeHoverSettings {
-        CubeHoverSettings(isEnabled: hoverEnabled, multiplier: hoverMultiplier)
+        CubeHoverSettings(isEnabled: hoverEnabled, multiplier: hoverMultiplier, delaySeconds: hoverDelay)
     }
 
     private var validCycleSelection: Bool { !cycleEnabled || cycleThemes.count >= 2 }
@@ -307,6 +315,16 @@ private struct AppearanceSettingsView: View {
                     }
                     .disabled(!hoverEnabled)
                 }
+                Section("减少误触") {
+                    HStack {
+                        Text("悬停延迟")
+                        Slider(value: $hoverDelay, in: 0...1.5, step: 0.05)
+                            .accessibilityLabel("悬停放大延迟")
+                        Text(String(format: "%.2f 秒", hoverDelay)).monospacedDigit().frame(width: 65)
+                    }
+                    Text("移出立即收起；拖动与 Ctrl 操作保持即时响应。")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 Section {
                     HStack(spacing: 8) {
                         ForEach(CubePlacement.allCases) { placement in
@@ -327,7 +345,7 @@ private struct AppearanceSettingsView: View {
                 } header: {
                     Text("动态旋转")
                 } footer: {
-                    Text("缓慢、不规则地变换旋转方向；鼠标移入立即停止，移出继续。系统开启「减少动态效果」时暂停。")
+                    Text("静置时以较低频率更新旋转；关闭自动旋转后，静置画面会暂停绘制。隐藏或完全遮挡时自动暂停，交互时恢复。系统「减少动态效果」会暂停动画。")
                 }
                 Section {
                     Toggle("点击面展开放大", isOn: $expandsFacesOnClick)
@@ -405,6 +423,7 @@ private struct AppearanceSettingsView: View {
         cycleInterval = model.configuration.themeCycle.intervalSeconds
         hoverEnabled = model.configuration.hover.isEnabled
         hoverMultiplier = model.configuration.hover.multiplier
+        hoverDelay = model.configuration.hover.delaySeconds
         expandsFacesOnClick = model.configuration.expandsFacesOnClick
         autoRotatesWhenIdle = model.configuration.autoRotatesWhenIdle
     }

@@ -28,6 +28,24 @@ final class SnippetLibraryModel: ObservableObject {
         }
     }
 
+    func reloadIfMatchingStore(_ url: URL) {
+        guard url.standardizedFileURL == store.url.standardizedFileURL else { return }
+        do {
+            let restored = try store.load()
+            library = restored
+            query = ""
+            selectedGroup = nil
+            favoritesOnly = false
+            selectedID = restored.filtered(query: "").first?.id
+            error = nil
+            mutationsEnabled = true
+            status = "内容库已从导入或备份更新。"
+        } catch {
+            self.error = "无法读取恢复后的内容库：\(error.localizedDescription)"
+            mutationsEnabled = false
+        }
+    }
+
     var items: [TextSnippet] { library.items }
 
     var visibleItems: [TextSnippet] {

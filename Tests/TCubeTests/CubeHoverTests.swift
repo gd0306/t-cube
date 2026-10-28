@@ -12,7 +12,7 @@ struct CubeHoverTests {
         let model = AppModel(store: ConfigurationStore(url: directory.appendingPathComponent("settings.json")))
         let view = CubeView(model: model)
         let surface = CubeSurfaceView(cubeView: view)
-        let (window, controller) = fixture(settings: CubeHoverSettings(multiplier: 4))
+        let (window, controller) = fixture(settings: CubeHoverSettings(multiplier: 4, delaySeconds: 0))
         defer { window.orderOut(nil); try? FileManager.default.removeItem(at: directory) }
         window.contentView = surface
         surface.input.modifierFlagsChanged = { controller.modifierFlagsChanged($0, at: $1) }
@@ -27,7 +27,7 @@ struct CubeHoverTests {
     }
 
     @Test func controlTemporarilyRestoresSmallSizeWithoutSavingOrDrift() {
-        let (window, controller) = fixture(settings: CubeHoverSettings(multiplier: 4))
+        let (window, controller) = fixture(settings: CubeHoverSettings(multiplier: 4, delaySeconds: 0))
         defer { window.orderOut(nil) }
         var saves = 0
         controller.onRestingPositionChange = { _ in saves += 1 }
@@ -45,7 +45,7 @@ struct CubeHoverTests {
     }
 
     @Test func enteringWithControlHeldStaysSmallThenReleaseEnlarges() {
-        let (window, controller) = fixture(settings: CubeHoverSettings(multiplier: 4))
+        let (window, controller) = fixture(settings: CubeHoverSettings(multiplier: 4, delaySeconds: 0))
         defer { window.orderOut(nil) }
         controller.modifierFlagsChanged([.control], at: CGPoint(x: 600, y: 600))
         controller.pointerChanged(to: CGPoint(x: 250, y: 250))
@@ -55,7 +55,7 @@ struct CubeHoverTests {
     }
 
     @Test func releasingControlDuringDragKeepsSmallSizeUntilMouseUp() {
-        let (window, controller) = fixture(settings: CubeHoverSettings(multiplier: 4))
+        let (window, controller) = fixture(settings: CubeHoverSettings(multiplier: 4, delaySeconds: 0))
         defer { window.orderOut(nil) }
         var saved: CGPoint?
         controller.onRestingPositionChange = { saved = $0 }
@@ -74,7 +74,7 @@ struct CubeHoverTests {
     }
 
     @Test func committingControlDragKeepsMovedSmallPositionWhileControlRemainsHeld() {
-        let (window, controller) = fixture(settings: CubeHoverSettings(multiplier: 4))
+        let (window, controller) = fixture(settings: CubeHoverSettings(multiplier: 4, delaySeconds: 0))
         defer { window.orderOut(nil) }
         controller.pointerChanged(to: CGPoint(x: 250, y: 250))
         controller.modifierFlagsChanged([.control], at: CGPoint(x: 410, y: 390))
@@ -92,7 +92,7 @@ struct CubeHoverTests {
         let model = AppModel(store: ConfigurationStore(url: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathComponent("settings.json")))
         let view = CubeView(model: model)
         let surface = CubeSurfaceView(cubeView: view)
-        let (window, controller) = fixture(settings: CubeHoverSettings())
+        let (window, controller) = fixture(settings: CubeHoverSettings(delaySeconds: 0))
         defer { window.orderOut(nil) }
         window.contentView = surface
         controller.onHoverChange = { view.setHovered($0) }
@@ -190,11 +190,11 @@ struct CubeHoverTests {
         let (window, controller) = fixture()
         defer { window.orderOut(nil) }
         controller.pointerChanged(to: CGPoint(x: 250, y: 250))
-        controller.configure(baseSize: CGSize(width: 120, height: 120), settings: CubeHoverSettings(isEnabled: false))
+        controller.configure(baseSize: CGSize(width: 120, height: 120), settings: CubeHoverSettings(isEnabled: false, delaySeconds: 0))
         #expect(window.frame == CGRect(x: 190, y: 190, width: 120, height: 120))
     }
 
-    private func fixture(origin: CGPoint = CGPoint(x: 200, y: 200), settings: CubeHoverSettings = CubeHoverSettings(multiplier: 1.6)) -> (NSPanel, CubeHoverController) {
+    private func fixture(origin: CGPoint = CGPoint(x: 200, y: 200), settings: CubeHoverSettings = CubeHoverSettings(multiplier: 1.6, delaySeconds: 0)) -> (NSPanel, CubeHoverController) {
         _ = NSApplication.shared
         let window = NSPanel(contentRect: CGRect(origin: origin, size: CGSize(width: 100, height: 100)), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         window.orderFrontRegardless()

@@ -10,7 +10,9 @@ final class AppModel: ObservableObject {
     var onChange: (() -> Void)?
     var onAppearanceChange: (() -> Void)?
     var onPlacementRequested: ((CubePlacement) -> Void)?
+    var onConfigurationRestored: (() -> Void)?
     private let store: ConfigurationStore
+    private var applyingPersistedConfiguration = false
     private var themeCycleTask: Task<Void, Never>?
     let isFirstLaunch: Bool
     private(set) var loadFailure: Error?
@@ -75,6 +77,18 @@ final class AppModel: ObservableObject {
         } catch { report(error); NSApp.terminate(nil) }
     }
 
+    var configurationStoreURL: URL { store.url }
+
+    func applyPersistedConfiguration(_ configuration: CubeConfiguration) {
+        applyingPersistedConfiguration = true
+        defer { applyingPersistedConfiguration = false }
+        self.configuration = configuration
+        loadFailure = nil
+        restartThemeCycle()
+        onChange?()
+        onConfigurationRestored?()
+    }
+
     func change(_ edit: (inout CubeConfiguration) throws -> Void) {
         do {
             var candidate = configuration
@@ -88,6 +102,7 @@ final class AppModel: ObservableObject {
     }
 
     func savePosition(_ point: NSPoint) {
+        guard !applyingPersistedConfiguration else { return }
         // Position changes do not require regenerating six face textures.
         do {
             var candidate = configuration
@@ -97,13 +112,14 @@ final class AppModel: ObservableObject {
         } catch { report(error) }
     }
 
-    func add(_ urls: [URL], to face: CubeFace, preferredSlot: Int? = nil, replacing: Bool = false) {
+    func add(_ urls: [URL], to face: CubeFace, preferredSlot: Int? = nil, replacing: Bool = false, preservingName: String? = nil) {
         var candidate = configuration
         var failures: [String] = []
         var added = false
         for url in urls {
             do {
-                let item = try LauncherService.item(for: url)
+                var item = try LauncherService.item(for: url)
+                if let preservingName { item.name = preservingName }
                 var next = candidate
                 if let preferredSlot {
                     try next.place(item, to: face, slot: preferredSlot, replacing: replacing)

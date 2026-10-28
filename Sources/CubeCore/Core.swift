@@ -21,7 +21,7 @@ public enum ConfigurationError: Error, Equatable, Sendable, LocalizedError {
         case .invalidPosition: "窗口位置无效。"
         case .invalidAppearance: "主题颜色或光晕强度无效。"
         case .invalidThemeCycle: "请选择至少两种不同的轮换主题，间隔为 10 秒或 20 秒。"
-        case .invalidHover: "悬停放大倍率应在 1.1 到 4.0 之间。"
+        case .invalidHover: "悬停放大倍率应为 1.1～4.0，悬停延迟应为 0～1.5 秒。"
         case .unsupportedVersion(let version): "不支持的配置版本：\(version)。"
         }
     }

@@ -5,7 +5,7 @@ import CubeCore
 @MainActor
 final class CubeHoverController {
     private weak var window: NSWindow?
-    private var restingFrame: NSRect
+    private(set) var restingFrame: NSRect
     private var settings: CubeHoverSettings
     private let screens: () -> [NSRect]
     private var desiredHovered = false
@@ -15,11 +15,13 @@ final class CubeHoverController {
     private var lastPointer: NSPoint?
     private var trackingPointer = false
     private var modifierTimer: Timer?
+    private var entryTimer: Timer?
     private var localMotion: Any?
     private var globalMotion: Any?
     private(set) var isHovered = false
     var onHoverChange: ((Bool) -> Void)?
     var onRestingPositionChange: ((NSPoint) -> Void)?
+    var onRestingFrameCommitted: (() -> Void)?
 
     init(window: NSWindow, settings: CubeHoverSettings, screens: @escaping () -> [NSRect] = { NSScreen.screens.map(\.visibleFrame) }) {
         self.window = window
@@ -29,6 +31,7 @@ final class CubeHoverController {
     }
 
     func configure(baseSize: NSSize, settings: CubeHoverSettings) {
+        cancelPendingEntry()
         let previous = restingFrame
         restingFrame = NSRect(x: previous.midX - baseSize.width / 2, y: previous.midY - baseSize.height / 2, width: baseSize.width, height: baseSize.height)
         restingFrame.origin = WindowPlacement.clamp(restingFrame.origin, size: baseSize, screens: screens())
@@ -62,12 +65,14 @@ final class CubeHoverController {
     }
 
     func setInteractionActive(_ active: Bool) {
+        if active { cancelPendingEntry() }
         interactionActive = active
         if !active { applyHover() }
         updateModifierTracking()
     }
 
     func resetHover() {
+        cancelPendingEntry()
         desiredHovered = false
         interactionActive = false
         controlHeld = false
@@ -82,6 +87,7 @@ final class CubeHoverController {
         restingFrame.origin = WindowPlacement.clamp(origin, size: restingFrame.size, screens: screens())
         if controlFrame != nil { controlFrame = restingFrame }
         onRestingPositionChange?(restingFrame.origin)
+        onRestingFrameCommitted?()
         if !interactionActive { applyFrame() }
     }
 
@@ -96,6 +102,14 @@ final class CubeHoverController {
         desiredHovered = window.isVisible && restingFrame.contains(lastPointer ?? NSEvent.mouseLocation)
         applyHover()
         onRestingPositionChange?(restingFrame.origin)
+        onRestingFrameCommitted?()
+    }
+
+    /// Topology restoration must not emit a user-position save: a fallback is temporary.
+    func restoreRestingFrame(at origin: NSPoint) {
+        resetHover()
+        restingFrame.origin = WindowPlacement.clamp(origin, size: restingFrame.size, screens: screens())
+        applyFrame()
     }
 
     func startTrackingPointer() {
@@ -129,6 +143,7 @@ final class CubeHoverController {
     }
 
     func stopTrackingPointer() {
+        cancelPendingEntry()
         trackingPointer = false
         modifierTimer?.invalidate()
         modifierTimer = nil
@@ -139,8 +154,34 @@ final class CubeHoverController {
     }
 
     private func applyHover() {
-        let changed = isHovered != desiredHovered
-        isHovered = desiredHovered
+        if desiredHovered && !isHovered && !controlHeld && settings.isEnabled && settings.delaySeconds > 0 {
+            guard entryTimer == nil else { return }
+            let delay = settings.delaySeconds.isFinite ? min(1.5, max(0, settings.delaySeconds)) : 0.18
+            let timer = Timer(timeInterval: delay, repeats: false) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    self.entryTimer = nil
+                    guard !self.interactionActive, self.desiredHovered, self.window?.isVisible == true else { return }
+                    self.setHovered(true)
+                }
+            }
+            entryTimer = timer
+            RunLoop.main.add(timer, forMode: .common)
+            RunLoop.main.add(timer, forMode: .eventTracking)
+            return
+        }
+        cancelPendingEntry()
+        setHovered(desiredHovered)
+    }
+
+    private func cancelPendingEntry() {
+        entryTimer?.invalidate()
+        entryTimer = nil
+    }
+
+    private func setHovered(_ hovered: Bool) {
+        let changed = isHovered != hovered
+        isHovered = hovered
         applyFrame()
         updateModifierTracking()
         if changed { onHoverChange?(isHovered) }
@@ -162,7 +203,11 @@ final class CubeHoverController {
             return
         }
         controlFrame = nil
-        let factor = isHovered && settings.isEnabled && !controlHeld ? settings.multiplier : 1
+        var factor = isHovered && settings.isEnabled && !controlHeld ? settings.multiplier : 1
+        if factor > 1, let screen = WindowPlacement.visibleScreen(for: restingFrame, screens: screens()) {
+            // Preserve aspect ratio while keeping enlargement within this display.
+            factor = max(1, min(factor, screen.width / restingFrame.width, screen.height / restingFrame.height))
+        }
         let size = NSSize(width: restingFrame.width * factor, height: restingFrame.height * factor)
         let origin = NSPoint(x: restingFrame.midX - size.width / 2, y: restingFrame.midY - size.height / 2)
         let target = NSRect(origin: WindowPlacement.clamp(origin, size: size, screens: screens()), size: size)

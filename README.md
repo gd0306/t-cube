@@ -47,6 +47,12 @@ Native app renders with sample system icons, enlarged for detail. All previews s
 - **Glass or Slime material on both platforms.** Use any theme with either material. Slime follows the pointer and springs back while icons stay stable; glass remains the default.
 - **Menu-bar or tray access.** Configure, show, hide, or quit from system controls. Motion respects system animation preferences.
 
+## macOS source features (0.16.0)
+
+Source builds include a common-content library (menu bar, hover button, or `Command+Shift+Space`) with groups, favorites, search, full-text/field copy and focus-checked paste after Accessibility authorization. Settings include validated import/export, pre-import backups, manual backup/restore and explicit broken-launcher relinking. Hover delay is configurable; per-display positions survive disconnects. Idle animation updates use a lower cadence, hidden/static rendering suspends, and input resumes the live view.
+
+Login at startup uses the system login-item service and changes only when enabled by the user. Sparkle authenticated updates and Developer ID/notarization packaging are integrated; production activation requires the release owner's EdDSA key configuration and signing credentials. Builds without a public key visibly disable in-app updates and offer Releases. See the [release guide](docs/updates/RELEASE-GUIDE.md). Download links above still identify the published installers.
+
 ## Windows source installation
 
 Windows 10 22H2 / Windows 11 (x64) have a separate client with the same six shortcut groups, curved icons, shared glass/slime materials and themes, hover zoom, dragging, rotation and tray controls. Choose installed applications from a searchable name-and-icon list; portable apps can be added by file. Use the installer above or follow the source installation in the [Windows guide](windows/README.md). The previews above show the native macOS client.
@@ -59,7 +65,7 @@ Install https://github.com/gd0306/t-cube (master) on Windows. Follow windows/REA
 
 ## macOS install and run
 
-Current version: **0.15.0**. Use the **master** branch.
+Current source version: **0.16.0** on **master**. Published installer versions are listed above.
 
 Running requires macOS 15+. Building requires full Xcode with Swift 6 and the **macOS 27 SDK**. Current local packages target Apple Silicon and use ad-hoc signing; they are not notarized.
 
@@ -70,7 +76,7 @@ bash scripts/build-app.sh
 open build/T-Cube.app
 ```
 
-For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.15.0.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are distributed through Releases; macOS security approvals remain with the user.
+For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.16.0.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are distributed through Releases; macOS security approvals remain with the user.
 
 ### Let an agent install it
 

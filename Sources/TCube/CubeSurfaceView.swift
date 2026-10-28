@@ -8,6 +8,72 @@ final class CubeSurfaceView: NSView {
     var contentRequested: (() -> Void)?
     var contentCaptureRequested: ((String) -> Void)?
     private let contentButton = NSButton()
+    private let frozenImage = NSImageView()
+    private var visibilityObserver: NSObjectProtocol?
+    private var snapshotGeneration = 0
+    private var snapshotPending = false
+    private(set) var rendererDetached = false
+    private var managesRendering = false
+    var hasFrozenFrame: Bool { !frozenImage.isHidden && frozenImage.image != nil }
+
+    func enableRenderingManagement() {
+        guard !managesRendering else { return }
+        managesRendering = true
+        cubeView.renderingRequested = { [weak self] in self?.resumeRendering() ?? false }
+        cubeView.staticFrameRequested = { [weak self] in self?.freezeStaticFrame() }
+        input.renderingRequested = { [weak self] in _ = self?.resumeRendering(forInput: true) }
+        observeRenderingWindow()
+    }
+
+    @discardableResult
+    func resumeRendering(forInput: Bool = false) -> Bool {
+        guard managesRendering else { cubeView.resumeAnimationUpdates(); return true }
+        guard let window, window.isVisible,
+              forInput || cubeView.superview === self || window.occlusionState.contains(.visible) else { return false }
+        snapshotGeneration += 1
+        snapshotPending = false
+        if cubeView.superview !== self {
+            cubeView.frame = bounds
+            addSubview(cubeView, positioned: .below, relativeTo: input)
+        }
+        frozenImage.isHidden = true
+        rendererDetached = false
+        cubeView.resumeAnimationUpdates()
+        return true
+    }
+
+    func synchronizeRenderingVisibility() {
+        guard managesRendering else { return }
+        if window?.isVisible == true, window?.occlusionState.contains(.visible) == true {
+            _ = resumeRendering()
+        } else {
+            snapshotGeneration += 1
+            snapshotPending = false
+            cubeView.suspendAnimationUpdates()
+            cubeView.removeFromSuperview()
+            rendererDetached = true
+        }
+    }
+
+    private func freezeStaticFrame() {
+        guard !snapshotPending, cubeView.superview === self, window?.isVisible == true else { return }
+        snapshotPending = true
+        snapshotGeneration += 1
+        let generation = snapshotGeneration
+        cubeView.snapshot(saveToHDR: false) { [weak self] image in
+            MainActor.assumeIsolated {
+                guard let self, self.snapshotGeneration == generation else { return }
+                self.snapshotPending = false
+                guard let image else { self.cubeView.suspendAnimationUpdates(); return }
+                self.frozenImage.image = image
+                self.frozenImage.frame = self.bounds
+                self.frozenImage.isHidden = false
+                self.cubeView.suspendAnimationUpdates()
+                self.cubeView.removeFromSuperview()
+                self.rendererDetached = true
+            }
+        }
+    }
 
     func setContentButtonVisible(_ visible: Bool) { contentButton.isHidden = !visible }
     @objc private func openContent() { contentRequested?() }
@@ -16,6 +82,10 @@ final class CubeSurfaceView: NSView {
         self.cubeView = cubeView
         input = CubeInputOverlay(cubeView: cubeView)
         super.init(frame: NSRect(origin: .zero, size: CubeTheme.windowSize))
+        frozenImage.imageScaling = .scaleAxesIndependently
+        frozenImage.autoresizingMask = [.width, .height]
+        frozenImage.isHidden = true
+        addSubview(frozenImage)
         addSubview(cubeView)
         addSubview(input)
         input.textDropRequested = { [weak self] text in self?.contentCaptureRequested?(text) }
@@ -41,12 +111,41 @@ final class CubeSurfaceView: NSView {
         super.viewDidMoveToWindow()
         window?.ignoresMouseEvents = false
         window?.acceptsMouseMovedEvents = true
+        observeRenderingWindow()
+    }
+
+    private func observeRenderingWindow() {
+        if let visibilityObserver { NotificationCenter.default.removeObserver(visibilityObserver) }
+        visibilityObserver = nil
+        guard managesRendering else { return }
+        if let window {
+            visibilityObserver = NotificationCenter.default.addObserver(forName: NSWindow.didChangeOcclusionStateNotification, object: window, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.synchronizeRenderingVisibility() }
+            }
+        }
+        synchronizeRenderingVisibility()
     }
 }
 
 @MainActor
 final class CubeInputOverlay: NSView {
     private unowned let cubeView: CubeView
+    var renderingRequested: (() -> Void)?
+    private var clickFeedback: NSPoint?
+    private var feedbackGeneration = 0
+
+    private func showClickFeedback(at point: NSPoint) {
+        clickFeedback = point
+        feedbackGeneration += 1
+        let generation = feedbackGeneration
+        needsDisplay = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { [weak self] in
+            guard let self, self.feedbackGeneration == generation else { return }
+            self.clickFeedback = nil
+            self.needsDisplay = true
+        }
+    }
+
     var hoverChanged: ((Bool) -> Void)?
     var textDropRequested: ((String) -> Void)?
     var hoverPointChanged: ((NSPoint) -> Void)?
@@ -75,6 +174,12 @@ final class CubeInputOverlay: NSView {
         // Server hit testing. No opaque plate or visual glass fill is drawn.
         NSColor(white: 0, alpha: 1.0 / 255).setFill()
         bounds.fill()
+        if let point = clickFeedback {
+            NSColor.controlAccentColor.withAlphaComponent(0.65).setStroke()
+            let ring = NSBezierPath(ovalIn: NSRect(x: point.x - 10, y: point.y - 10, width: 20, height: 20))
+            ring.lineWidth = 2
+            ring.stroke()
+        }
     }
     override func updateTrackingAreas() {
         for area in trackingAreas { removeTrackingArea(area) }
@@ -82,6 +187,7 @@ final class CubeInputOverlay: NSView {
         super.updateTrackingAreas()
     }
     private func updateHover(_ inside: Bool, event: NSEvent? = nil) {
+        if inside { renderingRequested?() }
         // Capture screen coordinates before modifier handling can resize/move
         // the panel. The event's old local coordinates would then be stale.
         if let event, let window {
@@ -102,6 +208,8 @@ final class CubeInputOverlay: NSView {
     override func mouseMoved(with event: NSEvent) { updateHover(true, event: event) }
     override func mouseExited(with event: NSEvent) { updateHover(false, event: event) }
     override func mouseDown(with event: NSEvent) {
+        renderingRequested?()
+        showClickFeedback(at: convert(event.locationInWindow, from: nil))
         if event.modifierFlags.contains(.control) {
             beginWindowDrag(with: event, leftButton: true)
         } else {
@@ -119,6 +227,7 @@ final class CubeInputOverlay: NSView {
         cubeView.mouseUp(with: event)
     }
     override func rightMouseDown(with event: NSEvent) {
+        renderingRequested?()
         beginWindowDrag(with: event, leftButton: event.buttonNumber == 0 && event.modifierFlags.contains(.control))
     }
     override func rightMouseDragged(with event: NSEvent) { cubeView.rightMouseDragged(with: event) }

@@ -14,7 +14,7 @@ struct QuickPlacementRuntimeTests {
         let window = NSPanel(contentRect: CGRect(x: 200, y: 200, width: 100, height: 100), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         defer { window.orderOut(nil); try? FileManager.default.removeItem(at: directory) }
         window.orderFrontRegardless()
-        let controller = CubeHoverController(window: window, settings: CubeHoverSettings(multiplier: 4), screens: { [CGRect(x: 0, y: 0, width: 1000, height: 800)] })
+        let controller = CubeHoverController(window: window, settings: CubeHoverSettings(multiplier: 4, delaySeconds: 0), screens: { [CGRect(x: 0, y: 0, width: 1000, height: 800)] })
         controller.onRestingPositionChange = { model.savePosition($0) }
         controller.pointerChanged(to: CGPoint(x: 2000, y: 2000))
         let menu = CubePlacementMenu { controller.place(at: $0) }
@@ -33,7 +33,7 @@ struct QuickPlacementRuntimeTests {
         let window = NSPanel(contentRect: CGRect(x: 200, y: 200, width: 100, height: 100), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         defer { window.orderOut(nil) }
         window.orderFrontRegardless()
-        let controller = CubeHoverController(window: window, settings: CubeHoverSettings(multiplier: 4), screens: { [CGRect(x: 0, y: 0, width: 1000, height: 800)] })
+        let controller = CubeHoverController(window: window, settings: CubeHoverSettings(multiplier: 4, delaySeconds: 0), screens: { [CGRect(x: 0, y: 0, width: 1000, height: 800)] })
         var saved: [CGPoint] = []
         controller.onRestingPositionChange = { saved.append($0) }
         for control in [false, true] {
@@ -56,7 +56,7 @@ struct QuickPlacementRuntimeTests {
         let window = NSPanel(contentRect: CGRect(x: -1000, y: 200, width: 100, height: 100), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         defer { window.orderOut(nil) }
         window.orderFrontRegardless()
-        let controller = CubeHoverController(window: window, settings: CubeHoverSettings(multiplier: 4), screens: { [CGRect(x: 0, y: 40, width: 1440, height: 820), CGRect(x: -1920, y: 0, width: 1920, height: 800)] })
+        let controller = CubeHoverController(window: window, settings: CubeHoverSettings(multiplier: 4, delaySeconds: 0), screens: { [CGRect(x: 0, y: 40, width: 1440, height: 820), CGRect(x: -1920, y: 0, width: 1920, height: 800)] })
         controller.pointerChanged(to: CGPoint(x: -950, y: 250))
         controller.place(at: .topLeft)
         controller.pointerChanged(to: CGPoint(x: 2000, y: 2000))

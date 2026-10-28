@@ -13,6 +13,34 @@ final class CubeView: ARView {
     private var aura: CubeAura!
     private var lightUpdates: (any Cancellable)?
     private var lightElapsed: TimeInterval = 0
+    private var keepRenderingUntil: TimeInterval = 0
+    var renderingRequested: (() -> Bool)?
+    var staticFrameRequested: (() -> Void)?
+    private(set) var animationUpdatesRunning = false
+
+    func resumeAnimationUpdates() {
+        keepRenderingUntil = ProcessInfo.processInfo.systemUptime + 0.65
+        guard lightUpdates == nil else { return }
+        lightElapsed = 0
+        animationUpdatesRunning = true
+        lightUpdates = scene.subscribe(to: SceneEvents.Update.self) { [weak self] event in
+            MainActor.assumeIsolated {
+                self?.advanceAnimations(deltaTime: event.deltaTime, reducedMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
+            }
+        }
+    }
+
+    func suspendAnimationUpdates() {
+        lightUpdates?.cancel()
+        lightUpdates = nil
+        lightElapsed = 0
+        animationUpdatesRunning = false
+    }
+
+    private func requestRendering() {
+        guard renderingRequested?() != false else { suspendAnimationUpdates(); return }
+        resumeAnimationUpdates()
+    }
     private var leftTracker = PointerDragTracker()
     private var leftMoveOnly = false
     private var rightTracker = PointerDragTracker()
@@ -79,11 +107,7 @@ final class CubeView: ARView {
         refreshTextures()
         registerForDraggedTypes([.fileURL])
         setAccessibilityLabel("T-Cube 透明立方体")
-        lightUpdates = scene.subscribe(to: SceneEvents.Update.self) { [weak self] event in
-            MainActor.assumeIsolated {
-                self?.advanceAnimations(deltaTime: event.deltaTime, reducedMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
-            }
-        }
+        resumeAnimationUpdates()
     }
 
     @available(*, unavailable)
@@ -94,6 +118,7 @@ final class CubeView: ARView {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     func refreshTextures() {
+        requestRendering()
         refreshAppearance()
         setAccessibilityHelp(model.configuration.expandsFacesOnClick
             ? "悬停显示入口；滚动旋转；左键拖动位置；右键拖动旋转；单击面展开入口；右键单击设置。"
@@ -114,6 +139,7 @@ final class CubeView: ARView {
     }
 
     func refreshAppearance() {
+        requestRendering()
         let appearance = model.displayedAppearance
         let enabled = appearance.material == .slime
         if enabled != slimeEnabled {
@@ -128,7 +154,17 @@ final class CubeView: ARView {
         guard window?.isVisible == true else { lightElapsed = 0; return }
         guard deltaTime.isFinite, deltaTime > 0 else { return }
         lightElapsed += min(deltaTime, 0.1)
-        guard lightElapsed >= 1.0 / 30 else { return }
+        let mode = CubeRenderingPolicy.mode(visible: true, hovered: isHovered,
+            interacting: leftTracker.origin != nil || rightTracker.origin != nil,
+            autoRotates: model.configuration.autoRotatesWhenIdle, slimeActive: slimeEnabled && slime.isActive,
+            reducedMotion: reducedMotion)
+        if mode == .suspended, ProcessInfo.processInfo.systemUptime >= keepRenderingUntil,
+           let staticFrameRequested {
+            staticFrameRequested()
+            return
+        }
+        let interval = mode == .suspended ? 1.0 / 30 : mode.animationInterval
+        guard lightElapsed >= interval else { return }
         let paused = isHovered || leftTracker.origin != nil || rightTracker.origin != nil ||
             !model.configuration.autoRotatesWhenIdle || reducedMotion
         cube.orientation = idleRotation.advance(from: cube.orientation, deltaTime: lightElapsed, paused: paused)
@@ -145,12 +181,14 @@ final class CubeView: ARView {
 
     func setHovered(_ hovered: Bool) {
         guard hovered != isHovered else { return }
+        requestRendering()
         isHovered = hovered
         if !hovered { updateSlimePointer(atWindowPoint: nil) }
         for panel in panels.values { panel.components.set(OpacityComponent(opacity: hovered ? 1 : 0)) }
     }
 
     func updateSlimePointer(atWindowPoint point: NSPoint?) {
+        if slimeEnabled { requestRendering() }
         guard let point, let window, isHovered, leftTracker.origin == nil, rightTracker.origin == nil else {
             slimePointer = nil
             slime.setContact(nil)
@@ -195,6 +233,7 @@ final class CubeView: ARView {
 
     func beginPrimaryDrag(atScreenPoint point: NSPoint, moveOnly: Bool = false) {
         guard rightTracker.origin == nil else { return }
+        requestRendering()
         updateSlimePointer(atWindowPoint: nil)
         leftMoveOnly = moveOnly
         leftTracker.start(at: [Float(point.x), Float(point.y)])
@@ -264,6 +303,7 @@ final class CubeView: ARView {
 
     func beginSecondaryDrag(atScreenPoint point: NSPoint) {
         guard leftTracker.origin == nil else { return }
+        requestRendering()
         updateSlimePointer(atWindowPoint: nil)
         rightTracker.start(at: [Float(point.x), Float(point.y)])
         rightDragOrientation = cube.orientation
@@ -300,6 +340,7 @@ final class CubeView: ARView {
 
     func rotate(with delta: SIMD2<Float>, precise: Bool, inverted: Bool) {
         guard delta != .zero else { return }
+        requestRendering()
         let rotation = CubeScrollMotion.rotated(from: cube.orientation, delta: delta, precise: precise, inverted: inverted)
         cube.orientation = rotation
         model.selectedFace = CubeScrollMotion.targetFace(for: rotation)

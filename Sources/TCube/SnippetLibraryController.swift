@@ -22,12 +22,17 @@ final class SnippetLibraryController {
     private var targetField: AXUIElement?
     private var lastExternal: NSRunningApplication?
     private var activationObserver: NSObjectProtocol?
+    private var restoreObserver: NSObjectProtocol?
     private var hotKey: EventHotKeyRef?
     private var handler: EventHandlerRef?
     private var pasteTask: Task<Void, Never>?
 
     init() {
         rememberExternal()
+        restoreObserver = NotificationCenter.default.addObserver(forName: .tCubeLibraryDidRestore, object: nil, queue: .main) { [weak self] notification in
+            guard let url = notification.object as? URL else { return }
+            MainActor.assumeIsolated { self?.model.reloadIfMatchingStore(url) }
+        }
         activationObserver = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.rememberExternal() }
         }
@@ -62,6 +67,7 @@ final class SnippetLibraryController {
         if let hotKey { UnregisterEventHotKey(hotKey) }
         if let handler { RemoveEventHandler(handler) }
         if let activationObserver { NSWorkspace.shared.notificationCenter.removeObserver(activationObserver) }
+        if let restoreObserver { NotificationCenter.default.removeObserver(restoreObserver) }
         hotKey = nil; handler = nil
     }
 

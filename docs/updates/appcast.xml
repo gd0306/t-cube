@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>T-Cube updates</title>
+    <link>https://github.com/gd0306/t-cube/releases</link>
+    <description>Authenticated macOS T-Cube updates</description>
+    <language>zh-cn</language>
+    <!-- Publish an item only after the matching archive has been signed and uploaded. -->
+  </channel>
+</rss>

@@ -39,4 +39,18 @@ codesign --verify --deep --strict "$TCUBE_STAGE/T-Cube.app"
 TCUBE_DMG="$TCUBE_ROOT/build/T-Cube-$TCUBE_VERSION.dmg"
 hdiutil create -volname 'T-Cube' -srcfolder "$TCUBE_STAGE" \
     -fs HFS+ -format UDZO -ov "$TCUBE_DMG"
+
+if [[ -n "${TCUBE_SIGN_IDENTITY:-}" && "$TCUBE_SIGN_IDENTITY" != '-' ]]; then
+    codesign --force --sign "$TCUBE_SIGN_IDENTITY" --timestamp "$TCUBE_DMG"
+fi
+if [[ -n "${TCUBE_NOTARY_PROFILE:-}" ]]; then
+    # A profile must already exist. This script never creates credentials or keys.
+    if [[ "${TCUBE_SIGN_IDENTITY:-}" != 'Developer ID Application:'* ]]; then
+        echo 'Notarization requires TCUBE_SIGN_IDENTITY="Developer ID Application: …".' >&2
+        exit 1
+    fi
+    xcrun notarytool submit "$TCUBE_DMG" --keychain-profile "$TCUBE_NOTARY_PROFILE" --wait
+    xcrun stapler staple "$TCUBE_DMG"
+    xcrun stapler validate "$TCUBE_DMG"
+fi
 printf '\nBuilt: %s\nStaging: %s\n' "$TCUBE_DMG" "$TCUBE_STAGE"
