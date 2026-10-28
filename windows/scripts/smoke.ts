@@ -198,7 +198,7 @@ try {
         await until(snapshot, value => !value.state.interactionActive, 'Outside release did not finish');
         await move(2, 2);
         await until(bounds, frame => frame.width === 164, 'Post-drag resting size incorrect');
-        assert.notDeepEqual((await snapshot()).state.configuration.windowPosition, configuration.windowPosition);
+        await until(snapshot, value => JSON.stringify(value.state.configuration.windowPosition) !== JSON.stringify(configuration.windowPosition), 'Ctrl drag did not persist its new position');
         results.push('Inactive-window Ctrl shrink, Ctrl-left drag, Ctrl release mid-drag and native mouse-up persisted position.');
     } else results.push('Native Windows Ctrl/button paths skipped on macOS preview.');
 
@@ -489,7 +489,19 @@ try {
         if (originalAnimations !== undefined) await clean(() => input.animations(originalAnimations));
     }
     if (originalCursor) await clean(() => move(originalCursor!.x, originalCursor!.y));
-    await clean(() => app?.close());
+    await clean(async () => {
+        if (!app) return;
+        let timeout: ReturnType<typeof setTimeout> | undefined;
+        try {
+            await Promise.race([app.close(), new Promise<never>((_resolve,reject) => {
+                timeout=setTimeout(() => reject(new Error('Owned smoke application did not finish quitting within 15 seconds')),15000);
+            })]);
+        } catch (error) {
+            await writeFile(path.join(output,'quit-failure.txt'),String(error));
+            app.process().kill();
+            throw error;
+        } finally { if(timeout)clearTimeout(timeout); }
+    });
     if (catalogShortcutCreated) await clean(() => rm(catalogShortcut, { force: true }));
     if (catalogRegistered) await clean(() => execFileSync('reg.exe', ['DELETE', catalogRegistryKey, '/f'], { windowsHide: true }));
     await clean(() => rm(data, { recursive: true, force: true }));
