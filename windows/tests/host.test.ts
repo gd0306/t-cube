@@ -34,7 +34,7 @@ async function fixture(overrides: Partial<HostServices> = {}) {
     const directory = await mkdtemp(path.join(tmpdir(), 'tcube-host-'));
     const store = new ConfigurationStore(path.join(directory, 'configuration.json'));
     await store.load();
-    await store.update(config => { config.hover.isEnabled = false; config.expandsFacesOnClick = false;
+    await store.update(config => { config.hover.isEnabled = false; config.hover.delaySeconds = 0; config.expandsFacesOnClick = false;
         config.groups.front.slots[0] = { id: 'one', name: 'Editor', path: 'C:\\Apps\\Editor.exe', kind: 'application' }; });
     let pointer = { x: 180, y: 180 };
     let input = { available: true, controlHeld: false, primaryDown: true, secondaryDown: false };
@@ -607,4 +607,105 @@ test('native right dragging publishes total rotation displacement without moving
         assert.equal(f.settings, 0);
         assert.deepEqual(f.launched, []);
     } finally { await f.dispose(); }
+});
+
+test('display changes restore normalized memory without overwriting disconnected positions or legacy data', async () => {
+    let displays = [{ id: 'primary', workArea: { x: 0, y: 0, width: 1000, height: 800 } }, { id: 'left', workArea: { x: -1000, y: -200, width: 1000, height: 800 } }];
+    const memory = { version: 1 as const, activeDisplayId: 'left', positions: { left: { x: 0.5, y: 0.5 } } };
+    const saves: unknown[] = [];
+    const f = await fixture({ screens: () => displays.map(d => d.workArea), displays: () => displays,
+        displayPositions: { load: async () => structuredClone(memory), save: async next => { saves.push(structuredClone(next)); } } });
+    try {
+        await f.host.initializeDisplayPositions();
+        assert.deepEqual(f.host.geometry.restingFrame, { x: -582, y: 118, width: 164, height: 164 });
+        displays = displays.slice(0, 1); await f.host.refreshDisplays();
+        assert.equal(f.host.geometry.restingFrame.x, 0);
+        assert.equal(f.store.snapshot.windowPosition, null);
+        assert.equal(saves.length, 0);
+        displays.push({ id: 'left', workArea: { x: -1800, y: 0, width: 1800, height: 1200 } });
+        await f.host.refreshDisplays();
+        assert.deepEqual(f.host.geometry.restingFrame, { x: -982, y: 518, width: 164, height: 164 });
+        await f.host.place('bottomRight');
+        assert.equal(saves.length, 1);
+        assert.equal((saves[0] as typeof memory).activeDisplayId, 'left');
+    } finally { await f.dispose(); }
+});
+
+test('hidden polling cannot restart dwell and host elapsed time advances delayed hover', async () => {
+    const f = await fixture();
+    try {
+        const config = f.store.snapshot; config.hover = { isEnabled: true, multiplier: 4, delaySeconds: 0.18 };
+        await f.host.applyConfiguration(config);
+        f.host.poll(0); assert.equal(f.host.geometry.hovered, false);
+        f.host.poll(0.18); assert.equal(f.host.geometry.hovered, true);
+        f.host.setVisible(false); f.host.poll(5); f.host.poll(6);
+        assert.equal(f.host.geometry.hovered, false);
+        f.host.setVisible(true); f.host.poll(6); assert.equal(f.host.geometry.hovered, false);
+        f.host.poll(6.18); assert.equal(f.host.geometry.hovered, true);
+    } finally { await f.dispose(); }
+});
+
+test('main-process imported configuration reloads groups, geometry and icons without replacing position with a resize', async () => {
+    const { writeFile } = await import('node:fs/promises');
+    const f = await fixture();
+    try {
+        const imported = f.store.snapshot;
+        imported.groups.front.name = 'Imported'; imported.groups.front.slots[0] = null;
+        imported.scale = 1.5; imported.windowPosition = { x: 700, y: 500 };
+        await writeFile(f.store.filePath, JSON.stringify(imported));
+        await f.host.applyImportedConfiguration(imported);
+        assert.equal(f.host.snapshot.state.configuration.groups.front.name, 'Imported');
+        assert.equal(f.host.snapshot.state.configuration.groups.front.slots[0], null);
+        assert.deepEqual(f.host.geometry.restingFrame, { x: 700, y: 500, width: 246, height: 246 });
+        f.host.poll(); await f.host.whenIdle();
+        assert.deepEqual(f.store.snapshot.windowPosition, { x: 700, y: 500 });
+    } finally { await f.dispose(); }
+});
+
+test('explicit placement persistence drain includes the independent display write', async () => {
+    let finish!: () => void;
+    const gate = new Promise<void>(resolve => { finish = resolve; });
+    let saving = false;
+    const f = await fixture({ displays: () => [{ id: 'primary', workArea: { x: 0, y: 0, width: 1920, height: 1080 } }],
+        displayPositions: { load: async () => ({ version: 1, activeDisplayId: null, positions: {} }), save: async () => { saving = true; await gate; } } });
+    try {
+        await f.host.initializeDisplayPositions();
+        const placing = f.host.place('center');
+        await eventually(() => saving && f.store.snapshot.windowPosition?.x === 878);
+        await nextTurn();
+        let drained = false;
+        const drain = f.host.whenIdle({ includeLaunches: false }).then(() => { drained = true; });
+        await nextTurn(); assert.equal(drained, false);
+        finish(); await placing; await drain; assert.equal(drained, true);
+    } finally { finish(); await f.dispose(); }
+});
+
+
+test('imported position replaces persisted display memory so restart keeps the imported origin', async () => {
+    const { writeFile } = await import('node:fs/promises');
+    const { DisplayPositionStore } = await import('../src/main/display-position-store');
+    const directory = await mkdtemp(path.join(tmpdir(), 'tcube-import-display-'));
+    const displayStore = new DisplayPositionStore(path.join(directory, 'display-positions.json'));
+    await displayStore.save({ version: 1, activeDisplayId: 'primary', positions: { primary: { x: 0.1, y: 0.1 } } });
+    const services = { displays: () => [{ id: 'primary', workArea: { x: 0, y: 0, width: 1920, height: 1080 } }], displayPositions: displayStore };
+    const f = await fixture(services);
+    try {
+        await f.host.initializeDisplayPositions();
+        const imported = f.store.snapshot;
+        imported.scale = 1.5; imported.windowPosition = { x: 700, y: 500 };
+        await writeFile(f.store.filePath, JSON.stringify(imported));
+        await f.host.applyImportedConfiguration(imported);
+        f.host.poll(); await f.host.whenIdle();
+        assert.deepEqual(f.store.snapshot.windowPosition, { x: 700, y: 500 });
+        const restarted = await fixture({ ...services, displayPositions: new DisplayPositionStore(displayStore.filePath) });
+        try {
+            const config = restarted.store.snapshot; config.scale = imported.scale;
+            await restarted.host.applyConfiguration(config);
+            await restarted.host.initializeDisplayPositions();
+            const restored = restarted.host.geometry.restingFrame;
+            assert.ok(Math.abs(restored.x - 700) < 1e-9);
+            assert.ok(Math.abs(restored.y - 500) < 1e-9);
+            assert.equal(restored.width, 246); assert.equal(restored.height, 246);
+        } finally { await restarted.dispose(); }
+    } finally { await f.dispose(); await rm(directory, { recursive: true, force: true }); }
 });

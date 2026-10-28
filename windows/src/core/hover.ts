@@ -27,9 +27,11 @@ export class HoverGeometry implements HoverGeometryContract {
     private controlFrame: Rect | null = null;
     private pointer: Point | null = null;
     private isHovered = false;
+    private pendingSince: number | null = null;
+    onUserPositionCommit?: (position: Point) => void;
     onPositionChange?: (position: Point) => void;
-    constructor(frame: Rect, settings: HoverSettings, private readonly screens: () => Rect[]) {
-        this.resting = { ...frame }; this.display = { ...frame }; this.settings = { ...settings };
+    constructor(frame: Rect, settings: HoverSettings, private readonly screens: () => Rect[], private readonly clock: () => number = () => performance.now() / 1000) {
+        this.resting = clamp(frame, screens()); this.display = { ...this.resting }; this.settings = { ...settings };
     }
     get displayFrame(): Rect { return { ...this.display }; }
     get restingFrame(): Rect { return { ...this.resting }; }
@@ -41,23 +43,30 @@ export class HoverGeometry implements HoverGeometryContract {
     setControlHeld(held: boolean): void {
         if (this.control === held) return;
         this.control = held;
+        this.pendingSince = null;
+        if (!held && this.settings.isEnabled && (this.settings.delaySeconds ?? 0.18) > 0) this.isHovered = false;
         if (!this.active) this.applyHover();
     }
-    setInteractionActive(active: boolean): void { this.active = active; if (!active) this.applyHover(); }
+    setInteractionActive(active: boolean): void { this.active = active; this.pendingSince = null; if (!active) this.applyHover(); }
+    tick(): void { if (!this.active) this.applyHover(); }
+    restoreRestingFrame(origin: Point): void {
+        this.resting = clamp({ ...this.resting, ...origin }, this.screens());
+        this.resetHover();
+    }
     commitMovedFrame(frame: Rect): void {
         this.display = { ...frame };
         this.resting = clamp({ ...this.resting, x: frame.x + (frame.width - this.resting.width) / 2,
             y: frame.y + (frame.height - this.resting.height) / 2 }, this.screens());
         if (this.controlFrame) this.controlFrame = { ...this.resting };
-        this.onPositionChange?.({ x: this.resting.x, y: this.resting.y });
+        this.commitPosition();
         if (!this.active) this.applyFrame();
     }
     configure(size: Size, settings: HoverSettings): void {
         const previous = this.resting;
         this.resting = clamp({ x: previous.x + (previous.width - size.width) / 2, y: previous.y + (previous.height - size.height) / 2, ...size }, this.screens());
-        this.settings = { ...settings }; this.controlFrame = null;
+        this.settings = { ...settings }; this.controlFrame = null; this.pendingSince = null;
+        this.desiredHovered = false; this.isHovered = false;
         if (!this.active) this.applyFrame();
-        if (this.resting.x !== previous.x || this.resting.y !== previous.y) this.onPositionChange?.({ x: this.resting.x, y: this.resting.y });
     }
     place(placement: Placement): void {
         if (this.active) return;
@@ -70,12 +79,25 @@ export class HoverGeometry implements HoverGeometryContract {
         this.resting = { ...this.resting, x: screen.x + x, y: screen.y + y };
         this.controlFrame = null; this.display = { ...this.resting };
         this.desiredHovered = this.pointer !== null && contains(this.resting, this.pointer);
-        this.applyHover(); this.onPositionChange?.({ x: this.resting.x, y: this.resting.y });
+        this.pendingSince = null; this.applyHover(); this.commitPosition();
     }
     resetHover(): void {
-        this.desiredHovered = false; this.active = false; this.control = false; this.controlFrame = null; this.applyHover();
+        this.pendingSince = null; this.desiredHovered = false; this.active = false; this.control = false; this.controlFrame = null; this.applyHover();
     }
-    private applyHover(): void { this.isHovered = this.desiredHovered; this.applyFrame(); }
+    private commitPosition(): void {
+        const point = { x: this.resting.x, y: this.resting.y };
+        this.onUserPositionCommit?.(point); this.onPositionChange?.(point);
+    }
+    private applyHover(): void {
+        if (!this.desiredHovered) { this.pendingSince = null; this.isHovered = false; }
+        else if (this.control || !this.settings.isEnabled) { this.pendingSince = null; this.isHovered = true; }
+        else if (!this.isHovered) {
+            this.pendingSince ??= this.clock();
+            this.isHovered = this.clock() - this.pendingSince + 1e-9 >= (this.settings.delaySeconds ?? 0.18);
+            if (this.isHovered) this.pendingSince = null;
+        }
+        this.applyFrame();
+    }
     private applyFrame(): void {
         if (this.control && this.isHovered) {
             if (!this.controlFrame) {
@@ -87,7 +109,9 @@ export class HoverGeometry implements HoverGeometryContract {
             this.display = { ...this.controlFrame }; return;
         }
         this.controlFrame = null;
-        const factor = this.isHovered && this.settings.isEnabled && !this.control ? this.settings.multiplier : 1;
+        let factor = this.isHovered && this.settings.isEnabled && !this.control ? this.settings.multiplier : 1;
+        const screen = nearestScreen(this.resting, this.screens());
+        if (screen && factor > 1) factor = Math.max(1, Math.min(factor, screen.width / this.resting.width, screen.height / this.resting.height));
         const width = this.resting.width * factor, height = this.resting.height * factor;
         this.display = clamp({ x: this.resting.x + (this.resting.width - width) / 2,
             y: this.resting.y + (this.resting.height - height) / 2, width, height }, this.screens());

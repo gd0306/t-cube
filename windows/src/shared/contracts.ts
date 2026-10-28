@@ -1,3 +1,5 @@
+import type { ProductivityBridge } from './productivity';
+import type { MaintenanceBridge, LifecycleBridge } from './maintenance';
 export const FACES = ['front', 'right', 'back', 'left', 'top', 'bottom'] as const;
 export type Face = typeof FACES[number];
 export type Placement = 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight' | 'center';
@@ -11,7 +13,7 @@ export interface Appearance { primaryHex: string; secondaryHex: string; glowInte
 export interface LauncherItem { id: string; path: string; name: string; kind: 'application' | 'folder' }
 export type Slots = [LauncherItem | null, LauncherItem | null, LauncherItem | null, LauncherItem | null];
 export interface FaceGroup { name: string; slots: Slots }
-export interface HoverSettings { isEnabled: boolean; multiplier: number }
+export interface HoverSettings { isEnabled: boolean; multiplier: number; delaySeconds?: number }
 export interface Configuration {
     version: 1;
     groups: Record<Face, FaceGroup>;
@@ -24,6 +26,7 @@ export interface Configuration {
     windowPosition: Point | null;
 }
 export interface ViewState {
+    idlePowerSaving?: boolean;
     configuration: Configuration;
     displayedAppearance: Appearance;
     activeTheme: ThemeId | null;
@@ -43,7 +46,9 @@ export interface Snapshot { state: ViewState; icons: Record<string, string> }
 export interface Hit { face: Face; slot: number | null }
 export interface TargetRequest { face: Face; slot: number; kind: 'application' | 'folder' }
 export interface InstalledApplication { id: string; name: string; detail: string }
-export interface DesktopBridge {
+export interface DesktopBridge extends ProductivityBridge, MaintenanceBridge, LifecycleBridge {
+    getPerformanceSettings(): Promise<{idlePowerSaving:boolean}>;
+    setPerformanceSettings(idlePowerSaving:boolean): Promise<void>;
     getSnapshot(): Promise<Snapshot>;
     onState(callback: (state: ViewState) => void): () => void;
     onIcons(callback: (icons: Record<string, string>) => void): () => void;

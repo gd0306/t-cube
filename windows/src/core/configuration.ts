@@ -20,7 +20,7 @@ export function defaultConfiguration(): Configuration {
         groups: Object.fromEntries(FACES.map((face, index) => [face, { name: names[index], slots: [null, null, null, null] }])) as Record<Face, FaceGroup>,
         appearance: { ...THEMES.aurora, glowIntensity: 0.55, material: 'glass' },
         themeCycle: { isEnabled: false, themes: ['aurora', 'ocean', 'sunset'], intervalSeconds: 10 },
-        hover: { isEnabled: true, multiplier: 4 },
+        hover: { isEnabled: true, multiplier: 4, delaySeconds: 0.18 },
         expandsFacesOnClick: true, autoRotatesWhenIdle: true, scale: 1, windowPosition: null,
     };
 }
@@ -99,7 +99,7 @@ export function normalizeConfiguration(input: unknown): Configuration {
     return {
         version: 1, groups, appearance,
         themeCycle: { isEnabled: enabled, themes: [...cycle.themes] as ThemeId[], intervalSeconds: cycle.intervalSeconds as 10 | 20 },
-        hover: { isEnabled: boolean(hover.isEnabled, 'hover'), multiplier: number(hover.multiplier, 1.1, 4, 'hover') },
+        hover: { isEnabled: boolean(hover.isEnabled, 'hover'), multiplier: number(hover.multiplier, 1.1, 4, 'hover'), delaySeconds: hover.delaySeconds === undefined ? 0.18 : number(hover.delaySeconds, 0, 1.5, 'hover delay') },
         expandsFacesOnClick: source.expandsFacesOnClick === undefined ? true : boolean(source.expandsFacesOnClick, 'face expansion'),
         autoRotatesWhenIdle: source.autoRotatesWhenIdle === undefined ? true : boolean(source.autoRotatesWhenIdle, 'idle rotation'),
         scale: number(source.scale, 0.65, 1.6, 'scale'),

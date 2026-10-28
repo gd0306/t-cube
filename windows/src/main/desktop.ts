@@ -1,3 +1,5 @@
+import {OfficeServices} from './office-services';
+import {DisplayPositionStore} from './display-position-store';
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, screen, shell, Tray } from 'electron';
 import type { BrowserWindowConstructorOptions } from 'electron';
 import { access } from 'node:fs/promises';
@@ -26,10 +28,15 @@ export class DesktopApplication {
     private roles = new Map<number, WindowRole>();
     private timer: NodeJS.Timeout | null = null;
     private quitting = false;
+    private quitCancelled: (() => void) | null = null;
     private pollActive = false;
     private previousButtons = false;
     private readonly iconCache = new IconCache();
     private readonly started = Date.now();
+    private office: OfficeServices | null = null;
+    private whenLauncherOperationsIdle: () => Promise<void> = async () => {};
+    private reducedMotion = false;
+    private preferenceSample = 0;
     constructor(readonly directory = __dirname) {}
     async start(): Promise<void> {
         const file = path.join(app.getPath('userData'), 'configuration.json');
@@ -53,6 +60,11 @@ export class DesktopApplication {
         this.host = new LauncherHost(store, {
             platform: process.platform, cursor: () => screen.getCursorScreenPoint(), input: readInputState,
             screens: () => screen.getAllDisplays().map(display => display.workArea),
+            displays: () => {
+                const primary = screen.getPrimaryDisplay().id;
+                return screen.getAllDisplays().sort((a,b) => Number(b.id === primary)-Number(a.id === primary)).map(display => ({id:String(display.id),workArea:display.workArea}));
+            },
+            displayPositions: new DisplayPositionStore(path.join(app.getPath('userData'),'display-positions.json')),
             setFrame: frame => this.widget.setBounds(this.roundFrame(frame), false),
             setVisible: visible => { if (visible) this.widget.show(); else this.widget.hide(); this.updateTray(); },
             openPath: target => shell.openPath(target),
@@ -70,8 +82,16 @@ export class DesktopApplication {
             },
             quit: () => app.quit(), refreshIcons: config => this.iconCache.forConfiguration(config)
         });
-        registerIPC(ipcMain, this.host, sender => this.roles.get(sender.id) ?? null,
-            createApplicationCatalog(this.directory, app.getPath('userData')));
+        await this.host.initializeDisplayPositions().catch(error => {
+            void dialog.showMessageBox({type:'warning',message:'显示器位置记忆暂不可用，原文件已保留。',detail:String(error),buttons:['继续']});
+        });
+        this.office = new OfficeServices({host:this.host,directory:app.getPath('userData'),rendererPath:this.html('library'),
+            whenLauncherOperationsIdle:()=>this.whenLauncherOperationsIdle(),
+            createLibraryWindow:()=>this.createWindow('library',{title:'T-Cube · 常用内容',width:940,height:680,minWidth:800,minHeight:560,backgroundColor:'#f6f8fc',autoHideMenuBar:true,alwaysOnTop:true}),
+            role:id=>this.roles.get(id)??null});
+        await this.office.start();
+        this.whenLauncherOperationsIdle = registerIPC(ipcMain, this.host, sender => this.roles.get(sender.id) ?? null,
+            createApplicationCatalog(this.directory, app.getPath('userData')),()=>this.office?.isRestoring??false);
         this.widget.setAlwaysOnTop(true, 'floating');
         await this.widget.loadFile(this.html('widget'));
         this.widget.show();
@@ -79,17 +99,33 @@ export class DesktopApplication {
         this.tray = new Tray(trayImage);
         this.tray.setToolTip('T-Cube'); this.updateTray();
         this.tray.on('click', () => this.toggleWidget());
-        this.timer = setInterval(() => { void this.tick(); }, 16);
+        this.timer = setTimeout(() => this.tick(), 16);
         void this.host.refreshIcons().catch(error => this.host.reportError(error));
-        screen.on('display-metrics-changed', () => { void this.host.refreshDisplays().catch(error => this.host.reportError(error)); });
+        const refreshDisplays = () => { void this.host.refreshDisplays().catch(error => this.host.reportError(error)); };
+        screen.on('display-added', refreshDisplays);
+        screen.on('display-removed', refreshDisplays);
+        screen.on('display-metrics-changed', refreshDisplays);
         app.on('before-quit', event => {
             if (this.quitting) return;
-            event.preventDefault(); this.quitting = true; this.dispose();
+            event.preventDefault(); this.quitting = true; this.office?.setQuitting(true);
             // A last drag save must finish before windows are destroyed. External launches do not delay quit.
-            void this.host.whenIdle({ includeLaunches: false }).then(() => app.quit(), error => {
+            void (async () => {
+                await this.office?.whenIdle(); await this.whenLauncherOperationsIdle(); await this.host.whenIdle({ includeLaunches: false });
+                const library = this.office?.libraryWindow;
+                if (library && !library.isDestroyed()) {
+                    const closed = await new Promise<boolean>(resolve => {
+                        const onClosed = () => { this.quitCancelled=null; resolve(true); };
+                        this.quitCancelled = () => { library.removeListener('closed',onClosed); this.quitCancelled=null; resolve(false); };
+                        library.once('closed',onClosed); library.close();
+                    });
+                    if (!closed) return;
+                }
+                app.quit();
+            })().catch(error => {
                 this.host.reportError(error); app.quit();
             });
         });
+        app.on('will-quit', () => this.dispose());
         app.on('activate', () => { this.host.setVisible(true); this.widget.show(); });
         app.on('second-instance', () => this.showSettings());
         if (firstLaunch) this.showSettings();
@@ -104,6 +140,17 @@ export class DesktopApplication {
                 nodeIntegration: false, webSecurity: true, allowRunningInsecureContent: false, webviewTag: false } });
         this.roles.set(window.webContents.id, role);
         window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+        window.webContents.on('will-prevent-unload', event => {
+            const discard = dialog.showMessageBoxSync(window, {type:'question', title:'尚未保存的内容',
+                message:'当前编辑尚未保存，退出并放弃修改？', buttons:['继续编辑','放弃并退出'], defaultId:0, cancelId:0, noLink:true});
+            if (discard === 1) event.preventDefault();
+            else if (this.quitting) {
+                this.quitting = false; this.office?.setQuitting(false);
+                this.quitCancelled?.();
+                if (this.timer) clearTimeout(this.timer);
+                this.timer = setTimeout(() => this.tick(), 16);
+            }
+        });
         window.webContents.on('will-navigate', event => event.preventDefault());
         window.webContents.on('will-frame-navigate', event => event.preventDefault());
         window.webContents.on('will-attach-webview', event => event.preventDefault());
@@ -127,7 +174,7 @@ export class DesktopApplication {
         return window;
     }
     private broadcast(channel: string, value: unknown): void {
-        for (const window of [this.widget, this.settings, this.expanded]) {
+        for (const window of [this.widget, this.settings, this.expanded, this.office?.libraryWindow]) {
             if (window && !window.isDestroyed()) window.webContents.send(channel, value);
         }
     }
@@ -141,9 +188,18 @@ export class DesktopApplication {
                 if (p.x < r.x || p.y < r.y || p.x >= r.x + r.width || p.y >= r.y + r.height) this.host.closeExpanded();
             }
             this.previousButtons = buttons;
-            this.host.poll((Date.now() - this.started) / 1000, readReducedMotion());
+            const now = Date.now();
+            if (now - this.preferenceSample > 1000) { this.reducedMotion = readReducedMotion(); this.preferenceSample = now; }
+            this.host.poll((now - this.started) / 1000, this.reducedMotion);
         } catch (error) { this.host.reportError(error); }
-        finally { this.pollActive = false; }
+        finally {
+            this.pollActive = false;
+            if (!this.quitting) {
+                const state = this.host.snapshot.state;
+                const interval = state.interactionActive || state.hovered || this.expanded?.isVisible() ? 16 : state.visible ? 80 : 250;
+                this.timer = setTimeout(() => this.tick(), interval);
+            }
+        }
     }
     showSettings(): void {
         if (!this.settings) {
@@ -177,11 +233,12 @@ export class DesktopApplication {
         this.tray?.setContextMenu(Menu.buildFromTemplate([
             { label: this.widget.isVisible() ? 'Hide cube' : 'Show cube', click: () => this.toggleWidget() },
             { label: 'Settings…', click: () => this.showSettings() },
+            {label:'常用内容…    Ctrl+Shift+Space',click:run(()=>this.office?.showLibrary())},
             { label: 'Placement', submenu: placements.map(([label, placement]) => ({ label, click: run(() => this.host.place(placement)) })) },
             { label: 'Cube size', submenu: [0.65, 0.85, 1, 1.25, 1.6].map(scale => ({ label: `${Math.round(scale * 100)}%`,
                 click: run(() => this.host.applyConfiguration({ ...this.host.snapshot.state.configuration, scale })) })) },
             { type: 'separator' }, { label: 'Quit T-Cube', click: () => app.quit() }
         ]));
     }
-    dispose(): void { if (this.timer) clearInterval(this.timer); this.timer = null; this.tray?.destroy(); this.tray = null; }
+    dispose(): void { this.office?.dispose(); if (this.timer) clearTimeout(this.timer); this.timer = null; this.tray?.destroy(); this.tray = null; }
 }

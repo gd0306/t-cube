@@ -1,4 +1,6 @@
+const publisher = process.env.TCUBE_UPDATE_PUBLISHER?.trim();
 module.exports = {
+    extraMetadata: { tcubeUpdatePublisher: publisher || null },
     appId: 'local.tcube.launcher.windows',
     productName: 'T-Cube',
     executableName: 'T-Cube',
@@ -10,6 +12,8 @@ module.exports = {
     npmRebuild: false,
     win: {
         target: [{ target: 'nsis', arch: ['x64'] }],
+        ...(publisher ? { publisherName: publisher } : {}),
+        verifyUpdateCodeSignature: true,
         icon: 'assets/icon.ico',
         artifactName: 'T-Cube-${version}-windows-${arch}-setup.${ext}',
     },
@@ -24,5 +28,5 @@ module.exports = {
         runAfterFinish: false,
         include: 'assets/installer.nsh',
     },
-    publish: null,
+    publish: { provider: 'github', owner: 'gd0306', repo: 't-cube', private: false, protocol: 'https', releaseType: 'release' },
 };

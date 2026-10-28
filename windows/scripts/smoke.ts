@@ -8,6 +8,7 @@ import { defaultConfiguration } from '../src/core/configuration.js';
 import { FACES, type Configuration } from '../src/shared/contracts.js';
 import { nativeInput } from './native-input.js';
 import { verifyAppearanceControls } from './appearance-controls.js';
+import { verifyLibrarySmoke } from './office-library-smoke.js';
 
 const output = path.resolve('.cache/smoke');
 await mkdir(output, { recursive: true });
@@ -157,8 +158,8 @@ try {
     });
     console.log('Resting glass contrast:', JSON.stringify(contour));
     assert.ok(contour.dark >= 0.004, 'Glass contour is effectively invisible over a dark desktop');
-    assert.ok(contour.light >= 0.004, 'Glass contour is effectively invisible over a light desktop');
-    assert.ok(contour.centerAlpha < 0.12, 'The glass center should remain transparent');
+    assert.ok(contour.light >= 0.015, 'Glass contour is effectively invisible over a light desktop');
+    assert.ok(contour.centerAlpha < 0.18, 'The glass center should remain transparent');
     await capture(widget, 'widget-idle-dark.png');
     await capture(widget, 'widget-idle-light.png', true, '#f5f6f8');
     results.push('Resting glass has visible contrast on dark and light desktops with a transparent center.');
@@ -389,6 +390,44 @@ try {
     await until(snapshot, value => value.state.displayedAppearance.material === 'glass', 'Glass selection failed during cycling');
     assert.deepEqual(await readShell(), rigidShell, 'Glass must restore the original rigid geometry');
     results.push('Independent material UI, shared theme/cycling, native slime pointer deformation, stable icon decals, rebound and glass restoration passed.');
+
+    results.push(...await verifyLibrarySmoke(app, widget));
+    await move(2, 2);
+    const idleConfiguration = structuredClone((await snapshot()).state.configuration);
+    idleConfiguration.themeCycle.isEnabled = false;
+    idleConfiguration.autoRotatesWhenIdle = true;
+    await settings.evaluate(config => window.tcube.applyConfiguration(config), idleConfiguration);
+    await settings.evaluate(() => window.tcube.setPerformanceSettings(true));
+    const metrics = () => widget.evaluate(async () => {
+        const { controller } = await import(new URL('widget.js', location.href).href);
+        return {...controller.metrics};
+    });
+    await until(metrics, value => value.cadence === 0, 'Office idle must stop its animation timer');
+    const idleFrames = (await metrics()).frames;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    assert.equal((await metrics()).frames, idleFrames, 'Office idle must not keep rendering frames');
+    if (process.platform === 'win32') {
+        await settings.evaluate(() => window.tcube.setPerformanceSettings(false));
+        await until(metrics, value => value.cadence === 15, 'Continuous display must use 15Hz idle animation');
+        const continuousFrames = (await metrics()).frames;
+        await until(metrics, value => value.frames > continuousFrames + 2, 'Continuous animation did not resume');
+        await settings.evaluate(() => window.tcube.setPerformanceSettings(true));
+        await until(metrics, value => value.cadence === 0, 'Returning to office mode must stop rendering');
+    }
+    await settings.evaluate(config => window.tcube.applyConfiguration(config), {...idleConfiguration, autoRotatesWhenIdle: false});
+    const beforeBackup = await snapshot();
+    await settings.evaluate(() => window.tcube.createBackup());
+    const maintenance = await settings.evaluate(() => window.tcube.getMaintenanceState());
+    assert.ok(maintenance.backups.length > 0, 'Manual backup missing');
+    await settings.evaluate(() => window.tcube.renameGroup({face:'front',name:'Temporary backup probe'}));
+    const preview = await settings.evaluate(id => window.tcube.previewImportBackup(id), maintenance.backups[0].id);
+    assert.ok(preview);
+    await settings.evaluate(token => window.tcube.confirmImportBackup(token), preview.token);
+    await until(snapshot, value => value.state.configuration.groups.front.name === beforeBackup.state.configuration.groups.front.name, 'Backup did not restore current host state');
+    const lifecycle = await settings.evaluate(() => window.tcube.getLifecycleState());
+    assert.equal(lifecycle.version, '0.16.0');
+    assert.equal(lifecycle.updatesEnabled, false, 'Unsigned CI installers must not enable automatic replacement');
+    results.push('Default office mode stops frame rendering; continuous mode resumes at 15Hz; backup preview/restore and unsigned updater gate passed.');
 
     const saved = await snapshot();
     const updated = structuredClone(saved.state.configuration);

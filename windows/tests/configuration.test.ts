@@ -124,3 +124,13 @@ test('verbatim namespace paths preserve literal dot components rather than apply
     assert.equal(literal.groups.front.slots[1]?.id, 'literal');
     assert.throws(() => addTarget(original, 'front', item('second', '\\\\?\\c:\\apps\\a.exe')), /duplicate/i);
 });
+
+
+test('hover delay migrates and validates finite bounded values', () => {
+    const config = defaultConfiguration();
+    assert.equal(config.hover.delaySeconds, 0.18);
+    const legacy = structuredClone(config); delete legacy.hover.delaySeconds;
+    assert.equal(normalizeConfiguration(legacy).hover.delaySeconds, 0.18);
+    for (const delaySeconds of [0, 0.18, 1.5]) assert.equal(normalizeConfiguration({ ...config, hover: { ...config.hover, delaySeconds } }).hover.delaySeconds, delaySeconds);
+    for (const delaySeconds of [-0.01, 1.51, NaN, Infinity, null, '0.2']) assert.throws(() => normalizeConfiguration({ ...config, hover: { ...config.hover, delaySeconds } }), /hover/i);
+});

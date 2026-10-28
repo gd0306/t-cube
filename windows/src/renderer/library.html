@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'" />
+    <link rel="stylesheet" href="library.css" />
+    <title>T-Cube · 常用内容</title>
+</head>
+<body>
+    <header><div><small>T-CUBE · 本机资料库</small><h1>常用内容</h1></div><div class="actions"><button id="capture">从剪贴板收录</button><button id="add" class="primary">＋ 新建内容</button></div></header>
+    <div id="error" role="alert" hidden></div>
+    <main>
+        <aside aria-label="内容列表">
+            <label class="search"><span class="visually-hidden">搜索内容</span><input id="search" type="search" placeholder="搜索标题、正文或字段" /></label>
+            <div class="filters"><label><input id="favorites" type="checkbox" /> 只看收藏</label><select id="group" aria-label="按分组筛选"><option value="">全部分组</option></select></div>
+            <div id="count"></div><div id="list" aria-label="保存的内容"></div>
+            <p class="drop-hint">拖入文字，预览后保存</p>
+        </aside>
+        <section id="detail" aria-label="内容详情"></section>
+    </main>
+    <footer><span id="status" role="status">选择内容，复制或粘贴到原来的输入框。</span><small>Ctrl+Shift+Space 呼出 · 内容仅保存在本机</small></footer>
+    <script type="module" src="library.js"></script>
+</body>
+</html>

@@ -5,6 +5,7 @@ import CubeCore
 struct EditorView: View {
     @ObservedObject var model: AppModel
     var lifecycle: LifecycleController? = nil
+    var performance: PerformanceSettings? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -13,6 +14,10 @@ struct EditorView: View {
                     .tabItem { Label("立方体入口", systemImage: "cube") }
                 AppearanceSettingsView(model: model)
                     .tabItem { Label("外观", systemImage: "paintpalette") }
+                if let performance {
+                    PerformanceSettingsView(settings: performance)
+                        .tabItem { Label("性能", systemImage: "gauge.with.dots.needle.33percent") }
+                }
                 MaintenanceSettingsView(model: model)
                     .tabItem { Label("配置与备份", systemImage: "externaldrive") }
                 if let lifecycle {

@@ -32,6 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var screenObserver: NSObjectProtocol?
     private let snippetLibrary = SnippetLibraryController()
     private let lifecycle = LifecycleController()
+    private let performanceSettings = PerformanceSettings()
     private var desktopPlacement: DesktopPlacementCoordinator?
     private var accessibilityObserver: NSObjectProtocol?
 
@@ -98,6 +99,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             hover?.setInteractionActive(active)
         }
         cubeView.positionCommitted = { [weak hover] in hover?.commitMovedFrame($0) }
+        cubeView.idlePowerSavingEnabled = performanceSettings.idlePowerSavingEnabled
+        performanceSettings.onChange = { [weak self] enabled in self?.cubeView.idlePowerSavingEnabled = enabled }
         surface.enableRenderingManagement()
         panel.orderFrontRegardless()
         surface.synchronizeRenderingVisibility()
@@ -251,7 +254,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 580), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
             window.title = "T-Cube · 设置"
             window.minSize = NSSize(width: 760, height: 540)
-            window.contentView = NSHostingView(rootView: EditorView(model: model, lifecycle: lifecycle))
+            window.contentView = NSHostingView(rootView: EditorView(model: model, lifecycle: lifecycle, performance: performanceSettings))
             window.isReleasedWhenClosed = false
             window.center()
             editor = window

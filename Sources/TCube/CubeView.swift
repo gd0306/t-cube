@@ -14,6 +14,9 @@ final class CubeView: ARView {
     private var lightUpdates: (any Cancellable)?
     private var lightElapsed: TimeInterval = 0
     private var keepRenderingUntil: TimeInterval = 0
+    var idlePowerSavingEnabled = false {
+        didSet { if idlePowerSavingEnabled != oldValue { requestRendering() } }
+    }
     var renderingRequested: (() -> Bool)?
     var staticFrameRequested: (() -> Void)?
     private(set) var animationUpdatesRunning = false
@@ -156,7 +159,7 @@ final class CubeView: ARView {
         lightElapsed += min(deltaTime, 0.1)
         let mode = CubeRenderingPolicy.mode(visible: true, hovered: isHovered,
             interacting: leftTracker.origin != nil || rightTracker.origin != nil,
-            autoRotates: model.configuration.autoRotatesWhenIdle, slimeActive: slimeEnabled && slime.isActive,
+            autoRotates: model.configuration.autoRotatesWhenIdle && !idlePowerSavingEnabled, slimeActive: slimeEnabled && slime.isActive,
             reducedMotion: reducedMotion)
         if mode == .suspended, ProcessInfo.processInfo.systemUptime >= keepRenderingUntil,
            let staticFrameRequested {
@@ -166,7 +169,7 @@ final class CubeView: ARView {
         let interval = mode == .suspended ? 1.0 / 30 : mode.animationInterval
         guard lightElapsed >= interval else { return }
         let paused = isHovered || leftTracker.origin != nil || rightTracker.origin != nil ||
-            !model.configuration.autoRotatesWhenIdle || reducedMotion
+            !model.configuration.autoRotatesWhenIdle || (idlePowerSavingEnabled && !isHovered) || reducedMotion
         cube.orientation = idleRotation.advance(from: cube.orientation, deltaTime: lightElapsed, paused: paused)
         aura.advance(deltaTime: lightElapsed, hovered: isHovered, reducedMotion: reducedMotion)
         if slimeEnabled {

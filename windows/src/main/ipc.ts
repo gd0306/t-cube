@@ -12,7 +12,7 @@ export const CHANNELS = {
     quit: 'tcube:quit', closeExpanded: 'tcube:close-expanded',
     listApplications: 'tcube:applications', applicationIcons: 'tcube:application-icons', addApplication: 'tcube:add-application'
 } as const;
-export type WindowRole = 'widget' | 'settings' | 'expanded';
+export type WindowRole = 'widget' | 'settings' | 'expanded' | 'library';
 interface Sender { id: number; mainFrame: unknown }
 interface Event { sender: Sender; senderFrame: unknown }
 interface IPCRegistrar { handle(channel: string, handler: (event: Event, payload?: unknown) => Promise<unknown>): void }
@@ -26,16 +26,25 @@ function hit(value: unknown): Hit | null { if (value === null) return null; cons
 function button(value: unknown): 0 | 2 { return value === 0 || value === 2 ? value : invalid(); }
 
 /** Authorization runs before parsing and before touching any privileged host operation. */
-export function registerIPC(ipc: IPCRegistrar, host: LauncherHost, roleForSender: (sender: Sender) => WindowRole | null, applications?: InstalledApplications): void {
+export function registerIPC(ipc: IPCRegistrar, host: LauncherHost, roleForSender: (sender: Sender) => WindowRole | null, applications?: InstalledApplications, isRestoring: () => boolean = () => false): () => Promise<void> {
+    const pendingMutations = new Set<Promise<unknown>>();
+    const untracked = new Set<string>([CHANNELS.getSnapshot, CHANNELS.listApplications, CHANNELS.applicationIcons,
+        CHANNELS.launch, CHANNELS.showSettings, CHANNELS.quit, CHANNELS.closeExpanded]);
     const handle = (name: string, roles: WindowRole[], operation: (value: unknown) => unknown) => {
         ipc.handle(name, async (event, value) => {
             const role = roleForSender(event.sender);
             if (!role || !roles.includes(role) || event.senderFrame !== event.sender.mainFrame) throw new Error('Not authorized');
-            try { return await operation(value); }
+            if (isRestoring() && ![CHANNELS.getSnapshot, CHANNELS.showSettings, CHANNELS.quit, CHANNELS.closeExpanded].includes(name as any)) throw new Error('正在恢复备份，请稍候。');
+            // Reserve before running the operation: pickers and validation can await before
+            // reaching the host's persistence queue, and must finish before an import or quit.
+            const pending = Promise.resolve().then(() => operation(value));
+            if (!untracked.has(name)) pendingMutations.add(pending);
+            try { return await pending; }
             catch (error) { host.reportError(error); throw error; }
+            finally { pendingMutations.delete(pending); }
         });
     };
-    handle(CHANNELS.getSnapshot, ['widget', 'settings', 'expanded'], () => host.snapshot);
+    handle(CHANNELS.getSnapshot, ['widget', 'settings', 'expanded', 'library'], () => host.snapshot);
     const catalog = () => { if (!applications) throw new Error('应用列表不可用'); return applications; };
     handle(CHANNELS.listApplications, ['settings'], value => {
         if (value !== undefined && typeof value !== 'boolean') invalid();
@@ -84,4 +93,7 @@ export function registerIPC(ipc: IPCRegistrar, host: LauncherHost, roleForSender
     handle(CHANNELS.showSettings, ['widget', 'settings', 'expanded'], () => host.showSettings());
     handle(CHANNELS.quit, ['settings'], () => host.quit());
     handle(CHANNELS.closeExpanded, ['widget', 'expanded'], () => host.closeExpanded());
+    return async () => {
+        while (pendingMutations.size) await Promise.allSettled([...pendingMutations]);
+    };
 }
