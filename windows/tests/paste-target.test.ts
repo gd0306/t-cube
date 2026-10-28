@@ -54,3 +54,20 @@ test('clipboard guard is rechecked after waiting for foreground restoration', as
     assert.equal(await controller.paste(target, () => allowed), false);
     assert.equal(f.injections(), 0);
 });
+test('inactive windows may have no focus until foreground restoration completes', async () => {
+    const f = fixture(), controller = createPasteController(f.native, async () => {});
+    const target = controller.capture(); f.showLibrary();
+    f.native.focus = () => 0n;
+    f.native.restore = () => { f.native.foreground = () => 10n; f.native.focus = () => 11n; return true; };
+    assert.equal(await controller.paste(target), true);
+    assert.equal(f.injections(), 1);
+});
+test('restoring an inactive window never pastes into changed or missing focus', async () => {
+    for (const focus of [0n,12n]) {
+        const f = fixture(), controller = createPasteController(f.native, async () => {});
+        const target = controller.capture(); f.showLibrary(); f.native.focus = () => 0n;
+        f.native.restore = () => { f.native.foreground = () => 10n; f.native.focus = () => focus; return true; };
+        assert.equal(await controller.paste(target), false);
+        assert.equal(f.injections(), 0);
+    }
+});

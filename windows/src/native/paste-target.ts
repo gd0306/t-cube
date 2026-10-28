@@ -13,10 +13,10 @@ export interface PasteBindings {
 }
 export function createPasteController(native: PasteBindings, pause: (milliseconds: number) => Promise<void> = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds))) {
     let generation = 0;
-    function same(target: PasteTarget): boolean {
+    function sameIdentity(target: PasteTarget): boolean {
         const info = native.windowInfo(target.window);
         return Boolean(info && info.processId === target.processId && info.threadId === target.threadId && info.processIdentity === target.processIdentity
-            && info.processId !== native.ownProcessId && native.focus(info.threadId) === target.focus && native.belongsTo(target.window, target.focus));
+            && info.processId !== native.ownProcessId && native.belongsTo(target.window, target.focus));
     }
     return {
         capture(): PasteTarget | null {
@@ -35,13 +35,19 @@ export function createPasteController(native: PasteBindings, pause: (millisecond
             try {
                 if (!target) {diagnostic('paste rejected: no target');return false;}
                 if (!canPaste()) {diagnostic('paste rejected: clipboard guard');return false;}
-                if (!same(target)) {diagnostic('paste rejected: target identity/focus changed');return false;}
+                if (!sameIdentity(target)) {diagnostic('paste rejected: target identity changed');return false;}
+                // Inactive GUI threads can report NULL focus. Restore first, then require the
+                // original child to regain focus; never choose or force a different child.
+                const beforeFocus = native.focus(target.threadId);
+                if (beforeFocus && beforeFocus !== target.focus) return false;
                 if (!native.restore(target.window)) {diagnostic('paste rejected: foreground restore denied');return false;}
                 for (let attempt = 0; attempt < 20; attempt++) {
-                    if (request !== generation || !canPaste() || !same(target)) return false;
-                    if (native.foreground() === target.window) {
+                    if (request !== generation || !canPaste() || !sameIdentity(target)) return false;
+                    const focus = native.focus(target.threadId);
+                    if (focus && focus !== target.focus) return false;
+                    if (native.foreground() === target.window && focus === target.focus) {
                         // Recheck immediately before one batch. No Enter or submit event is generated.
-                        const sent = same(target) && native.foreground() === target.window && canPaste() && native.sendPaste();
+                        const sent = sameIdentity(target) && native.focus(target.threadId) === target.focus && native.foreground() === target.window && canPaste() && native.sendPaste();
                         diagnostic(sent?'paste batch sent':'paste rejected before batch');return sent;
                     }
                     await pause(25);
