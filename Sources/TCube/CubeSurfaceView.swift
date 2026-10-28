@@ -5,6 +5,12 @@ import AppKit
 final class CubeSurfaceView: NSView {
     let cubeView: CubeView
     let input: CubeInputOverlay
+    var contentRequested: (() -> Void)?
+    var contentCaptureRequested: ((String) -> Void)?
+    private let contentButton = NSButton()
+
+    func setContentButtonVisible(_ visible: Bool) { contentButton.isHidden = !visible }
+    @objc private func openContent() { contentRequested?() }
 
     init(cubeView: CubeView) {
         self.cubeView = cubeView
@@ -12,10 +18,21 @@ final class CubeSurfaceView: NSView {
         super.init(frame: NSRect(origin: .zero, size: CubeTheme.windowSize))
         addSubview(cubeView)
         addSubview(input)
+        input.textDropRequested = { [weak self] text in self?.contentCaptureRequested?(text) }
         cubeView.frame = bounds
         input.frame = bounds
         cubeView.autoresizingMask = [.width, .height]
         input.autoresizingMask = [.width, .height]
+        contentButton.image = NSImage(systemSymbolName: "text.badge.plus", accessibilityDescription: "常用内容")
+        contentButton.bezelStyle = .rounded
+        contentButton.toolTip = "常用内容 · ⌘⇧Space"
+        contentButton.setAccessibilityLabel("打开常用内容库")
+        contentButton.target = self
+        contentButton.action = #selector(openContent)
+        contentButton.frame = NSRect(x: bounds.width - 38, y: 4, width: 32, height: 26)
+        contentButton.autoresizingMask = [.minXMargin, .maxYMargin]
+        contentButton.isHidden = true
+        addSubview(contentButton)
     }
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("Use init(cubeView:)") }
@@ -31,13 +48,14 @@ final class CubeSurfaceView: NSView {
 final class CubeInputOverlay: NSView {
     private unowned let cubeView: CubeView
     var hoverChanged: ((Bool) -> Void)?
+    var textDropRequested: ((String) -> Void)?
     var hoverPointChanged: ((NSPoint) -> Void)?
     var modifierFlagsChanged: ((NSEvent.ModifierFlags, NSPoint?) -> Void)?
 
     init(cubeView: CubeView) {
         self.cubeView = cubeView
         super.init(frame: .zero)
-        registerForDraggedTypes([.fileURL])
+        registerForDraggedTypes([.fileURL, .string])
         setAccessibilityElement(true)
         setAccessibilityRole(.group)
         updateInteractionHelp(expandsFaces: cubeView.model.configuration.expandsFacesOnClick)
@@ -135,9 +153,20 @@ final class CubeInputOverlay: NSView {
             else { self.cubeView.rightMouseDragged(with: event) }
         }
     }
-    override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation { updateHover(true); return cubeView.draggingEntered(sender) }
-    override func prepareForDragOperation(_ sender: any NSDraggingInfo) -> Bool { cubeView.prepareForDragOperation(sender) }
-    override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool { cubeView.performDragOperation(sender) }
+    private func droppedText(_ sender: any NSDraggingInfo) -> String? {
+        guard sender.draggingPasteboard.availableType(from: [.fileURL]) == nil,
+            let text = sender.draggingPasteboard.string(forType: .string), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        return text
+    }
+    override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
+        updateHover(true)
+        return droppedText(sender) != nil ? .copy : cubeView.draggingEntered(sender)
+    }
+    override func prepareForDragOperation(_ sender: any NSDraggingInfo) -> Bool { droppedText(sender) != nil || cubeView.prepareForDragOperation(sender) }
+    override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
+        if let text = droppedText(sender), let textDropRequested { textDropRequested(text); return true }
+        return cubeView.performDragOperation(sender)
+    }
     override func draggingExited(_ sender: (any NSDraggingInfo)?) { updateHover(false) }
     override func concludeDragOperation(_ sender: (any NSDraggingInfo)?) {
         guard let window else { updateHover(false); return }

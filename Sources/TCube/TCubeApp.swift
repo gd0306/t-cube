@@ -30,11 +30,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private var editor: NSWindow?
     private var screenObserver: NSObjectProtocol?
+    private let snippetLibrary = SnippetLibraryController()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         model.recoverIfNeeded()
         cubeView = CubeView(model: model)
         surface = CubeSurfaceView(cubeView: cubeView)
+        surface.contentRequested = { [weak self] in self?.snippetLibrary.show() }
+        surface.contentCaptureRequested = { [weak self] text in self?.snippetLibrary.capture(text) }
         panel = CubePanel(contentRect: NSRect(origin: .zero, size: CubeTheme.windowSize), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         panel.title = "T-Cube"
         panel.isOpaque = false
@@ -67,7 +70,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let hover = CubeHoverController(window: panel, settings: model.configuration.hover)
         hoverController = hover
         model.onPlacementRequested = { [weak self] in self?.placeCube(at: $0) }
-        hover.onHoverChange = { [weak self] in self?.cubeView.setHovered($0) }
+        hover.onHoverChange = { [weak self] in self?.cubeView.setHovered($0); self?.surface.setContentButtonVisible($0) }
         hover.onRestingPositionChange = { [weak self] in self?.model.savePosition($0) }
         surface.input.hoverChanged = { [weak hover] _ in hover?.checkPointer() }
         surface.input.hoverPointChanged = { [weak hover] in hover?.pointerChanged(to: $0) }
@@ -80,10 +83,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         panel.orderFrontRegardless()
         hover.startTrackingPointer()
         createMenu()
+        snippetLibrary.start()
         screenObserver = NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.applySize() }
         }
         if model.isFirstLaunch { showEditor() }
+        if ProcessInfo.processInfo.arguments.contains("--content-library") { snippetLibrary.show() }
     }
 
     private func applySize(restoring: Bool = false) {
@@ -124,6 +129,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item.target = self; menu.addItem(item); return item
         }
         _ = item("隐藏立方体", #selector(toggleCube))
+        _ = item("常用内容…    ⌘⇧Space", #selector(openContentLibrary))
         _ = item("设置…", #selector(openEditor), key: ",")
         let placement = NSMenuItem(title: "快捷位置", action: nil, keyEquivalent: "")
         placement.submenu = CubePlacementMenu { [weak self] in self?.placeCube(at: $0) }
@@ -146,6 +152,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let mainMenu = NSMenu()
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu(title: "T-Cube")
+        let contentItem = NSMenuItem(title: "常用内容…", action: #selector(openContentLibrary), keyEquivalent: " ")
+        contentItem.keyEquivalentModifierMask = [.command, .shift]
+        contentItem.target = self
+        appMenu.addItem(contentItem)
         let settings = NSMenuItem(title: "设置…", action: #selector(openEditor), keyEquivalent: ",")
         settings.target = self
         appMenu.addItem(settings)
@@ -181,6 +191,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard let scale = sender.representedObject as? Double else { return }
         model.change { $0.scale = scale }
     }
+    @objc private func openContentLibrary() { snippetLibrary.show() }
     @objc private func openEditor() { showEditor() }
 
     private func placeCube(at placement: CubePlacement) {
@@ -194,6 +205,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func quit() { NSApp.terminate(nil) }
 
     func applicationWillTerminate(_ notification: Notification) {
+        snippetLibrary.stop()
         model.stopThemeCycle()
         hoverController?.stopTrackingPointer()
         faceExpansion?.close()
