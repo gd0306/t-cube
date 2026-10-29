@@ -55,6 +55,8 @@ Windows 安装包自带运行时，无需安装 Node.js。更新前先退出旧�
 
 开机启动通过系统登录项管理，默认不主动注册。已接入 Sparkle 签名更新和 Developer ID/公证构建流程；启用正式更新需要发布者配置 EdDSA 公钥、匹配的签名私钥与发布源。目前未配置公钥的本地构建会明确停用应用内更新，可查看 Releases。详见 [签名与更新发布指南](docs/updates/RELEASE-GUIDE.md)。Windows 同样支持开机启动设置，签名更新说明见 [Windows 指南](docs/windows-signing-updates.md)。
 
+<img src="docs/images/windows-office-library.png" width="760" alt="Windows 常用内容与独立字段复制粘贴">
+
 ## Windows 源码安装
 
 Windows 10 22H2 / Windows 11（x64）使用独立客户端，支持同样的六组入口、曲面图标、玻璃／史莱姆材质与共享主题、悬停放大、拖动、旋转与托盘设置。添加应用时可直接搜索、选择已安装应用，便携程序可浏览文件添加。可使用上方安装包，也可按 [Windows 指南](windows/README.md) 从源码安装。上面的效果图来自 macOS 原生版。
