@@ -20,4 +20,20 @@ The real owned WinForms receiver exposed inactive-window focus becoming NULL. Ad
 
 ## Release verification
 
-Windows 2022/2025 source runtime checks both passed in [run 40800696053](https://github.com/gd0306/t-cube/actions/runs/40800696053), source `2490ebab353095dd878f74aa9137a70bdd0a4023`. This includes actual copy and both native paste actions, idle stop/15Hz resume, backup preview/restore, material/theme controls, native dragging and application picking. Final installed NSIS verification and asset digests must pass before publishing. Current builds have no Developer ID/notarization or Authenticode production signature; application update replacement stays disabled until the documented signing configuration exists.
+Windows 2022/2025 source runtime checks both passed in [run 40800696053](https://github.com/gd0306/t-cube/actions/runs/40800696053), source `2490ebab353095dd878f74aa9137a70bdd0a4023`. This includes actual copy and both native paste actions, idle stop/15Hz resume, backup preview/restore, material/theme controls, native dragging and application picking. Final installed NSIS verification and published asset checks are recorded below. Current builds have no Developer ID/notarization or Authenticode production signature; application update replacement stays disabled until the documented signing configuration exists.
+
+## Published 0.16.0
+
+- Installer source/tag: `f9a28d2893126fb560ac053cce82b1aaaa93678f`, [Release v0.16.0](https://github.com/gd0306/t-cube/releases/tag/v0.16.0).
+- Merged-source Windows 2022/2025 checks: [40801106767](https://github.com/gd0306/t-cube/actions/runs/40801106767), both passed.
+- Actual installed NSIS checks: [40801244195](https://github.com/gd0306/t-cube/actions/runs/40801244195), passed. Installer artifact `12866755649` records the exact source SHA.
+- Merged macOS serial verification: 4 XCTest + 74 native + 98 core tests passed; final DMG mounted, app/executable/signature/install link verified.
+- macOS release build 0.16.0 (28) installed and launched on this device. Performance settings visibly show default idle saving ON. Original configuration/content retained.
+- Final installed macOS short sampling with the user's existing 10-second theme cycling enabled: seven valid two-second CPU samples were 10.1%, 0%, 0%, 0%, 0%, 11.4%, 0%. Most samples are idle; theme changes still wake rendering briefly. This is not a universal zero-CPU claim or a hardware benchmark.
+
+| Asset | Bytes | SHA-256 |
+| --- | ---: | --- |
+| T-Cube-0.16.0-macos-arm64.dmg | 1997400 | `25ba6d64d9d4f80f5358e613cb8b86817190eb094d73619a45866a56e4b3fd7b` |
+| T-Cube-0.16.0-windows-x64-setup.exe | 125211801 | `d64307a6fcb6e5e5ff62ee685450b61f168cf045e9edf80bfa38dca8a31ce65f` |
+
+Both installer sizes/digests and SHA256SUMS.txt were matched against GitHub's uploaded asset digests before publication. Current builds remain ad-hoc/unsigned with authenticated auto-replacement disabled, as documented in the release notes.
