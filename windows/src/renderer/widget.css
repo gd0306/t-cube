@@ -22,3 +22,7 @@ canvas {
     text-align: center;
     pointer-events: none;
 }
+
+#library-entry {position:absolute;right:8px;bottom:8px;z-index:2;border:1px solid #8eabc8;border-radius:6px;background:#eef5ffdd;color:#234264;width:30px;height:28px;cursor:pointer;display:none;}
+body[data-hovered="true"] #library-entry {display:block;}
+canvas.clicked {filter:brightness(1.18);}

@@ -8,7 +8,7 @@
 
 ## 下载安装包
 
-macOS **0.15.0** · Windows **0.15.1**：[macOS Apple Silicon（.dmg）](https://github.com/gd0306/t-cube/releases/download/v0.15.0/T-Cube-0.15.0-macos-arm64.dmg) · [Windows x64 安装程序（.exe）](https://github.com/gd0306/t-cube/releases/download/v0.15.1/T-Cube-0.15.1-windows-x64-setup.exe) · [发布说明与 SHA-256 校验](https://github.com/gd0306/t-cube/releases/tag/v0.15.1)。
+macOS **0.16.0** · Windows **0.16.0**：[macOS Apple Silicon（.dmg）](https://github.com/gd0306/t-cube/releases/download/v0.16.0/T-Cube-0.16.0-macos-arm64.dmg) · [Windows x64 安装程序（.exe）](https://github.com/gd0306/t-cube/releases/download/v0.16.0/T-Cube-0.16.0-windows-x64-setup.exe) · [发布说明与 SHA-256 校验](https://github.com/gd0306/t-cube/releases/tag/v0.16.0)。
 
 Windows 安装包自带运行时，无需安装 Node.js。更新前先退出旧版，原有入口配置会保留。当前 macOS 使用本地签名、未公证，Windows 安装程序未做 Authenticode 签名。
 
@@ -47,13 +47,15 @@ Windows 安装包自带运行时，无需安装 Node.js。更新前先退出旧�
 - **双端玻璃／史莱姆材质**：所有主题都能搭配任一材质。史莱姆随鼠标牵引并弹性回弹，图标保持稳定；默认仍为玻璃。
 - **状态栏常驻**：设置、显示、隐藏与退出集中管理，不占 Dock；光效支持系统「减少动态效果」。
 
-## macOS 源码功能（0.16.0）
+## 办公与性能功能（0.16.0）
 
-当前源码还包含常用内容库：通过菜单栏「常用内容」、立方体悬停按钮或 `⌘⇧Space` 打开，支持分组、收藏、搜索、整段与字段复制，以及授权后的原输入框粘贴。
+双端均提供常用内容库（Windows 使用 `Ctrl+Shift+Space`）：通过菜单栏「常用内容」、立方体悬停按钮或 `⌘⇧Space` 打开，支持分组、收藏、搜索、整段与字段复制，以及授权后的原输入框粘贴。
 
-设置页新增「配置与备份」和「启动与更新」。可预览导入、自动保留导入前备份、手动备份或恢复，并重新关联失效入口。悬停延迟可调；多屏位置独立记忆，断开显示器时回到可见区域。静置旋转降低动画更新频率，隐藏与静止画面暂停渲染，输入后恢复。
+设置页新增「配置与备份」和「启动与更新」。可预览导入、自动保留导入前备份、手动备份或恢复，并重新关联失效入口。悬停延迟可调；多屏位置独立记忆，断开显示器时回到可见区域。默认启用静置省电，暂停静置旋转和流动光效；鼠标交互后恢复。设置中关闭省电可保留持续动画。Windows 加深玻璃底色和轮廓，改善白底可见度。
 
-开机启动通过系统登录项管理，默认不主动注册。已接入 Sparkle 签名更新和 Developer ID/公证构建流程；启用正式更新需要发布者配置 EdDSA 公钥、匹配的签名私钥与发布源。目前未配置公钥的本地构建会明确停用应用内更新，可查看 Releases。详见 [签名与更新发布指南](docs/updates/RELEASE-GUIDE.md)。上方下载链接仍对应已发布版本。
+开机启动通过系统登录项管理，默认不主动注册。已接入 Sparkle 签名更新和 Developer ID/公证构建流程；启用正式更新需要发布者配置 EdDSA 公钥、匹配的签名私钥与发布源。目前未配置公钥的本地构建会明确停用应用内更新，可查看 Releases。详见 [签名与更新发布指南](docs/updates/RELEASE-GUIDE.md)。Windows 同样支持开机启动设置，签名更新说明见 [Windows 指南](docs/windows-signing-updates.md)。
+
+<img src="docs/images/windows-office-library.png" width="760" alt="Windows 常用内容与独立字段复制粘贴">
 
 ## Windows 源码安装
 

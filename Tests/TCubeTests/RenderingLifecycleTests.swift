@@ -11,10 +11,11 @@ struct RenderingLifecycleTests {
         defer { try? FileManager.default.removeItem(at: folder) }
         let store = ConfigurationStore(url: folder.appendingPathComponent("configuration.json"))
         var config = CubeConfiguration()
-        config.autoRotatesWhenIdle = false
+        config.autoRotatesWhenIdle = true
         try store.save(config)
         let model = AppModel(store: store)
         let view = CubeView(model: model)
+        view.idlePowerSavingEnabled = true
         let surface = CubeSurfaceView(cubeView: view)
         let visible = try #require(NSScreen.main?.visibleFrame)
         let window = NSPanel(contentRect: NSRect(x: visible.minX + 20, y: visible.minY + 20, width: 164, height: 164), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)

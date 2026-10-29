@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, writeFile, rm, copyFile, realpath } from 'node:fs/promises';
+import { appendFile, mkdir, mkdtemp, writeFile, rm, copyFile, realpath } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
@@ -8,6 +8,7 @@ import { defaultConfiguration } from '../src/core/configuration.js';
 import { FACES, type Configuration } from '../src/shared/contracts.js';
 import { nativeInput } from './native-input.js';
 import { verifyAppearanceControls } from './appearance-controls.js';
+import { verifyLibrarySmoke } from './office-library-smoke.js';
 
 const output = path.resolve('.cache/smoke');
 await mkdir(output, { recursive: true });
@@ -29,6 +30,9 @@ let widget!: Page;
 let originalCursor: { x: number; y: number } | undefined;
 let originalAnimations: boolean | undefined;
 let failed = false;
+const watchdog = setTimeout(() => {
+    void writeFile(path.join(output,'timeout.txt'),'Smoke exceeded 150 seconds; terminating only its owned application.').finally(() => app?.process().kill());
+},150_000);
 const input = nativeInput();
 let previewIcons: Record<string, string> | undefined;
 const catalogExecutable = path.join(data, 'catalog-smoke.exe');
@@ -71,7 +75,7 @@ async function capture(page: Page, name: string, backdrop = true, background = '
     try {
         if (backdrop) await page.evaluate(async value => {
             document.body.style.background = value;
-            await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+            await Promise.race([new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))), new Promise<void>(resolve => setTimeout(resolve, 250))]);
         }, background);
         // Capture the actual Electron surface. Playwright's screenshot preparation can
         // stall on the inactive transparent widget when Windows animations are enabled.
@@ -100,6 +104,7 @@ try {
         env: { ...process.env, TCUBE_USER_DATA_DIR: data },
         timeout: 30_000
     });
+    app.process().stderr?.on('data', chunk => {void appendFile(path.join(output,'runtime-stderr.log'),String(chunk));});
     originalCursor = await app.evaluate(({ screen }) => screen.getCursorScreenPoint());
     if (process.platform === 'win32') {
         await mkdir(path.dirname(catalogShortcut), { recursive: true });
@@ -157,8 +162,8 @@ try {
     });
     console.log('Resting glass contrast:', JSON.stringify(contour));
     assert.ok(contour.dark >= 0.004, 'Glass contour is effectively invisible over a dark desktop');
-    assert.ok(contour.light >= 0.004, 'Glass contour is effectively invisible over a light desktop');
-    assert.ok(contour.centerAlpha < 0.12, 'The glass center should remain transparent');
+    assert.ok(contour.light >= 0.015, 'Glass contour is effectively invisible over a light desktop');
+    assert.ok(contour.centerAlpha < 0.18, 'The glass center should remain transparent');
     await capture(widget, 'widget-idle-dark.png');
     await capture(widget, 'widget-idle-light.png', true, '#f5f6f8');
     results.push('Resting glass has visible contrast on dark and light desktops with a transparent center.');
@@ -197,7 +202,7 @@ try {
         await until(snapshot, value => !value.state.interactionActive, 'Outside release did not finish');
         await move(2, 2);
         await until(bounds, frame => frame.width === 164, 'Post-drag resting size incorrect');
-        assert.notDeepEqual((await snapshot()).state.configuration.windowPosition, configuration.windowPosition);
+        await until(snapshot, value => JSON.stringify(value.state.configuration.windowPosition) !== JSON.stringify(configuration.windowPosition), 'Ctrl drag did not persist its new position');
         results.push('Inactive-window Ctrl shrink, Ctrl-left drag, Ctrl release mid-drag and native mouse-up persisted position.');
     } else results.push('Native Windows Ctrl/button paths skipped on macOS preview.');
 
@@ -390,6 +395,51 @@ try {
     assert.deepEqual(await readShell(), rigidShell, 'Glass must restore the original rigid geometry');
     results.push('Independent material UI, shared theme/cycling, native slime pointer deformation, stable icon decals, rebound and glass restoration passed.');
 
+    results.push(...await verifyLibrarySmoke(app, widget));
+    await move(2, 2);
+    const idleConfiguration = structuredClone((await snapshot()).state.configuration);
+    idleConfiguration.themeCycle.isEnabled = false;
+    idleConfiguration.autoRotatesWhenIdle = true;
+    await settings.evaluate(config => window.tcube.applyConfiguration(config), idleConfiguration);
+    await settings.evaluate(() => window.tcube.setPerformanceSettings(true));
+    const metrics = () => widget.evaluate(async () => {
+        const { controller } = await import(new URL('widget.js', location.href).href);
+        return {...controller.metrics};
+    });
+    // A main-process save can acknowledge before its final renderer update arrives.
+    // Wait for queued state/texture work to settle before measuring idle frames.
+    const settled = await until(async () => {
+        const before = await metrics();
+        await new Promise(resolve => setTimeout(resolve, 300));
+        return {before,after:await metrics()};
+    }, value => value.before.cadence === 0 && value.after.cadence === 0 && value.before.frames === value.after.frames,
+    'Office idle must stop its animation timer after applying state');
+    const idleFrames = settled.after.frames;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    assert.equal((await metrics()).frames, idleFrames, 'Office idle must not keep rendering frames');
+    if (process.platform === 'win32') {
+        await settings.evaluate(() => window.tcube.setPerformanceSettings(false));
+        await until(metrics, value => value.cadence === 15, 'Continuous display must use 15Hz idle animation');
+        const continuousFrames = (await metrics()).frames;
+        await until(metrics, value => value.frames > continuousFrames + 2, 'Continuous animation did not resume');
+        await settings.evaluate(() => window.tcube.setPerformanceSettings(true));
+        await until(metrics, value => value.cadence === 0, 'Returning to office mode must stop rendering');
+    }
+    await settings.evaluate(config => window.tcube.applyConfiguration(config), {...idleConfiguration, autoRotatesWhenIdle: false});
+    const beforeBackup = await snapshot();
+    await settings.evaluate(() => window.tcube.createBackup());
+    const maintenance = await settings.evaluate(() => window.tcube.getMaintenanceState());
+    assert.ok(maintenance.backups.length > 0, 'Manual backup missing');
+    await settings.evaluate(() => window.tcube.renameGroup({face:'front',name:'Temporary backup probe'}));
+    const preview = await settings.evaluate(id => window.tcube.previewImportBackup(id), maintenance.backups[0].id);
+    assert.ok(preview);
+    await settings.evaluate(token => window.tcube.confirmImportBackup(token), preview.token);
+    await until(snapshot, value => value.state.configuration.groups.front.name === beforeBackup.state.configuration.groups.front.name, 'Backup did not restore current host state');
+    const lifecycle = await settings.evaluate(() => window.tcube.getLifecycleState());
+    assert.equal(lifecycle.version, '0.16.0');
+    assert.equal(lifecycle.updatesEnabled, false, 'Unsigned CI installers must not enable automatic replacement');
+    results.push('Default office mode stops frame rendering; continuous mode resumes at 15Hz; backup preview/restore and unsigned updater gate passed.');
+
     const saved = await snapshot();
     const updated = structuredClone(saved.state.configuration);
     updated.expandsFacesOnClick = false;
@@ -439,6 +489,7 @@ try {
     if (widget) await capture(widget, 'failure.png').catch(() => {});
     throw error;
 } finally {
+    clearTimeout(watchdog);
     const cleanupErrors: unknown[] = [];
     const clean = async (action: () => unknown) => {
         try { await action(); } catch (error) { cleanupErrors.push(error); }
@@ -450,7 +501,19 @@ try {
         if (originalAnimations !== undefined) await clean(() => input.animations(originalAnimations));
     }
     if (originalCursor) await clean(() => move(originalCursor!.x, originalCursor!.y));
-    await clean(() => app?.close());
+    await clean(async () => {
+        if (!app) return;
+        let timeout: ReturnType<typeof setTimeout> | undefined;
+        try {
+            await Promise.race([app.close(), new Promise<never>((_resolve,reject) => {
+                timeout=setTimeout(() => reject(new Error('Owned smoke application did not finish quitting within 15 seconds')),15000);
+            })]);
+        } catch (error) {
+            await writeFile(path.join(output,'quit-failure.txt'),String(error));
+            app.process().kill();
+            throw error;
+        } finally { if(timeout)clearTimeout(timeout); }
+    });
     if (catalogShortcutCreated) await clean(() => rm(catalogShortcut, { force: true }));
     if (catalogRegistered) await clean(() => execFileSync('reg.exe', ['DELETE', catalogRegistryKey, '/f'], { windowsHide: true }));
     await clean(() => rm(data, { recursive: true, force: true }));

@@ -1,3 +1,4 @@
+import { animationCadence } from '../core/render-policy';
 import * as THREE from 'three';
 import {
     createBodyGeometry,
@@ -225,7 +226,9 @@ async function updateIcons(data: Snapshot) {
     }
     requestUpdate();
 }
+const metrics = { frames: 0, cadence: 0 };
 function render() {
+    timer = 0;
     if (!snapshot?.state.visible || document.hidden) {
         timer = 0;
         last = 0;
@@ -239,9 +242,11 @@ function render() {
             state.hovered ||
             state.interactionActive ||
             state.reducedMotion ||
-            !state.configuration.autoRotatesWhenIdle;
+            !state.configuration.autoRotatesWhenIdle || (state.idlePowerSaving !== false && !state.hovered);
     cube.quaternion.copy(idle.step(dt, paused));
+    const phase = motion.phase;
     motion.step(dt, state.hovered, state.reducedMotion);
+    if (state.idlePowerSaving !== false && !state.hovered) motion.phase = phase;
     for (const material of faceMaterials.values()) material.opacity = state.hovered ? 1 : 0;
     if (physicalMaterial === 'slime') {
         // Use the same native DIP cursor/frame sample that drives hover zoom.
@@ -273,21 +278,23 @@ function render() {
         (state.displayedAppearance.surfaceStyle === 'moonstone' ? 0.1 : 0.2) *
         (1 - 0.86 * motion.engagement);
     renderer.render(scene, camera);
+    metrics.frames++;
     dirty = false;
-    const animated =
-        !state.reducedMotion &&
-        (!paused ||
-            state.displayedAppearance.glowIntensity > 0 ||
-            (physicalMaterial === 'slime' && slime.isActive) ||
-            Math.abs(motion.engagement - (state.hovered ? 1 : 0)) > 0.001);
-    timer = animated ? window.setTimeout(render, 1000 / 30) : 0;
+    const cadence = animationCadence({visible: state.visible, documentVisible: !document.hidden,
+        hovered: state.hovered, interacting: state.interactionActive, reducedMotion: state.reducedMotion,
+        autoRotates: state.configuration.autoRotatesWhenIdle, idlePowerSaving: state.idlePowerSaving !== false,
+        slimeActive: physicalMaterial === 'slime' && slime.isActive,
+        settling: Math.abs(motion.engagement - (state.hovered ? 1 : 0)) > 0.001,
+        glow: state.displayedAppearance.glowIntensity});
+    metrics.cadence = cadence;
+    timer = cadence ? window.setTimeout(render, 1000 / cadence) : 0;
 }
 function requestUpdate() {
     dirty = true;
     if (!timer && snapshot?.state.visible && !document.hidden)
         timer = window.setTimeout(render, 1000 / 30);
 }
-export const controller = { scene, cube, camera, renderer, render, requestUpdate };
+export const controller = { metrics, scene, cube, camera, renderer, render, requestUpdate };
 function resize() {
     const w = window.innerWidth,
         h = window.innerHeight;
@@ -303,6 +310,7 @@ subscribe((data) => {
     idle.orientation.copy(dragRotation.apply(data.state.rotationDrag, idle.orientation));
     cube.quaternion.copy(idle.orientation);
     snapshot = data;
+    document.body.dataset.hovered = String(data.state.hovered);
     updateAppearance(data.state.displayedAppearance);
     void updateIcons(data);
     requestUpdate();
@@ -375,3 +383,8 @@ renderer.domElement.addEventListener(
     },
     { passive: false },
 );
+
+document.querySelector('#library-entry')!.addEventListener('click',()=>{void window.tcube.showLibrary().catch(console.error);});
+renderer.domElement.addEventListener('pointerdown',()=>{renderer.domElement.classList.add('clicked');setTimeout(()=>renderer.domElement.classList.remove('clicked'),160);});
+document.body.addEventListener('dragover',event=>{if(event.dataTransfer?.types.includes('text/plain'))event.preventDefault();});
+document.body.addEventListener('drop',event=>{const text=event.dataTransfer?.getData('text/plain');if(text&&!event.dataTransfer?.files.length){event.preventDefault();void window.tcube.showLibrary(text).catch(console.error);}});

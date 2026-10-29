@@ -1,3 +1,4 @@
+import { serializeFileOperations } from './configuration-archive';
 import { mkdir, open, readFile, rename, unlink } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -14,7 +15,7 @@ export class ConfigurationStore {
         return structuredClone(this.current);
     }
     private serialize<T>(operation: () => Promise<T>): Promise<T> {
-        const result = this.queue.then(operation); this.queue = result.catch(() => undefined); return result;
+        const result = this.queue.then(() => serializeFileOperations([this.filePath], operation)); this.queue = result.catch(() => undefined); return result;
     }
     private async read(): Promise<Configuration> {
         try { return normalizeConfiguration(JSON.parse(await readFile(this.filePath, 'utf8'))); }

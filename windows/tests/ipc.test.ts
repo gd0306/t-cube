@@ -3,6 +3,26 @@ import assert from 'node:assert/strict';
 import { registerIPC, CHANNELS } from '../src/main/ipc';
 import { validateLocalTarget } from '../src/main/targets';
 
+test('IPC drain waits for admitted target selection before restore and rejects later mutations', async () => {
+    const handlers = new Map<string, (event: any, payload?: unknown) => Promise<unknown>>();
+    let release!: () => void, restoring = false, committed = false;
+    const selection = new Promise<void>(resolve => { release = resolve; });
+    const drain = registerIPC({ handle: (name: string, fn: any) => handlers.set(name, fn) }, {
+        chooseTarget: async () => { await selection; committed = true; }, reportError: () => {},
+    } as any, () => 'settings', undefined, () => restoring);
+    const frame = {}, event = { sender: { id: 1, mainFrame: frame }, senderFrame: frame };
+    const operation = handlers.get(CHANNELS.chooseTarget)!(event, { face: 'front', slot: 0, kind: 'application' });
+    restoring = true;
+    let drained = false;
+    const waiting = Promise.resolve(drain?.()).then(() => { drained = true; });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(drained, false, 'Restore must not begin while an admitted picker can still mutate configuration');
+    await assert.rejects(handlers.get(CHANNELS.chooseTarget)!(event, { face: 'front', slot: 0, kind: 'application' }), /恢复/);
+    release(); await operation; await waiting;
+    assert.equal(committed, true);
+    assert.equal(drained, true);
+});
+
 test('installed applications are settings-only and selection uses catalog IDs', async () => {
     const handlers = new Map<string, (event: any, payload?: unknown) => Promise<any>>();
     let added: any;

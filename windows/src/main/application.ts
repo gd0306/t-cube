@@ -1,4 +1,6 @@
 import { addTarget, moveTarget, normalizeConfiguration, removeTarget, renameGroup, resolveAppearance } from '../core/configuration';
+import { emptyDisplayPositionMemory, rememberDisplayPosition, restoreDisplayPosition, type DisplayDescriptor, type DisplayPositionMemory } from '../core/display-placement';
+import type { DisplayPositionPersistence } from './display-position-store';
 import { HoverGeometry } from '../core/hover';
 import type { ConfigurationStore } from '../core/store';
 import type { InputState } from '../native/win32';
@@ -9,6 +11,8 @@ export interface HostServices {
     cursor(): Point;
     input(): InputState;
     screens(): Rect[];
+    displays?(): DisplayDescriptor[];
+    displayPositions?: DisplayPositionPersistence;
     setFrame(frame: Rect): void;
     setVisible(visible: boolean): void;
     openPath(path: string): Promise<string>;
@@ -37,6 +41,8 @@ export class LauncherHost {
     private rotationDrag: RotationDrag | null = null;
     private sequence = 0;
     private visible = true;
+    private idlePowerSaving = true;
+    setIdlePowerSaving(enabled: boolean): void { this.idlePowerSaving = enabled; this.publish(); }
     private reducedMotion = false;
     private controlHeld = false;
     private expandedFace: Face | null = null;
@@ -47,14 +53,16 @@ export class LauncherHost {
     private cycleEpoch = 0;
     private iconGeneration = 0;
     private position: Point | null = null;
+    private displayMemory: DisplayPositionMemory = emptyDisplayPositionMemory();
+    private displayPositionsInitialized = false;
     private pointer: Point | null = null;
     private readonly pendingSideEffects = new Set<Promise<void>>();
     private readonly pendingPersistence = new Set<Promise<unknown>>();
     constructor(private readonly store: ConfigurationStore, private readonly services: HostServices) {
         this.configuration = store.snapshot;
         const size = 164 * this.configuration.scale;
-        this.geometry = new HoverGeometry({ ...(this.configuration.windowPosition ?? { x: 120, y: 120 }), width: size, height: size }, this.configuration.hover, services.screens);
-        this.geometry.onPositionChange = point => { this.position = point; };
+        this.geometry = new HoverGeometry({ ...(this.configuration.windowPosition ?? { x: 120, y: 120 }), width: size, height: size }, this.configuration.hover, services.screens, () => this.elapsed);
+        this.geometry.onUserPositionCommit = point => { this.position = point; };
         this.publish();
     }
     get snapshot(): Snapshot {
@@ -66,7 +74,7 @@ export class LauncherHost {
             pointer = { x: Math.max(0, Math.min(1, (this.pointer.x - frame.x) / frame.width)),
                 y: Math.max(0, Math.min(1, (this.pointer.y - frame.y) / frame.height)) };
         }
-        return { state: { configuration: structuredClone(this.configuration), displayedAppearance: resolved.appearance,
+        return { state: { idlePowerSaving: this.idlePowerSaving, configuration: structuredClone(this.configuration), displayedAppearance: resolved.appearance,
             activeTheme: resolved.theme, hovered: this.geometry.hovered, pointer, controlHeld: this.controlHeld,
             interactionActive, rotationDrag: this.rotationDrag, reducedMotion: this.reducedMotion,
             visible: this.visible, expandedFace: this.expandedFace, platform: this.services.platform }, icons: { ...this.icons } };
@@ -104,7 +112,16 @@ export class LauncherHost {
     private async savePosition(): Promise<void> {
         if (!this.position) return;
         const point = this.position; this.position = null;
-        await this.update(config => { config.windowPosition = point; });
+        const displays = this.services.displays?.();
+        if (displays) this.displayMemory = rememberDisplayPosition(this.displayMemory, this.geometry.restingFrame, displays);
+        const writes: Promise<unknown>[] = [this.update(config => { config.windowPosition = point; })];
+        if (displays && this.services.displayPositions) writes.push(this.services.displayPositions.save(structuredClone(this.displayMemory)));
+        for (const write of writes) this.pendingPersistence.add(write);
+        const results = await Promise.allSettled(writes);
+        for (const write of writes) this.pendingPersistence.delete(write);
+        const errors = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected').map(result => result.reason);
+        if (errors.length === 1) throw errors[0];
+        if (errors.length) throw new AggregateError(errors, 'Could not save widget position');
     }
     private detach(task: Promise<void>, persists = false): void {
         const tracked = task.catch(error => this.reportError(error));
@@ -126,7 +143,7 @@ export class LauncherHost {
         this.pointer = { ...pointer };
         // macOS preview updates Control using before-input-event instead of unavailable Win32 polling.
         if (input.available) this.controlHeld = input.controlHeld;
-        this.geometry.pointerChanged(pointer); this.geometry.setControlHeld(this.controlHeld);
+        if (this.visible) { this.geometry.pointerChanged(pointer); this.geometry.setControlHeld(this.controlHeld); this.geometry.tick(); }
         const gesture = this.gesture;
         if (gesture && !gesture.released) {
             gesture.moveOnly ||= this.controlHeld;
@@ -206,7 +223,42 @@ export class LauncherHost {
         await this.update(current => normalizeConfiguration({ ...input, groups: current.groups, windowPosition: current.windowPosition }));
         const size = 164 * this.configuration.scale;
         this.geometry.configure({ width: size, height: size }, this.configuration.hover);
-        await this.savePosition(); this.publish();
+        if (this.displayPositionsInitialized && this.services.displays) this.restoreDisplayFrame();
+        if (this.visible && this.pointer && (!this.configuration.hover.isEnabled || this.configuration.hover.delaySeconds === 0)) this.geometry.pointerChanged(this.pointer);
+        this.publish();
+    }
+    /** The archive service has validated and written the complete configuration before this call. */
+    async applyImportedConfiguration(input: Configuration): Promise<void> {
+        normalizeConfiguration(input);
+        await this.whenIdle({ includeLaunches: false });
+        const loaded = await this.store.load();
+        if (JSON.stringify(normalizeConfiguration(input)) !== JSON.stringify(loaded)) throw new Error('Imported configuration does not match the restored file');
+        this.configuration = loaded; this.position = null; this.gesture = null; this.rotationDrag = null;
+        this.cycleEpoch = this.elapsed; this.closeExpanded();
+        const size = 164 * loaded.scale;
+        this.geometry.configure({ width: size, height: size }, loaded.hover);
+        this.geometry.restoreRestingFrame(loaded.windowPosition ?? { x: 120, y: 120 });
+        this.position = null;
+        if (this.services.displays) {
+            this.displayMemory = rememberDisplayPosition(this.displayMemory, this.geometry.restingFrame, this.services.displays());
+            if (this.services.displayPositions) {
+                const pending = this.services.displayPositions.save(structuredClone(this.displayMemory));
+                this.pendingPersistence.add(pending);
+                try { await pending; }
+                finally { this.pendingPersistence.delete(pending); }
+            }
+        }
+        await this.refreshIcons(); this.publish();
+    }
+    async repairLauncher(request: {face: Face; slot: number}, replacement: string, expectedId: string): Promise<void> {
+        const old = this.configuration.groups[request.face].slots[request.slot];
+        if (!old || old.id !== expectedId) throw new Error('入口已变更，请重新检查。');
+        const item = await this.services.validateTarget(replacement, old.kind);
+        await this.update(config => {
+            if (config.groups[request.face].slots[request.slot]?.id !== expectedId) throw new Error('入口已变更，请重新检查。');
+            return addTarget(config, request.face, {...item, name: old.name}, request.slot, true);
+        });
+        await this.refreshIcons();
     }
     async chooseTarget(request: TargetRequest): Promise<void> {
         const paths = await this.services.chooseTarget(request);
@@ -252,10 +304,29 @@ export class LauncherHost {
         this.closeExpanded(); this.setVisible(true);
         this.geometry.place(placement); await this.savePosition(); this.publish();
     }
+    async initializeDisplayPositions(): Promise<void> {
+        if (this.displayPositionsInitialized) return;
+        const memory = this.services.displayPositions ? await this.services.displayPositions.load() : emptyDisplayPositionMemory();
+        this.displayMemory = memory;
+        const displays = this.services.displays?.();
+        if (displays && memory.activeDisplayId === null) {
+            const frame = { ...this.geometry.restingFrame, ...(this.configuration.windowPosition ?? {}) };
+            this.displayMemory = rememberDisplayPosition(memory, frame, displays);
+        }
+        this.displayPositionsInitialized = true;
+        this.restoreDisplayFrame(); this.publish();
+    }
+    private restoreDisplayFrame(): void {
+        const displays = this.services.displays?.();
+        const frame = this.geometry.restingFrame;
+        if (displays) this.geometry.restoreRestingFrame(restoreDisplayPosition(this.displayMemory, frame, displays, frame));
+        else this.geometry.restoreRestingFrame(frame);
+    }
     async refreshDisplays(): Promise<void> {
+        this.gesture = null; this.rotationDrag = null; this.closeExpanded();
         const size = 164 * this.configuration.scale;
         this.geometry.configure({ width: size, height: size }, this.configuration.hover);
-        await this.savePosition(); this.publish();
+        this.restoreDisplayFrame(); this.publish();
     }
     showSettings(): void { this.closeExpanded(); this.services.showSettings(); }
     closeExpanded(): void { if (this.expandedFace !== null) { this.expandedFace = null; this.services.closeExpanded(); this.publish(); } }

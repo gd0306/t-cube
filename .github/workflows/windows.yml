@@ -35,6 +35,7 @@ jobs:
       - name: Install source client in isolated per-user directory
         run: ./scripts/install.ps1 -InstallDirectory "$env:RUNNER_TEMP/T-Cube" -NoLaunch -NoShortcut
       - name: Exercise installed application
+        timeout-minutes: 4
         run: |
           $env:TCUBE_SMOKE_EXECUTABLE = "$env:RUNNER_TEMP/T-Cube/electron.exe"
           npm run smoke

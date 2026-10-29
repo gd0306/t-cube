@@ -1,3 +1,5 @@
+import { renderMaintenance } from './maintenance';
+import { renderLifecycle } from './lifecycle';
 import { THEMES } from '../core/configuration';
 import {
     FACES,
@@ -352,6 +354,8 @@ function renderBehavior(data: Snapshot) {
         (v) => `${v.toFixed(1)}×`,
     );
     row('放大倍数', hover, out);
+    const [delay,delayOut] = range(config.hover.delaySeconds ?? 0.18,0,1.5,0.05,v=>save(c=>{c.hover.delaySeconds=v;}),v=>`${v.toFixed(2)} 秒`);
+    row('悬停延迟',delay,delayOut);
     const [scale, scaleOut] = range(
         config.scale,
         0.65,
@@ -392,6 +396,19 @@ function renderBehavior(data: Snapshot) {
         placements.append(button(title, () => run(window.tcube.place(id))));
     content.append(placements);
 }
+function renderPerformance() {
+    heading('性能', '默认静置时停止旋转与流动光效，鼠标移入恢复；关闭省电后使用较低的空闲动画频率。');
+    const holder=element('div');content.append(holder);
+    void window.tcube.getPerformanceSettings().then(settings=>{
+        const input=checkbox(settings.idlePowerSaving,()=>{});
+        input.onchange=()=>{
+            const value=input.checked;input.disabled=true;
+            void window.tcube.setPerformanceSettings(value).catch(reason=>{input.checked=!value;error.textContent=String(reason);}).finally(()=>{input.disabled=false;});
+        };
+        input.setAttribute('aria-label','静置时省电');
+        const label=element('label','静置时省电（推荐）');label.prepend(input);holder.append(label);
+    }).catch(reason=>{holder.textContent=String(reason);});
+}
 function render() {
     if (!snapshot) return;
     renderPending = true;
@@ -408,7 +425,10 @@ function render() {
     content.replaceChildren();
     if (page === 'groups') renderGroups(data);
     else if (page === 'appearance') renderAppearance(data);
-    else renderBehavior(data);
+    else if (page === 'behavior') renderBehavior(data);
+    else if(page === 'maintenance') renderMaintenance(content);
+    else if(page === 'lifecycle') renderLifecycle(content);
+    else renderPerformance();
 }
 document.querySelectorAll<HTMLButtonElement>('nav button').forEach((b) => {
     b.onclick = () => {
