@@ -94,8 +94,8 @@ export function createApplicationCatalog(
                     }),
                 );
                 return records;
-            } catch {
-                throw new Error('无法读取 Windows 应用列表，请刷新或使用浏览文件');
+            } catch (error) {
+                throw new Error('无法读取 Windows 应用列表，请刷新或使用浏览文件', {cause:error});
             }
         },
         validate: (target) => validateLocalTarget(target, 'application'),

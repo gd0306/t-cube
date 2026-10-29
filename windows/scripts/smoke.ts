@@ -274,13 +274,28 @@ try {
     await settings.evaluate(() => window.tcube.renameGroup({ face: 'front', name: '常用' }));
     results.push('Editing a group name preserves its draft and the first subsequent tab click.');
     if (process.platform === 'win32') {
+        // Isolate the optical regression before shell/application discovery work.
+        originalAnimations ??= input.animations();
+        input.animations(true);
+        await until(snapshot,value=>!value.state.reducedMotion,'Animations were not enabled for optical verification');
+        await move(2,2);
+        await until(snapshot,value=>!value.state.hovered,'Pointer did not leave before optical verification');
+        if (process.env.TCUBE_THEME_TRANSITION_SMOKE === '1') results.push(...await verifyThemeTransitionSmoke(widget, settings));
         await settings.getByRole('button', { name: '添加应用', exact: true }).nth(1).click();
         await settings.keyboard.press('Escape');
         await settings.locator('.application-picker').waitFor({ state: 'hidden' });
         await settings.getByRole('button', { name: '添加应用', exact: true }).first().click();
         const search = settings.getByRole('searchbox', { name: '搜索已安装的应用' });
         // The real discovery subprocess has a 20-second bound, plus UI delivery.
-        await until(() => settings.locator('.application-result').count(), count => count > 1, 'Installed application list is empty', 30_000);
+        try {
+            await until(() => settings.locator('.application-result').count(), count => count > 1, 'Installed application list is empty', 30_000);
+        } catch (error) {
+            // Exercise the shipped recovery action if the cold Windows shell query failed.
+            if (!(await settings.locator('.application-picker').innerText()).includes('无法读取 Windows 应用列表')) throw error;
+            await settings.getByRole('button',{name:'刷新列表',exact:true}).click();
+            await until(() => settings.locator('.application-result').count(),count=>count>1,'Application refresh did not recover the shell query',30_000);
+            results.push('A cold shell-query failure recovered through the real application-list Refresh control.');
+        }
         await settings.locator('.application-icon img').first().waitFor({ state: 'visible', timeout: 10_000 });
         await capture(settings, 'application-picker-all.png', false);
         await search.fill('T-Cube catalog smoke');
@@ -348,7 +363,7 @@ try {
     await capture(settings, 'settings-materials.png', false);
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(win => win.webContents.getURL().endsWith('/settings.html'))?.hide());
     if (process.platform === 'win32') {
-        originalAnimations = input.animations();
+        originalAnimations ??= input.animations();
         input.animations(true);
         assert.equal(input.animations(), true);
         await until(snapshot, value => !value.state.reducedMotion, 'Native animation preference did not enable slime motion');
@@ -421,7 +436,6 @@ try {
     const idleFrames = settled.after.frames;
     await new Promise(resolve => setTimeout(resolve, 500));
     assert.equal((await metrics()).frames, idleFrames, 'Office idle must not keep rendering frames');
-    if (process.env.TCUBE_THEME_TRANSITION_SMOKE === '1') results.push(...await verifyThemeTransitionSmoke(widget, settings));
     if (process.platform === 'win32') {
         await settings.evaluate(() => window.tcube.setPerformanceSettings(false));
         await until(metrics, value => value.cadence === 15, 'Continuous display must use 15Hz idle animation');
