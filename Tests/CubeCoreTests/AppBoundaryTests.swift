@@ -84,7 +84,7 @@ struct AppBoundaryTests {
         #expect(WindowPlacement.clamp(.zero, size: CGSize(width: 500, height: 500), screens: [CGRect(x: 20, y: 30, width: 300, height: 200)]) == CGPoint(x: 20, y: 30))
     }
 
-    @Test func targetValidationAcceptsFoldersAndAppsButRejectsFilesAndMissingTargets() throws {
+    @Test func targetValidationAcceptsFoldersAppsAndFilesButRejectsMissingTargets() throws {
         let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: temporary, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: temporary) }
@@ -94,7 +94,7 @@ struct AppBoundaryTests {
         try Data("Hello".utf8).write(to: file)
         #expect(try LocalTarget.kind(at: temporary) == .folder)
         #expect(try LocalTarget.kind(at: app) == .application)
-        #expect(throws: LocalTargetError.self) { try LocalTarget.kind(at: file) }
+        #expect(try LocalTarget.kind(at: file).rawValue == "file")
         #expect(throws: LocalTargetError.self) { try LocalTarget.kind(at: temporary.appendingPathComponent("missing")) }
         #expect(throws: LocalTargetError.self) { try LocalTarget.kind(at: URL(string: "https://example.com")!) }
     }

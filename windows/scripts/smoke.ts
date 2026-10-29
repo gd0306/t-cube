@@ -1,3 +1,4 @@
+import { verifyShortcutTargetsSmoke } from './shortcut-targets-smoke.js';
 import assert from 'node:assert/strict';
 import { appendFile, mkdir, mkdtemp, writeFile, rm, copyFile, realpath } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
@@ -106,6 +107,7 @@ try {
         timeout: 30_000
     });
     app.process().stderr?.on('data', chunk => {void appendFile(path.join(output,'runtime-stderr.log'),String(chunk));});
+    await app.evaluate(async ({ app }) => { await app.whenReady(); });
     originalCursor = await app.evaluate(({ screen }) => screen.getCursorScreenPoint());
     if (process.platform === 'win32') {
         await mkdir(path.dirname(catalogShortcut), { recursive: true });
@@ -273,6 +275,7 @@ try {
     await until(snapshot, value => value.state.configuration.groups.front.name === 'Edited group', 'Blur did not persist the edited group name');
     await settings.evaluate(() => window.tcube.renameGroup({ face: 'front', name: '常用' }));
     results.push('Editing a group name preserves its draft and the first subsequent tab click.');
+    results.push(...await verifyShortcutTargetsSmoke(settings));
     if (process.platform === 'win32') {
         // Isolate the optical regression before shell/application discovery work.
         originalAnimations ??= input.animations();

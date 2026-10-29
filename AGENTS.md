@@ -38,3 +38,7 @@ History is sparse and mixed; follow the descriptive `feat: add ...` example rath
 ## Configuration & Data Safety
 
 User data lives at `~/Library/Application Support/T-Cube/configuration.json`. Never overwrite it with fixtures or silently replace corrupt configuration. Build scripts use ad-hoc signing; Developer ID signing and notarization are separate release tasks.
+
+## Local Version Acceptance
+
+When working on the maintainer's Mac, install each completed new version into `/Applications/T-Cube.app` and verify it locally before reporting completion. Quit the running app normally, preserve the previous application under ignored `build/`, and retain existing user configuration. Verify the installed executable matches the built version and distinguish manual desktop checks from automated tests.

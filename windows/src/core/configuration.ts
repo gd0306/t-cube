@@ -1,3 +1,4 @@
+import { websiteURL, systemSettingsTarget, isURLTarget } from '../shared/shortcut-targets';
 import type { Appearance, Configuration, Face, FaceGroup, LauncherItem, Slots, ThemeId } from '../shared/contracts';
 import { FACES } from '../shared/contracts';
 
@@ -62,8 +63,10 @@ function targetKey(path: string): string {
 function launcherItem(value: unknown): LauncherItem {
     const item = object(value, 'item');
     if (typeof item.id !== 'string' || !item.id.trim() || typeof item.path !== 'string'
-        || !/^(?:[a-z]:[\\/]|\\\\[^\\/]+[\\/][^\\/]+)/i.test(item.path)
-        || item.path.includes('\0') || !['application', 'folder'].includes(item.kind as string)) throw new Error('Invalid item');
+        || !['application', 'folder', 'file', 'website', 'systemSettings'].includes(item.kind as string)) throw new Error('Invalid item');
+    if (item.kind === 'website') websiteURL(item.path);
+    else if (item.kind === 'systemSettings') systemSettingsTarget(item.path);
+    else if (!/^(?:[a-z]:[\\/]|\\\\[^\\/]+[\\/][^\\/]+)/i.test(item.path) || /[\0-\x1f]/.test(item.path)) throw new Error('Invalid item');
     return { id: item.id, path: item.path, name: name(item.name), kind: item.kind as LauncherItem['kind'] };
 }
 
@@ -79,7 +82,7 @@ export function normalizeConfiguration(input: unknown): Configuration {
         if (!Array.isArray(group.slots) || group.slots.length !== 4) throw new Error('Invalid slot count');
         const slots = Array.from(group.slots, item => item === null ? null : launcherItem(item)) as Slots;
         const items = slots.filter((item): item is LauncherItem => item !== null);
-        if (new Set(items.map(item => item.id)).size !== items.length || new Set(items.map(item => targetKey(item.path))).size !== items.length) throw new Error('Duplicate item');
+        if (new Set(items.map(item => item.id)).size !== items.length || new Set(items.map(item => isURLTarget(item.kind) ? (item.kind === 'website' ? websiteURL(item.path).href : item.path) : targetKey(item.path))).size !== items.length) throw new Error('Duplicate item');
         groups[face] = { name: name(group.name), slots };
     }
     const rawAppearance = source.appearance === undefined ? defaults.appearance : object(source.appearance, 'appearance');

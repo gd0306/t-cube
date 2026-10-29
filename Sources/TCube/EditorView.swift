@@ -61,7 +61,7 @@ private struct FaceSettingsView: View {
                         Button("保存名称") { saveTitle() }
                             .disabled(!canSaveTitle)
                     }
-                    Text("为\(face.settingsName)设置四个常用入口。应用和文件夹可以混放。")
+                    Text("为\(face.settingsName)设置四个常用入口。可混放应用、文件夹、文件、网页与系统设置。")
                         .font(.callout).foregroundStyle(.secondary)
                 }
                 VStack(spacing: 0) {
@@ -73,7 +73,7 @@ private struct FaceSettingsView: View {
                 Spacer(minLength: 0)
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "info.circle")
-                    Text("也可以从 Finder 拖到立方体添加。移除入口会保留原来的应用或文件夹。")
+                    Text("也可以从 Finder 拖到立方体添加。移除入口会保留原来的目标。")
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .font(.caption).foregroundStyle(.secondary)
@@ -138,7 +138,7 @@ private struct FaceSettingsView: View {
                     .resizable().frame(width: 36, height: 36)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(item.name).font(.system(size: 13, weight: .medium)).lineLimit(1)
-                    Text(item.url.path).font(.system(size: 10)).foregroundStyle(.secondary)
+                    Text(item.targetDescription).font(.system(size: 10)).foregroundStyle(.secondary)
                         .lineLimit(1).truncationMode(.middle)
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 HStack(spacing: 7) {
@@ -172,7 +172,7 @@ private struct FaceSettingsView: View {
                 Text("入口 \(slot + 1)").foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Button("添加…") { model.choose(for: face, slot: slot) }
-                    .accessibilityLabel("在位置\(slot + 1)添加应用或文件夹")
+                    .accessibilityLabel("在位置\(slot + 1)添加入口")
             }
         }
         .buttonStyle(.borderless)

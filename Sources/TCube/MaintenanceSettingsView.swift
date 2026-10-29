@@ -15,7 +15,7 @@ struct MaintenanceSettingsView: View {
             VStack(alignment: .leading, spacing: 24) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("备份与修复").font(.title2.weight(.semibold))
-                    Text("保存入口与内容，重新连接已移动的应用或文件夹。")
+                    Text("保存入口与内容，重新连接已移动的应用、文件夹或文件。")
                         .font(.callout).foregroundStyle(.secondary)
                 }
                 GroupBox {
@@ -61,12 +61,12 @@ struct MaintenanceSettingsView: View {
                 GroupBox {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            Text("检查六个面的应用和文件夹入口。")
+                            Text("检查六个面的应用、文件夹和文件入口。")
                             Spacer()
                             Button("重新检查", systemImage: "arrow.clockwise") { maintenance.scanLaunchers() }
                         }
                         if maintenance.hasScanned && maintenance.brokenLaunchers.isEmpty {
-                            Label("所有入口均可访问", systemImage: "checkmark.circle").foregroundStyle(.secondary)
+                            Label("本地入口均可访问", systemImage: "checkmark.circle").foregroundStyle(.secondary)
                         }
                         ForEach(maintenance.brokenLaunchers) { issue in
                             Divider()
@@ -83,7 +83,7 @@ struct MaintenanceSettingsView: View {
                                 Button("重新选择…") { maintenance.chooseReplacement(for: issue) }
                             }
                         }
-                        Text("修复只替换你选择的位置，保留自定义名称。不会自动删除失效入口。")
+                        Text("修复只替换你选择的位置，保留自定义名称。不会自动删除失效入口；网页与系统设置不作联网检查。")
                             .font(.caption).foregroundStyle(.secondary)
                     }.frame(maxWidth: .infinity, alignment: .leading).padding(8)
                 } label: { Label("失效入口", systemImage: "link") }

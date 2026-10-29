@@ -10,7 +10,7 @@ export type ThemeId = 'aurora' | 'ocean' | 'sunset' | 'starfield' | 'blossom' | 
 export type SurfaceStyle = 'clear' | 'iridescent' | 'moonstone' | 'aurora';
 export type Material = 'glass' | 'slime';
 export interface Appearance { primaryHex: string; secondaryHex: string; glowIntensity: number; surfaceStyle: SurfaceStyle; material: Material }
-export interface LauncherItem { id: string; path: string; name: string; kind: 'application' | 'folder' }
+export interface LauncherItem { id: string; path: string; name: string; kind: 'application' | 'folder' | 'file' | 'website' | 'systemSettings' }
 export type Slots = [LauncherItem | null, LauncherItem | null, LauncherItem | null, LauncherItem | null];
 export interface FaceGroup { name: string; slots: Slots }
 export interface HoverSettings { isEnabled: boolean; multiplier: number; delaySeconds?: number }
@@ -44,7 +44,8 @@ export interface ViewState {
 export interface RotationDrag extends Point { id: number }
 export interface Snapshot { state: ViewState; icons: Record<string, string> }
 export interface Hit { face: Face; slot: number | null }
-export interface TargetRequest { face: Face; slot: number; kind: 'application' | 'folder' }
+export interface TargetRequest { face: Face; slot: number; kind: 'application' | 'folder' | 'file' }
+export type URLTargetRequest = { face: Face; slot: number } & ({ kind: 'website'; name: string; url: string } | { kind: 'systemSettings'; settingsId: string });
 export interface InstalledApplication { id: string; name: string; detail: string }
 export interface DesktopBridge extends ProductivityBridge, MaintenanceBridge, LifecycleBridge {
     getPerformanceSettings(): Promise<{idlePowerSaving:boolean}>;
@@ -57,6 +58,7 @@ export interface DesktopBridge extends ProductivityBridge, MaintenanceBridge, Li
     endPointer(request: { gestureId: number; button: 0 | 2; hit: Hit | null; cancelled?: boolean }): Promise<void>;
     applyConfiguration(configuration: Configuration): Promise<void>;
     chooseTarget(request: TargetRequest): Promise<void>;
+    addURLTarget(request: URLTargetRequest): Promise<void>;
     listInstalledApplications(refresh?: boolean): Promise<InstalledApplication[]>;
     installedApplicationIcons(ids: string[]): Promise<Record<string, string>>;
     addInstalledApplication(request: { face: Face; slot: number; applicationId: string }): Promise<void>;

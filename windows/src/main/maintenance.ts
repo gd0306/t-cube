@@ -1,16 +1,17 @@
+import { isURLTarget } from '../shared/shortcut-targets';
 import { readFile, mkdir } from 'node:fs/promises';
 import { basename } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { FACES, type Configuration, type Face } from '../shared/contracts';
 import type { MaintenanceBridge, MaintenanceState, ImportPreview } from '../shared/maintenance';
-import { validateLocalTarget } from './targets';
+import { validateLocalTarget, validateTarget } from './targets';
 import { ConfigurationArchiveStore, validateArchive, type ConfigurationArchive } from '../core/configuration-archive';
 
 /** Scan with the same kind/path policy used for launch, rather than mere existence. */
 export async function scanBrokenLaunchers(config: Configuration, validate: typeof validateLocalTarget = validateLocalTarget): Promise<MaintenanceState['broken']> {
     const found = await Promise.all(FACES.flatMap(face => config.groups[face].slots.map(async (item, slot) => {
         if (!item) return null;
-        try { await validate(item.path, item.kind); return null; }
+        try { await (isURLTarget(item.kind) ? validateTarget(item.path, item.kind) : validate(item.path, item.kind)); return null; }
         catch { return { face, slot, name: item.name, reason: '目标不存在、类型已变更或无法访问，请重新关联。' }; }
     })));
     return found.filter((item): item is NonNullable<typeof item> => item !== null);

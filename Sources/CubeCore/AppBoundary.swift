@@ -79,7 +79,7 @@ public enum LocalTargetError: Error, LocalizedError, Sendable {
     case unsupported, missing
     public var errorDescription: String? {
         switch self {
-        case .unsupported: "请选择本地应用（.app）或文件夹，暂不支持普通文件。"
+        case .unsupported: "请选择本地应用（.app）、文件夹或文件。"
         case .missing: "入口目标已移动或不存在，请在编辑窗口重新选择。"
         }
     }
@@ -90,7 +90,7 @@ public enum LocalTarget {
         guard url.isFileURL else { throw LocalTargetError.unsupported }
         var directory: ObjCBool = false
         guard FileManager.default.fileExists(atPath: url.path, isDirectory: &directory) else { throw LocalTargetError.missing }
-        guard directory.boolValue else { throw LocalTargetError.unsupported }
+        guard directory.boolValue else { return .file }
         return url.pathExtension.lowercased() == "app" ? .application : .folder
     }
 }

@@ -43,7 +43,7 @@ async function fixture(overrides: Partial<HostServices> = {}) {
     const host = new LauncherHost(store, {
         platform: 'win32', cursor: () => pointer, input: () => input,
         screens: () => [{ x: 0, y: 0, width: 1920, height: 1080 }],
-        setFrame: frame => frames.push(frame), setVisible: () => {}, openPath: async target => { launched.push(target); return ''; },
+        setFrame: frame => frames.push(frame), setVisible: () => {}, openExternal: async () => {}, openPath: async target => { launched.push(target); return ''; },
         showSettings: () => { settings++; }, showExpanded: () => {}, closeExpanded: () => {},
         stateChanged: () => { broadcasts++; }, iconsChanged: () => {}, error: message => errors.push(message),
         validateTarget: async target => ({ id: 'picked', name: 'Picked', path: target, kind: 'application' }),
@@ -708,4 +708,44 @@ test('imported position replaces persisted display memory so restart keeps the i
             assert.equal(restored.width, 246); assert.equal(restored.height, 246);
         } finally { await restarted.dispose(); }
     } finally { await f.dispose(); await rm(directory, { recursive: true, force: true }); }
+});
+
+test('URL targets add and replace all slots and dispatch only to the validated URI handler', async () => {
+    const external: string[] = [];
+    const { validateTarget } = await import('../src/main/targets');
+    const f = await fixture({ validateTarget, openExternal: async target => { external.push(target); } });
+    try {
+        for (let slot = 0; slot < 4; slot++) {
+            await f.host.addURLTarget({ face: 'front', slot, kind: 'website', name: `Docs ${slot}`, url: `https://example.com/Docs${slot}` });
+            assert.equal(f.store.snapshot.groups.front.slots[slot]?.name, `Docs ${slot}`);
+        }
+        await f.host.launch({ face: 'front', slot: 2 });
+        await f.host.addURLTarget({ face: 'front', slot: 2, kind: 'systemSettings', settingsId: 'display' });
+        await f.host.launch({ face: 'front', slot: 2 });
+        assert.deepEqual(external, ['https://example.com/Docs2', 'ms-settings:display']);
+        assert.deepEqual(f.launched, []);
+        const before = f.store.snapshot;
+        await assert.rejects(f.host.addURLTarget({ face: 'front', slot: 0, kind: 'website', name: 'Unsafe', url: 'javascript:alert(1)' }));
+        assert.deepEqual(f.store.snapshot, before);
+        assert.equal((await new ConfigurationStore(f.store.filePath).load()).groups.front.slots[2]?.kind, 'systemSettings');
+    } finally { await f.dispose(); }
+});
+
+test('file selection opens its default application and repair preserves its title and kind', async () => {
+    const { validateLocalTarget } = await import('../src/main/targets');
+    const stat = async () => ({ isFile: () => true, isDirectory: () => false });
+    const f = await fixture({
+        chooseTarget: async () => ['C:\\Notes\\brief.pdf'],
+        validateTarget: (target, kind) => validateLocalTarget(target, kind, stat),
+    });
+    try {
+        await f.host.chooseTarget({ face: 'front', slot: 3, kind: 'file' });
+        const item = f.store.snapshot.groups.front.slots[3]!;
+        assert.equal(item.kind, 'file');
+        await f.host.launch({ face: 'front', slot: 3 });
+        assert.deepEqual(f.launched, ['C:\\Notes\\brief.pdf']);
+        await f.host.repairLauncher({ face: 'front', slot: 3 }, 'C:\\Notes\\new.pdf', item.id);
+        assert.equal(f.store.snapshot.groups.front.slots[3]?.name, 'brief.pdf');
+        assert.equal(f.store.snapshot.groups.front.slots[3]?.kind, 'file');
+    } finally { await f.dispose(); }
 });

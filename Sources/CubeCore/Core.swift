@@ -16,7 +16,7 @@ public enum ConfigurationError: Error, Equatable, Sendable, LocalizedError {
         case .invalidName: "名称不能为空。"
         case .invalidSlotCount: "每组必须有四个位置。"
         case .invalidGroups: "配置必须包含六个分组。"
-        case .invalidItem: "入口必须是本地应用或文件夹。"
+        case .invalidItem: "请选择有效的本地应用、文件夹、文件、HTTP(S) 网址或系统设置页面。"
         case .invalidScale: "立方体尺寸超出允许范围。"
         case .invalidPosition: "窗口位置无效。"
         case .invalidAppearance: "主题颜色或光晕强度无效。"
@@ -28,7 +28,20 @@ public enum ConfigurationError: Error, Equatable, Sendable, LocalizedError {
 }
 
 public struct LauncherItem: Identifiable, Codable, Equatable, Sendable {
-    public enum Kind: String, Codable, Sendable { case application, folder }
+    public enum Kind: String, Codable, CaseIterable, Sendable {
+        case application, folder, file, website, systemSettings
+
+        public var isLocal: Bool { self == .application || self == .folder || self == .file }
+        public var title: String {
+            switch self {
+            case .application: "应用"
+            case .folder: "文件夹"
+            case .file: "文件"
+            case .website: "网页"
+            case .systemSettings: "系统设置"
+            }
+        }
+    }
     public let id: UUID
     public var url: URL
     public var name: String
@@ -43,9 +56,33 @@ public struct LauncherItem: Identifiable, Codable, Equatable, Sendable {
         self.bookmark = bookmark
     }
 
-    fileprivate var targetPath: String { url.standardizedFileURL.path }
-    fileprivate func validate() throws {
-        guard url.isFileURL else { throw ConfigurationError.invalidItem }
+    fileprivate var targetPath: String {
+        guard !kind.isLocal else { return url.standardizedFileURL.path }
+        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url.absoluteString }
+        components.scheme = components.scheme?.lowercased()
+        components.host = components.host?.lowercased()
+        if kind == .website {
+            if components.path.isEmpty { components.path = "/" }
+            if (components.scheme == "https" && components.port == 443) ||
+               (components.scheme == "http" && components.port == 80) { components.port = nil }
+        }
+        return components.string ?? url.absoluteString
+    }
+
+    public var targetDescription: String { kind.isLocal ? url.path : url.absoluteString }
+    public func validate() throws {
+        switch kind {
+        case .application, .folder, .file:
+            guard url.isFileURL, url.host == nil || url.host == "" || url.host == "localhost" else {
+                throw ConfigurationError.invalidItem
+            }
+        case .website:
+            guard WebsiteTarget.isValid(url) else { throw ConfigurationError.invalidItem }
+        case .systemSettings:
+            guard SystemSettingsTarget.allCases.contains(where: { $0.url == url }) else {
+                throw ConfigurationError.invalidItem
+            }
+        }
         guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ConfigurationError.invalidName
         }

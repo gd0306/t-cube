@@ -1,3 +1,4 @@
+import { SYSTEM_SETTINGS, websiteURL } from '../shared/shortcut-targets';
 import { normalizeConfiguration } from '../core/configuration';
 import { FACES } from '../shared/contracts';
 import type { Configuration, Face, Hit, Placement, TargetRequest } from '../shared/contracts';
@@ -7,7 +8,7 @@ import type { InstalledApplications } from './applications';
 export const CHANNELS = {
     getSnapshot: 'tcube:snapshot', state: 'tcube:state', icons: 'tcube:icons', error: 'tcube:error',
     beginPointer: 'tcube:pointer-begin', endPointer: 'tcube:pointer-end', applyConfiguration: 'tcube:configure',
-    chooseTarget: 'tcube:choose', dropTargets: 'tcube:drop', removeTarget: 'tcube:remove', moveTarget: 'tcube:move',
+    chooseTarget: 'tcube:choose', addURLTarget: 'tcube:add-url-target', dropTargets: 'tcube:drop', removeTarget: 'tcube:remove', moveTarget: 'tcube:move',
     renameGroup: 'tcube:rename', launch: 'tcube:launch', place: 'tcube:place', showSettings: 'tcube:settings',
     quit: 'tcube:quit', closeExpanded: 'tcube:close-expanded',
     listApplications: 'tcube:applications', applicationIcons: 'tcube:application-icons', addApplication: 'tcube:add-application'
@@ -73,8 +74,22 @@ export function registerIPC(ipc: IPCRegistrar, host: LauncherHost, roleForSender
     });
     handle(CHANNELS.chooseTarget, ['settings'], value => {
         const request = record(value);
-        if (request.kind !== 'application' && request.kind !== 'folder') invalid();
+        if (request.kind !== 'application' && request.kind !== 'folder' && request.kind !== 'file') invalid();
         return host.chooseTarget({ ...target(value), kind: request.kind } as TargetRequest);
+    });
+    handle(CHANNELS.addURLTarget, ['settings'], value => {
+        const request = record(value), destination = target(value);
+        if (request.kind === 'website') {
+            const url = text(request.url, 8192), name = text(request.name, 120);
+            websiteURL(url);
+            return host.addURLTarget({ ...destination, kind: 'website', name, url });
+        }
+        if (request.kind === 'systemSettings') {
+            const settingsId = text(request.settingsId, 64);
+            if (!SYSTEM_SETTINGS.some(page => page.id === settingsId)) invalid();
+            return host.addURLTarget({ ...destination, kind: 'systemSettings', settingsId });
+        }
+        return invalid();
     });
     handle(CHANNELS.dropTargets, ['settings'], value => {
         const request = record(value);

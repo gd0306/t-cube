@@ -41,6 +41,7 @@ export class OfficeServices {
             afterRestore:async configuration=>{await options.host.applyImportedConfiguration(configuration);await this.library.reload();this.libraryWindow?.webContents.send(C.libraryChanged);},
             repairLauncher:async request=>{
                 const item=options.host.snapshot.state.configuration.groups[request.face].slots[request.slot];if(!item)throw new Error('入口已变更');
+                if(item.kind==='website'||item.kind==='systemSettings')throw new Error('请在应用分组中重新选择网站或系统设置。');
                 const result=await dialog.showOpenDialog({title:`重新选择「${item.name}」`,properties:[item.kind==='folder'?'openDirectory':'openFile'],filters:item.kind==='application'?[{name:'应用程序或快捷方式',extensions:['exe','lnk']}]:undefined});
                 if(!result.canceled&&result.filePaths[0])await options.host.repairLauncher(request,result.filePaths[0],item.id);
             }});

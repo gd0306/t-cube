@@ -145,6 +145,7 @@ input[type='color'] {
 }
 .slot {
     min-height: 59px;
+    flex-wrap: wrap;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -299,3 +300,18 @@ input[type='color'] {
 .application-picker footer button:first-child {
     margin-right: auto;
 }
+
+.url-target-picker {
+    width: min(460px, 90vw);
+    border: 1px solid #d6dee8;
+    border-radius: 14px;
+    padding: 24px;
+    color: #202b39;
+    background: #f4f6f9;
+}
+.url-target-picker::backdrop { background: #13233566; }
+.url-target-picker h2 { margin-top: 0; }
+.url-target-picker label { display: block; margin: 18px 0; }
+.url-target-picker input, .url-target-picker select { display: block; width: 100%; margin-top: 8px; }
+.url-target-picker footer { display: flex; justify-content: flex-end; gap: 10px; }
+.url-target-picker [role="status"] { color: #a33140; }

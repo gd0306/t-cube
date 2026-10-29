@@ -1,10 +1,12 @@
+import { isURLTarget, SYSTEM_SETTINGS } from '../shared/shortcut-targets';
+import { validateTarget } from './targets';
 import { addTarget, moveTarget, normalizeConfiguration, removeTarget, renameGroup, resolveAppearance } from '../core/configuration';
 import { emptyDisplayPositionMemory, rememberDisplayPosition, restoreDisplayPosition, type DisplayDescriptor, type DisplayPositionMemory } from '../core/display-placement';
 import type { DisplayPositionPersistence } from './display-position-store';
 import { HoverGeometry } from '../core/hover';
 import type { ConfigurationStore } from '../core/store';
 import type { InputState } from '../native/win32';
-import type { Configuration, Face, Hit, LauncherItem, Placement, Point, Rect, RotationDrag, Snapshot, TargetRequest, ViewState } from '../shared/contracts';
+import type { Configuration, Face, Hit, LauncherItem, Placement, Point, Rect, RotationDrag, Snapshot, TargetRequest, URLTargetRequest, ViewState } from '../shared/contracts';
 
 export interface HostServices {
     platform: string;
@@ -16,6 +18,7 @@ export interface HostServices {
     setFrame(frame: Rect): void;
     setVisible(visible: boolean): void;
     openPath(path: string): Promise<string>;
+    openExternal(url: string): Promise<void>;
     showSettings(): void;
     showExpanded(face: Face): void;
     closeExpanded(): void;
@@ -267,6 +270,17 @@ export class LauncherHost {
         await this.update(config => addTarget(config, request.face, item, request.slot, true));
         await this.refreshIcons();
     }
+    async addURLTarget(request: URLTargetRequest): Promise<void> {
+        const page = request.kind === 'systemSettings' ? SYSTEM_SETTINGS.find(page => page.id === request.settingsId) : undefined;
+        if (request.kind === 'systemSettings' && !page) throw new Error('Invalid system settings target');
+        const item = await validateTarget(request.kind === 'website' ? request.url : page!.uri, request.kind);
+        if (request.kind === 'website') {
+            if (typeof request.name !== 'string' || !request.name.trim() || request.name.length > 120) throw new Error('Invalid name');
+            item.name = request.name.trim();
+        }
+        await this.update(config => addTarget(config, request.face, item, request.slot, true));
+        await this.refreshIcons();
+    }
     async addApplication(request: { face: Face; slot: number }, item: LauncherItem): Promise<void> {
         const validated = await this.services.validateTarget(item.path, 'application');
         await this.update(config => addTarget(config, request.face, { ...validated, name: item.name }, request.slot, true));
@@ -294,8 +308,13 @@ export class LauncherHost {
         if (!item) throw new Error('This slot is empty');
         // Close the initiating popup before awaiting services, so a slow launch cannot close a later popup.
         this.closeExpanded();
-        // Validate saved paths again: edited config files must not become a command/URL channel.
+        // Revalidate stored targets before calling either native launch handler.
         await this.services.validateTarget(item.path, item.kind);
+        if (isURLTarget(item.kind)) {
+            const validated = await validateTarget(item.path, item.kind);
+            await this.services.openExternal(validated.path);
+            return;
+        }
         const error = await this.services.openPath(item.path);
         if (error) throw new Error(`Could not open ${item.name}: ${error}`);
     }

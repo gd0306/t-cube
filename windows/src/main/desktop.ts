@@ -11,7 +11,7 @@ import { LauncherHost } from './application';
 import { IconCache } from './icons';
 import { CHANNELS, registerIPC } from './ipc';
 import type { WindowRole } from './ipc';
-import { validateLocalTarget } from './targets';
+import { validateTarget } from './targets';
 import { createApplicationCatalog } from './application-discovery';
 
 export function userDataDirectory(platform: string, appData: string, override = process.env.TCUBE_USER_DATA_DIR): string {
@@ -68,14 +68,16 @@ export class DesktopApplication {
             setFrame: frame => this.widget.setBounds(this.roundFrame(frame), false),
             setVisible: visible => { if (visible) this.widget.show(); else this.widget.hide(); this.updateTray(); },
             openPath: target => shell.openPath(target),
+            openExternal: url => shell.openExternal(url),
             showSettings: () => this.showSettings(), showExpanded: face => this.showExpanded(face),
             closeExpanded: () => this.expanded?.hide(),
             stateChanged: state => this.broadcast(CHANNELS.state, state),
             iconsChanged: icons => this.broadcast(CHANNELS.icons, icons), error: message => this.broadcast(CHANNELS.error, message),
-            validateTarget: validateLocalTarget,
+            validateTarget,
             chooseTarget: async request => {
                 const options: Electron.OpenDialogOptions = request.kind === 'folder'
                     ? { title: '选择文件夹', properties: ['openDirectory'] }
+                    : request.kind === 'file' ? { title: '选择文件', properties: ['openFile'] }
                     : { title: '选择应用程序文件', properties: ['openFile'], filters: [{ name: '应用程序', extensions: ['exe'] }, { name: '快捷方式', extensions: ['lnk'] }] };
                 const result = await dialog.showOpenDialog(this.settings ?? this.widget, options);
                 return result.canceled ? [] : result.filePaths;

@@ -112,13 +112,13 @@ final class AppModel: ObservableObject {
         } catch { report(error) }
     }
 
-    func add(_ urls: [URL], to face: CubeFace, preferredSlot: Int? = nil, replacing: Bool = false, preservingName: String? = nil) {
+    func add(_ urls: [URL], to face: CubeFace, preferredSlot: Int? = nil, replacing: Bool = false, preservingName: String? = nil, expectedKind: LauncherItem.Kind? = nil) {
         var candidate = configuration
         var failures: [String] = []
         var added = false
         for url in urls {
             do {
-                var item = try LauncherService.item(for: url)
+                var item = try LauncherService.item(for: url, expectedKind: expectedKind)
                 if let preservingName { item.name = preservingName }
                 var next = candidate
                 if let preferredSlot {
@@ -134,17 +134,33 @@ final class AppModel: ObservableObject {
         if !failures.isEmpty { message("部分入口未能添加", detail: failures.joined(separator: "\n")) }
     }
 
+    func add(_ item: LauncherItem, to face: CubeFace, preferredSlot: Int? = nil, replacing: Bool = false) {
+        change {
+            if let preferredSlot { try $0.place(item, to: face, slot: preferredSlot, replacing: replacing) }
+            else { try $0.add(item, to: face) }
+        }
+    }
+
     func choose(for face: CubeFace, slot: Int? = nil, replacing: Bool = false) {
+        let current = slot.flatMap { configuration.group(for: face).slots[$0] }
+        guard let kind = LauncherTargetPicker.chooseKind(replacing: replacing, current: current?.kind) else { return }
+        if !kind.isLocal {
+            let item = kind == .website ? LauncherTargetPicker.website(current: current) : LauncherTargetPicker.settings(current: current)
+            if let item { add(item, to: face, preferredSlot: slot, replacing: replacing) }
+            return
+        }
         let picker = NSOpenPanel()
-        picker.title = replacing ? "重新选择入口" : "添加应用或文件夹"
-        picker.prompt = "添加"
-        picker.canChooseFiles = true
-        picker.canChooseDirectories = true
+        picker.title = "选择" + kind.title
+        picker.prompt = replacing ? "替换" : "添加"
+        picker.canChooseFiles = kind != .folder
+        picker.canChooseDirectories = kind == .folder
         picker.treatsFilePackagesAsDirectories = false
         picker.allowsMultipleSelection = slot == nil
-        picker.directoryURL = URL(fileURLWithPath: "/Applications", isDirectory: true)
+        picker.directoryURL = kind == .application ? URL(fileURLWithPath: "/Applications", isDirectory: true) : nil
         NSApp.activate(ignoringOtherApps: true)
-        if picker.runModal() == .OK { add(picker.urls, to: face, preferredSlot: slot, replacing: replacing) }
+        if picker.runModal() == .OK {
+            add(picker.urls, to: face, preferredSlot: slot, replacing: replacing, expectedKind: kind)
+        }
     }
 
     func launch(slot: Int, face: CubeFace) {
@@ -166,23 +182,34 @@ final class AppModel: ObservableObject {
 
 @MainActor
 enum LauncherService {
-    static func item(for url: URL) throws -> LauncherItem {
+    static func item(for url: URL, expectedKind: LauncherItem.Kind? = nil) throws -> LauncherItem {
+        guard url.isFileURL else { throw LocalTargetError.unsupported }
         let canonical = url.resolvingSymlinksInPath().standardizedFileURL
         let kind = try LocalTarget.kind(at: canonical)
+        if let expectedKind, kind != expectedKind { throw LocalTargetError.unsupported }
         let bookmark = try canonical.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
         return LauncherItem(url: canonical, name: FileManager.default.displayName(atPath: canonical.path), kind: kind, bookmark: bookmark)
     }
 
     static func resolved(_ item: LauncherItem) throws -> URL {
-        guard let bookmark = item.bookmark else { return item.url }
+        guard item.kind.isLocal, let bookmark = item.bookmark else { return item.url }
         var stale = false
         return try URL(resolvingBookmarkData: bookmark, options: [.withSecurityScope, .withoutUI], relativeTo: nil, bookmarkDataIsStale: &stale)
     }
 
-    static func open(_ item: LauncherItem, failure: @escaping @MainActor (Error) -> Void) throws {
+    static func open(_ item: LauncherItem,
+                     openURL: (URL) -> Bool = { NSWorkspace.shared.open($0) },
+                     failure: @escaping @MainActor (Error) -> Void) throws {
+        try item.validate()
+        guard item.kind.isLocal else {
+            guard openURL(item.url) else { throw CocoaError(.fileReadUnknown, userInfo: [NSLocalizedDescriptionKey: "无法打开此入口，请检查默认浏览器或系统设置。"]) }
+            return
+        }
         let url = try resolved(item)
         let scoped = url.startAccessingSecurityScopedResource()
-        do { _ = try LocalTarget.kind(at: url) }
+        do {
+            guard try LocalTarget.kind(at: url) == item.kind else { throw LocalTargetError.unsupported }
+        }
         catch { if scoped { url.stopAccessingSecurityScopedResource() }; throw error }
         if item.kind == .application {
             NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration()) { _, error in
@@ -191,11 +218,19 @@ enum LauncherService {
             }
         } else {
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-            guard NSWorkspace.shared.open(url) else { throw CocoaError(.fileReadUnknown, userInfo: [NSLocalizedDescriptionKey: "Finder 无法打开此文件夹，请重新选择入口。"] ) }
+            guard openURL(url) else { throw CocoaError(.fileReadUnknown, userInfo: [NSLocalizedDescriptionKey: "无法打开此文件或文件夹，请检查默认应用或重新选择入口。"] ) }
         }
     }
 
     static func icon(for item: LauncherItem) -> NSImage {
-        NSWorkspace.shared.icon(forFile: (try? resolved(item).path) ?? item.url.path)
+        if !item.kind.isLocal {
+            let symbol = item.kind == .website ? "globe" :
+                (SystemSettingsTarget.allCases.first { $0.url == item.url }?.symbol ?? "gearshape.fill")
+            let configuration = NSImage.SymbolConfiguration(pointSize: 48, weight: .medium)
+                .applying(.init(paletteColors: [.systemBlue]))
+            return NSImage(systemSymbolName: symbol, accessibilityDescription: item.name)?
+                .withSymbolConfiguration(configuration) ?? NSImage(size: NSSize(width: 48, height: 48))
+        }
+        return NSWorkspace.shared.icon(forFile: (try? resolved(item).path) ?? item.url.path)
     }
 }

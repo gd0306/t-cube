@@ -23,6 +23,7 @@ const bridge: DesktopBridge = {
     beginPointer: button => ipcRenderer.invoke(CHANNELS.beginPointer, button),
     endPointer: request => ipcRenderer.invoke(CHANNELS.endPointer, request),
     applyConfiguration: configuration => ipcRenderer.invoke(CHANNELS.applyConfiguration, configuration),
+    addURLTarget: request => ipcRenderer.invoke(CHANNELS.addURLTarget, request),
     chooseTarget: request => ipcRenderer.invoke(CHANNELS.chooseTarget, request),
     listInstalledApplications: refresh => ipcRenderer.invoke(CHANNELS.listApplications, refresh),
     installedApplicationIcons: ids => ipcRenderer.invoke(CHANNELS.applicationIcons, ids),

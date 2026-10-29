@@ -79,9 +79,28 @@ test('target validation rejects commands, URLs, remote paths and incorrect files
     const stats: string[] = [];
     const stat = async (value: string) => { stats.push(value); return { isFile: () => true, isDirectory: () => false }; };
     for (const value of ['calc.exe', 'https://example.com', '\\\\server\\share\\app.exe', 'C:\\app.exe --flag', 'C:\\x.cmd', '\\\\?\\C:\\x.exe']) {
-        await assert.rejects(validateLocalTarget(value, undefined, stat), /local|executable|folder/i);
+        await assert.rejects(validateLocalTarget(value, 'application', stat), /local|executable|folder/i);
     }
     assert.equal(stats.length, 2); // Absolute candidates are statted; neither is an executable extension.
     assert.equal((await validateLocalTarget('C:\\Apps\\Editor.exe', 'application', stat)).kind, 'application');
     await assert.rejects(validateLocalTarget('C:\\Apps\\Editor.exe', 'folder', stat), /folder/);
+});
+
+test('URL IPC is settings-only and validates URI, display name and catalog selection before the host', async () => {
+    const handlers = new Map<string, (event: any, payload?: unknown) => Promise<unknown>>();
+    const requests: unknown[] = [];
+    registerIPC({ handle: (name: string, fn: any) => handlers.set(name, fn) },
+        { addURLTarget: (request: unknown) => { requests.push(request); }, reportError: () => {} } as any,
+        sender => sender.id === 1 ? 'widget' : 'settings');
+    const frame = {}, event = (id: number) => ({ sender: { id, mainFrame: frame }, senderFrame: frame });
+    const good = { face: 'front', slot: 3, kind: 'website', name: 'Docs', url: 'https://example.com' };
+    assert.ok(handlers.has(CHANNELS.addURLTarget));
+    await assert.rejects(handlers.get(CHANNELS.addURLTarget)!(event(1), good), /authorized/);
+    for (const bad of [{ ...good, url: 'file:///C:/x' }, { ...good, name: '' }, { ...good, slot: 4 }, { ...good, kind: 'systemSettings', settingsId: 'ms-settings:unknown' }]) {
+        await assert.rejects(handlers.get(CHANNELS.addURLTarget)!(event(2), bad));
+    }
+    assert.deepEqual(requests, []);
+    await handlers.get(CHANNELS.addURLTarget)!(event(2), good);
+    await handlers.get(CHANNELS.addURLTarget)!(event(2), { face: 'front', slot: 0, kind: 'systemSettings', settingsId: 'wifi' });
+    assert.equal(requests.length, 2);
 });

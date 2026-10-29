@@ -21,7 +21,7 @@ enum BrokenLauncherScanner {
         var issues: [BrokenLauncher] = []
         for face in CubeFace.allCases {
             for (slot, item) in configuration.group(for: face).slots.enumerated() {
-                guard let item else { continue }
+                guard let item, item.kind.isLocal else { continue }
                 do {
                     let url = try LauncherService.resolved(item)
                     let scoped = url.startAccessingSecurityScopedResource()
@@ -29,7 +29,7 @@ enum BrokenLauncherScanner {
                     let actual = try LocalTarget.kind(at: url)
                     if actual != item.kind {
                         issues.append(BrokenLauncher(face: face, slot: slot, item: item,
-                            reason: "目标类型已变化，请重新选择\(item.kind == .application ? "应用" : "文件夹")。"))
+                            reason: "目标类型已变化，请重新选择\(item.kind.title)。"))
                     }
                 } catch {
                     issues.append(BrokenLauncher(face: face, slot: slot, item: item, reason: error.localizedDescription))
@@ -74,7 +74,7 @@ final class ConfigurationMaintenance: ObservableObject {
     func scanLaunchers() {
         brokenLaunchers = BrokenLauncherScanner.scan(model.configuration)
         hasScanned = true
-        status = brokenLaunchers.isEmpty ? "检查完成，所有入口均可访问。" : "发现 \(brokenLaunchers.count) 个需要重新选择的入口，原入口已保留。"
+        status = brokenLaunchers.isEmpty ? "本地入口检查完成，未发现失效目标。" : "发现 \(brokenLaunchers.count) 个需要重新选择的入口，原入口已保留。"
     }
 
     func prepareImport(from url: URL) {
@@ -170,7 +170,7 @@ final class ConfigurationMaintenance: ObservableObject {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         let originalDisplayName = FileManager.default.displayName(atPath: issue.item.url.path)
         let customName = issue.item.name == originalDisplayName ? nil : issue.item.name
-        model.add([url], to: issue.face, preferredSlot: issue.slot, replacing: true, preservingName: customName)
+        model.add([url], to: issue.face, preferredSlot: issue.slot, replacing: true, preservingName: customName, expectedKind: issue.item.kind)
         scanLaunchers()
     }
 }

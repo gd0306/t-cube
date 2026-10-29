@@ -1,3 +1,4 @@
+import { openURLTargetPicker } from './url-target-picker';
 import { renderMaintenance } from './maintenance';
 import { renderLifecycle } from './lifecycle';
 import { THEMES } from '../core/configuration';
@@ -105,7 +106,7 @@ function range(
     return [el, out] as const;
 }
 function renderGroups(data: Snapshot) {
-    heading('应用分组', '为立方体的六个面分别安排应用或文件夹。');
+    heading('应用分组', '为六个面安排应用、文件夹、文件、网站或系统设置。');
     const tabs = element('div', undefined, 'tabs');
     FACES.forEach((f) => {
         const b = button(
@@ -159,11 +160,14 @@ function renderGroups(data: Snapshot) {
         for (const [kind, title] of [
             ['application', '添加应用'],
             ['folder', '选择文件夹'],
+            ['file', '选择文件'],
         ] as const)
             line.append(button(title, () => {
                 if (kind === 'application') applicationPicker.open(face, slot);
                 else run(window.tcube.chooseTarget({ face, slot, kind }));
             }));
+        line.append(button('添加网站', () => openURLTargetPicker(face, slot, 'website')),
+            button('系统设置', () => openURLTargetPicker(face, slot, 'systemSettings')));
         if (item) {
             const up = button('↑', () =>
                 run(window.tcube.moveTarget({ face, source: slot, destination: slot - 1 })),
@@ -198,7 +202,7 @@ function renderGroups(data: Snapshot) {
         };
         slots.append(line);
     });
-    content.append(slots, element('p', '也可以将应用或文件夹拖放到位置中。'));
+    content.append(slots, element('p', '也可以将应用、文件夹或文件拖放到位置中。网站使用默认浏览器，文件使用默认应用打开。'));
 }
 function renderAppearance(data: Snapshot) {
     const config = data.state.configuration;
