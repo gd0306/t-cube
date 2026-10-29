@@ -36,6 +36,17 @@ export class OpticalTransition {
     }
 
     retarget(target: DataTexture, previousProgress: number, animate: boolean, opacity = 1): void {
+        // The incoming endpoint must sample the current optical phase even before the next
+        // animation frame updates it. Both shader samples use this target map's UV matrix.
+        const previousMap = this.material.map;
+        if (previousMap) {
+            target.offset.copy(previousMap.offset);
+            target.repeat.copy(previousMap.repeat);
+            target.center.copy(previousMap.center);
+            target.rotation = previousMap.rotation;
+            target.matrixAutoUpdate = previousMap.matrixAutoUpdate;
+            target.matrix.copy(previousMap.matrix);
+        }
         const hadMap = Boolean(this.target);
         let source = this.target;
         let sourceOpacity = this.targetOpacity;
