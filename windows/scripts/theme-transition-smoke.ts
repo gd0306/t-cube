@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import type { Page } from 'playwright';
 
 /** Opt-in real WebGL regression. Call with the native cursor outside the widget. */
@@ -16,9 +18,36 @@ export async function verifyThemeTransitionSmoke(widget: Page, settings: Page): 
         const pixels = new Uint8Array(width * height * 4);
         gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
         const channels = [0, 0, 0, 0];
-        for (let i = 0; i < pixels.length; i++) channels[i % 4] += pixels[i];
+        const alphaHistogram = Array<number>(256).fill(0);
+        let alphaHash = 2166136261;
+        for (let i = 0; i < pixels.length; i++) {
+            channels[i % 4] += pixels[i];
+            if (i % 4 === 3) {
+                alphaHistogram[pixels[i]]++;
+                alphaHash = Math.imul(alphaHash ^ pixels[i], 16777619) >>> 0;
+            }
+        }
+        const optical = controller.cube.children.filter((mesh: any) => mesh.name.startsWith('optical-'));
+        const layers = optical.map((mesh: any) => {
+            const map = mesh.material.map;
+            let alphaSum = 0, textureAlphaHash = 2166136261;
+            for (let i = 3; i < map.image.data.length; i += 4) {
+                const alpha = map.image.data[i];
+                alphaSum += alpha;
+                textureAlphaHash = Math.imul(textureAlphaHash ^ alpha, 16777619) >>> 0;
+            }
+            return { name: mesh.name, visible: mesh.visible, opacity: mesh.material.opacity,
+                map: map.uuid, offset: map.offset.toArray(), repeat: map.repeat.toArray(), matrix: map.matrix.toArray(),
+                textureSize: [map.image.width, map.image.height], alphaSum, textureAlphaHash };
+        });
         return { ...controller.metrics, channels, primary: shell.material.uniforms.primary.value.toArray() as number[],
-            maps: controller.cube.children.filter((mesh: any) => mesh.name.startsWith('optical-')).map((mesh: any) => mesh.material.map.uuid) as string[],
+            capturedAt: performance.now(), size: [width, height], viewport: [innerWidth, innerHeight, devicePixelRatio],
+            hovered: document.body.dataset.hovered, hidden: document.hidden,
+            engagement: shell.material.uniforms.engagement.value as number,
+            glow: shell.material.uniforms.glow.value as number,
+            opticalPhase: layers.find((layer: any) => layer.name === 'optical-chroma')?.offset[0],
+            alphaHistogram, alphaHash, layers,
+            maps: optical.map((mesh: any) => mesh.material.map.uuid) as string[],
             geometry: controller.cube.children.map((mesh: any) => mesh.geometry?.uuid) as string[],
             pose: controller.cube.quaternion.toArray() as number[],
             runnable: controller.renderer.info.programs.every((program: any) => program.diagnostics?.runnable !== false) as boolean };
@@ -39,6 +68,14 @@ export async function verifyThemeTransitionSmoke(widget: Page, settings: Page): 
         const samples = [];
         for (let i = 0; i < 35; i++) { samples.push(await read()); await sleep(20); }
         const after = samples.at(-1)!;
+        // Persist every measurement before assertions so a native-GPU failure remains diagnosable.
+        const diagnostics = path.resolve('.cache/smoke/theme-transition-diagnostics.json');
+        await mkdir(path.dirname(diagnostics), { recursive: true });
+        await writeFile(diagnostics, JSON.stringify({ platform: process.platform, savedState: saved,
+            finalState: (await widget.evaluate(() => window.tcube.getSnapshot())).state,
+            before, after, samples: samples.map(sample => ({ ...sample,
+                alphaDelta: sample.channels[3] - before.channels[3],
+                channelDelta: sample.channels.map((value: number, channel: number) => value - before.channels[channel]) })) }, null, 2));
         assert.ok(samples.some(sample => sample.primary[0] > 0.05 && sample.primary[0] < 0.95), 'Theme must render intermediate colors');
         assert.ok(samples.some(sample => sample.cadence === 30), 'Theme must wake office idle at 30Hz');
         assert.equal(after.cadence, 0, 'Completed theme must release the office animation timer');
