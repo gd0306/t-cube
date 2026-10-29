@@ -1,6 +1,6 @@
 import { verifyShortcutTargetsSmoke } from './shortcut-targets-smoke.js';
 import assert from 'node:assert/strict';
-import { appendFile, mkdir, mkdtemp, writeFile, rm, copyFile, realpath } from 'node:fs/promises';
+import { appendFile, mkdir, mkdtemp, writeFile, rm, copyFile, realpath, readFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
@@ -458,7 +458,7 @@ try {
     await settings.evaluate(token => window.tcube.confirmImportBackup(token), preview.token);
     await until(snapshot, value => value.state.configuration.groups.front.name === beforeBackup.state.configuration.groups.front.name, 'Backup did not restore current host state');
     const lifecycle = await settings.evaluate(() => window.tcube.getLifecycleState());
-    assert.equal(lifecycle.version, '0.16.1');
+    assert.equal(lifecycle.version, JSON.parse(await readFile(path.resolve('package.json'), 'utf8')).version);
     assert.equal(lifecycle.updatesEnabled, false, 'Unsigned CI installers must not enable automatic replacement');
     results.push('Opt-in office mode stops frame rendering; continuous mode resumes at 15Hz; backup preview/restore and unsigned updater gate passed.');
 
