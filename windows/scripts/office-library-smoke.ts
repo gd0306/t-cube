@@ -144,7 +144,8 @@ $form.Dispose()
         const titleBuffer = Buffer.alloc(1024); getTitle(receiverWindow, titleBuffer, 512);
         assert.equal(titleBuffer.toString('utf16le').split('\0')[0], title);
         await stage('find receiver textbox');
-        textbox = BigInt(child(receiverWindow, 5)); // GW_CHILD: the Form owns exactly one TextBox.
+        // The Form handle can become discoverable before Windows creates its child handle.
+        textbox = await until(async () => BigInt(child(receiverWindow, 5)), value => owns(value), 'Owned TextBox was not created'); // GW_CHILD
         assert.ok(owns(textbox), 'TextBox must belong to owned receiver');
         await stage('read receiver class');
         const classBuffer = Buffer.alloc(1024); getClass(textbox, classBuffer, 512);
