@@ -9,6 +9,7 @@ import { FACES, type Configuration } from '../src/shared/contracts.js';
 import { nativeInput } from './native-input.js';
 import { verifyAppearanceControls } from './appearance-controls.js';
 import { verifyLibrarySmoke } from './office-library-smoke.js';
+import { verifyThemeTransitionSmoke } from './theme-transition-smoke.js';
 
 const output = path.resolve('.cache/smoke');
 await mkdir(output, { recursive: true });
@@ -120,6 +121,9 @@ try {
     const errors: string[] = [];
     widget.on('pageerror', error => errors.push(error.message));
     await until(snapshot, value => value.state.configuration.groups.front.slots.filter(Boolean).length === 4, 'Four targets missing');
+    assert.equal((await snapshot()).state.idlePowerSaving,false,'Windows power saving must default off');
+    assert.equal((await snapshot()).state.configuration.expandsFacesOnClick,true,'Face expansion must default on');
+    assert.equal(await widget.locator('#library-entry').count(),0,'The cube must not contain a library button');
     if (process.platform === 'darwin') {
         const samples = await app.evaluate(async ({ app }, targets) => Promise.all(targets.map(async target => (await app.getFileIcon(target, { size: 'large' })).toDataURL())), sampleTargets);
         previewIcons = Object.fromEntries(FACES.flatMap(face => samples.map((url, slot) => [`${face}-${slot}`, url])));
@@ -417,6 +421,7 @@ try {
     const idleFrames = settled.after.frames;
     await new Promise(resolve => setTimeout(resolve, 500));
     assert.equal((await metrics()).frames, idleFrames, 'Office idle must not keep rendering frames');
+    if (process.env.TCUBE_THEME_TRANSITION_SMOKE === '1') results.push(...await verifyThemeTransitionSmoke(widget, settings));
     if (process.platform === 'win32') {
         await settings.evaluate(() => window.tcube.setPerformanceSettings(false));
         await until(metrics, value => value.cadence === 15, 'Continuous display must use 15Hz idle animation');
@@ -436,9 +441,9 @@ try {
     await settings.evaluate(token => window.tcube.confirmImportBackup(token), preview.token);
     await until(snapshot, value => value.state.configuration.groups.front.name === beforeBackup.state.configuration.groups.front.name, 'Backup did not restore current host state');
     const lifecycle = await settings.evaluate(() => window.tcube.getLifecycleState());
-    assert.equal(lifecycle.version, '0.16.0');
+    assert.equal(lifecycle.version, '0.16.1');
     assert.equal(lifecycle.updatesEnabled, false, 'Unsigned CI installers must not enable automatic replacement');
-    results.push('Default office mode stops frame rendering; continuous mode resumes at 15Hz; backup preview/restore and unsigned updater gate passed.');
+    results.push('Opt-in office mode stops frame rendering; continuous mode resumes at 15Hz; backup preview/restore and unsigned updater gate passed.');
 
     const saved = await snapshot();
     const updated = structuredClone(saved.state.configuration);

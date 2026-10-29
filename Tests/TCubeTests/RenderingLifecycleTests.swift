@@ -40,6 +40,46 @@ struct RenderingLifecycleTests {
         #expect(view.animationUpdatesRunning)
     }
 
+    @Test func appearanceRefreshKeepsPreviousFrameUntilNewStaticFrameIsReady() async throws {
+        _ = NSApplication.shared
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let store = ConfigurationStore(url: folder.appendingPathComponent("configuration.json"))
+        var config = CubeConfiguration()
+        config.autoRotatesWhenIdle = false
+        config.appearance = CubeThemePreset.prism.appearance(glowIntensity: 0.7)
+        try store.save(config)
+        let model = AppModel(store: store)
+        let view = CubeView(model: model)
+        view.idlePowerSavingEnabled = true
+        let surface = CubeSurfaceView(cubeView: view)
+        let area = try #require(NSScreen.main?.visibleFrame)
+        let window = NSPanel(contentRect: NSRect(x: area.minX + 20, y: area.minY + 20, width: 164, height: 164), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        window.level = NSWindow.Level(rawValue: NSWindow.Level.floating.rawValue + 10)
+        window.isReleasedWhenClosed = false
+        window.contentView = surface
+        surface.enableRenderingManagement()
+        defer { window.orderOut(nil); window.contentView = nil; model.stopThemeCycle() }
+        window.orderFrontRegardless()
+        _ = surface.resumeRendering(forInput: true)
+        var deadline = Date().addingTimeInterval(8)
+        while !surface.hasFrozenFrame && Date() < deadline { try await Task.sleep(for: .milliseconds(50)) }
+        #expect(surface.hasFrozenFrame)
+        model.change { $0.appearance = CubeThemePreset.auroraFlow.appearance(glowIntensity: 0.7) }
+        view.refreshAppearance()
+        #expect(surface.hasFrozenFrame, "A theme tick must not expose the warming RealityKit surface")
+        #expect(view.alphaValue == 0, "New frames prepare without adding light behind the old transparent image")
+        deadline = Date().addingTimeInterval(8)
+        while (!surface.rendererDetached || surface.isThemeTransitioning) && Date() < deadline { try await Task.sleep(for: .milliseconds(50)) }
+        #expect(surface.hasFrozenFrame)
+        #expect(surface.rendererDetached)
+        #expect(!view.animationUpdatesRunning)
+        let image = try #require(surface.subviews.compactMap { $0 as? NSImageView }.first?.image)
+        let bitmap = try #require(image.tiffRepresentation.flatMap(NSBitmapImageRep.init(data:)))
+        #expect(bitmap.pixelsWide > 0)
+        #expect((0..<bitmap.pixelsHigh).contains { y in (0..<bitmap.pixelsWide).contains { x in (bitmap.colorAt(x: x, y: y)?.alphaComponent ?? 0) > 0.01 } }, "Prepared frames must contain the cube even while its view is transparent")
+    }
+
     @Test func hiddenRendererDetachesAndInputCanReattachIt() throws {
         _ = NSApplication.shared
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

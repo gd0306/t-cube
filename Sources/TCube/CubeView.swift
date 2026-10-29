@@ -19,6 +19,24 @@ final class CubeView: ARView {
     }
     var renderingRequested: (() -> Bool)?
     var staticFrameRequested: (() -> Void)?
+    var appearanceTransitionRequested: ((@escaping () -> Void) -> Void)?
+    var presentationTransitionActive = false
+    private var preparedFrames = 0
+    private var framePrepared: (() -> Void)?
+    private(set) var appliedAppearance: CubeAppearance?
+
+    func afterPreparedFrames(_ completion: @escaping () -> Void) {
+        preparedFrames = 2
+        framePrepared = completion
+    }
+
+    var requiresContinuousRendering: Bool {
+        CubeRenderingPolicy.mode(visible: window?.isVisible == true, hovered: isHovered,
+            interacting: leftTracker.origin != nil || rightTracker.origin != nil,
+            autoRotates: model.configuration.autoRotatesWhenIdle && !idlePowerSavingEnabled,
+            slimeActive: slimeEnabled && slime.isActive,
+            reducedMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion) != .suspended
+    }
     private(set) var animationUpdatesRunning = false
 
     func resumeAnimationUpdates() {
@@ -36,6 +54,8 @@ final class CubeView: ARView {
     func suspendAnimationUpdates() {
         lightUpdates?.cancel()
         lightUpdates = nil
+        preparedFrames = 0
+        framePrepared = nil
         lightElapsed = 0
         animationUpdatesRunning = false
     }
@@ -142,8 +162,17 @@ final class CubeView: ARView {
     }
 
     func refreshAppearance() {
-        requestRendering()
         let appearance = model.displayedAppearance
+        guard appearance != appliedAppearance else { return }
+        let apply = { [weak self] in self?.applyAppearance(appearance) }
+        if appliedAppearance != nil, let appearanceTransitionRequested {
+            appearanceTransitionRequested { apply() }
+        } else { apply() }
+    }
+
+    private func applyAppearance(_ appearance: CubeAppearance) {
+        requestRendering()
+        appliedAppearance = appearance
         let enabled = appearance.material == .slime
         if enabled != slimeEnabled {
             slime = SlimeMotion()
@@ -161,18 +190,18 @@ final class CubeView: ARView {
             interacting: leftTracker.origin != nil || rightTracker.origin != nil,
             autoRotates: model.configuration.autoRotatesWhenIdle && !idlePowerSavingEnabled, slimeActive: slimeEnabled && slime.isActive,
             reducedMotion: reducedMotion)
-        if mode == .suspended, ProcessInfo.processInfo.systemUptime >= keepRenderingUntil,
+        if mode == .suspended, preparedFrames == 0, !presentationTransitionActive, ProcessInfo.processInfo.systemUptime >= keepRenderingUntil,
            let staticFrameRequested {
             staticFrameRequested()
             return
         }
         let interval = mode == .suspended ? 1.0 / 30 : mode.animationInterval
         guard lightElapsed >= interval else { return }
-        let paused = isHovered || leftTracker.origin != nil || rightTracker.origin != nil ||
+        let paused = presentationTransitionActive || isHovered || leftTracker.origin != nil || rightTracker.origin != nil ||
             !model.configuration.autoRotatesWhenIdle || (idlePowerSavingEnabled && !isHovered) || reducedMotion
         cube.orientation = idleRotation.advance(from: cube.orientation, deltaTime: lightElapsed, paused: paused)
-        aura.advance(deltaTime: lightElapsed, hovered: isHovered, reducedMotion: reducedMotion)
-        if slimeEnabled {
+        aura.advance(deltaTime: presentationTransitionActive ? 0 : lightElapsed, hovered: isHovered, reducedMotion: reducedMotion)
+        if slimeEnabled && !presentationTransitionActive {
             if reducedMotion { slimePointerNeedsUpdate = true }
             else { refreshSlimeContact() }
             let previous = slime.deformation
@@ -180,6 +209,14 @@ final class CubeView: ARView {
             if previous != slime.deformation { aura.deform(slime.deformation) }
         }
         lightElapsed = 0
+        if preparedFrames > 0 {
+            preparedFrames -= 1
+            if preparedFrames == 0 {
+                let completion = framePrepared
+                framePrepared = nil
+                completion?()
+            }
+        }
     }
 
     func setHovered(_ hovered: Bool) {

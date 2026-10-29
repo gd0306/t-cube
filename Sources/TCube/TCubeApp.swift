@@ -40,7 +40,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         model.recoverIfNeeded()
         cubeView = CubeView(model: model)
         surface = CubeSurfaceView(cubeView: cubeView)
-        surface.contentRequested = { [weak self] in self?.snippetLibrary.show() }
         surface.contentCaptureRequested = { [weak self] text in self?.snippetLibrary.capture(text) }
         panel = CubePanel(contentRect: NSRect(origin: .zero, size: CubeTheme.windowSize), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         panel.title = "T-Cube"
@@ -83,7 +82,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             self.surface.synchronizeRenderingVisibility()
         }
-        hover.onHoverChange = { [weak self] in self?.cubeView.setHovered($0); self?.surface.setContentButtonVisible($0) }
+        hover.onHoverChange = { [weak self] in self?.cubeView.setHovered($0) }
         hover.onRestingPositionChange = { [weak self] in self?.model.savePosition($0) }
         hover.onRestingFrameCommitted = { [weak self] in
             do { try self?.desktopPlacement?.recordRestingPosition() }

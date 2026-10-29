@@ -38,6 +38,7 @@ jobs:
         timeout-minutes: 4
         run: |
           $env:TCUBE_SMOKE_EXECUTABLE = "$env:RUNNER_TEMP/T-Cube/electron.exe"
+          $env:TCUBE_THEME_TRANSITION_SMOKE = "1"
           npm run smoke
       - uses: actions/upload-artifact@v4
         if: always()

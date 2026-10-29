@@ -7,7 +7,7 @@ export class PerformanceStore {
     async load():Promise<PerformancePreferences>{
         let value:unknown;
         try{value=JSON.parse(await readFile(this.filePath,'utf8'));}
-        catch(error){if((error as NodeJS.ErrnoException).code==='ENOENT')return{idlePowerSaving:true};throw error;}
+        catch(error){if((error as NodeJS.ErrnoException).code==='ENOENT')return{idlePowerSaving:false};throw error;}
         if(!value||typeof value!=='object'||typeof(value as PerformancePreferences).idlePowerSaving!=='boolean')throw new Error('性能设置无效，原文件已保留');
         return{idlePowerSaving:(value as PerformancePreferences).idlePowerSaving};
     }

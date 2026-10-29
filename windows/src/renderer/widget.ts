@@ -1,4 +1,5 @@
 import { animationCadence } from '../core/render-policy';
+import { ThemeTransition } from '../core/theme-transition';
 import * as THREE from 'three';
 import {
     createBodyGeometry,
@@ -15,6 +16,7 @@ import { FACES, type Appearance, type Face, type Snapshot } from '../shared/cont
 import { padTransparentRGB, subscribe, wheelDelta } from './util';
 import { gestureHit } from './state';
 import { createGlassMaterial, updateGlassMaterial } from './glass';
+import { OpticalTransition } from './optical-transition';
 
 const scene = new THREE.Scene(),
     cube = new THREE.Group();
@@ -56,6 +58,13 @@ const energy = new THREE.Mesh(
     new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, opacity: 0.025 }),
 );
 cube.add(energy);
+const themeTransition = new ThemeTransition();
+const opticalLayers = [
+    { mesh: pearl, layer: 'pearl', blend: new OpticalTransition(pearl.material) },
+    { mesh: chroma, layer: 'chroma', blend: new OpticalTransition(chroma.material) },
+    { mesh: energy, layer: 'energy', blend: new OpticalTransition(energy.material) },
+] as const;
+for (const { mesh, layer } of opticalLayers) mesh.name = `optical-${layer}`;
 const faceMaterials = new Map<Face, THREE.MeshBasicMaterial>();
 for (const face of FACES) {
     const material = new THREE.MeshBasicMaterial({
@@ -158,17 +167,14 @@ function updateAppearance(appearance: Appearance) {
         const geometry = physicalMaterial === 'slime' ? slimeShell!.geometry : body;
         for (const mesh of [glass, pearl, chroma]) mesh.geometry = geometry;
     }
-    for (const [mesh, layer] of [
-        [pearl, 'pearl'],
-        [chroma, 'chroma'],
-        [energy, 'energy'],
-    ] as const) {
-        const material = mesh.material;
-        material.map?.dispose();
-        material.map = optical(layer, appearance);
-        material.needsUpdate = true;
-    }
-    energy.visible = appearance.surfaceStyle !== 'clear' && appearance.glowIntensity > 0;
+    // Generate only the new endpoint maps. Animation frames change uniforms alone.
+    const maps = opticalLayers.map(({ layer }) => optical(layer, appearance));
+    const now = performance.now(), previousProgress = themeTransition.progress(now);
+    themeTransition.retarget(appearance, now, snapshot!.state.reducedMotion);
+    const targetEnergy = appearance.glowIntensity * (appearance.surfaceStyle === 'clear' ? 0 : appearance.surfaceStyle === 'moonstone' ? 0.1 : 0.2);
+    for (const [index, { blend, layer }] of opticalLayers.entries())
+        blend.retarget(maps[index], previousProgress, themeTransition.active(now),
+            layer === 'pearl' ? 1 : layer === 'chroma' ? appearance.glowIntensity : targetEnergy);
     dirty = true;
 }
 let textureVersion = 0;
@@ -242,11 +248,11 @@ function render() {
             state.hovered ||
             state.interactionActive ||
             state.reducedMotion ||
-            !state.configuration.autoRotatesWhenIdle || (state.idlePowerSaving !== false && !state.hovered);
+            !state.configuration.autoRotatesWhenIdle || (state.idlePowerSaving === true && !state.hovered);
     cube.quaternion.copy(idle.step(dt, paused));
     const phase = motion.phase;
     motion.step(dt, state.hovered, state.reducedMotion);
-    if (state.idlePowerSaving !== false && !state.hovered) motion.phase = phase;
+    if (state.idlePowerSaving === true && !state.hovered) motion.phase = phase;
     for (const material of faceMaterials.values()) material.opacity = state.hovered ? 1 : 0;
     if (physicalMaterial === 'slime') {
         // Use the same native DIP cursor/frame sample that drives hover zoom.
@@ -261,7 +267,10 @@ function render() {
         slime.step(dt || 1 / 30, state.reducedMotion);
         if (wasActive || slime.isActive || state.reducedMotion) slimeShell!.update(slime.deformation);
     }
-    updateGlassMaterial(glass.material, state.displayedAppearance, motion.engagement);
+    if (state.reducedMotion) themeTransition.finish();
+    const themeProgress = themeTransition.progress(now), palette = themeTransition.sample(now);
+    for (const { blend } of opticalLayers) blend.update(themeProgress);
+    updateGlassMaterial(glass.material, state.displayedAppearance, motion.engagement, palette);
     pearl.material.map!.offset.x = -motion.phase;
     chroma.material.map!.offset.x = motion.phase;
     energy.material.map!.offset.x = motion.phase;
@@ -269,23 +278,21 @@ function render() {
     pearl.material.opacity = opacity * (0.55 + 0.2 * motion.engagement);
     chroma.material.opacity =
         opacity * 1.15 *
-        state.displayedAppearance.glowIntensity *
         (0.55 + 0.25 * motion.engagement) *
         (0.94 + 0.06 * Math.sin(motion.phase * 2 * Math.PI));
     energy.material.opacity =
         opacity *
-        state.displayedAppearance.glowIntensity *
-        (state.displayedAppearance.surfaceStyle === 'moonstone' ? 0.1 : 0.2) *
         (1 - 0.86 * motion.engagement);
+    energy.visible = palette.energy > 0;
     renderer.render(scene, camera);
     metrics.frames++;
     dirty = false;
     const cadence = animationCadence({visible: state.visible, documentVisible: !document.hidden,
         hovered: state.hovered, interacting: state.interactionActive, reducedMotion: state.reducedMotion,
-        autoRotates: state.configuration.autoRotatesWhenIdle, idlePowerSaving: state.idlePowerSaving !== false,
+        autoRotates: state.configuration.autoRotatesWhenIdle, idlePowerSaving: state.idlePowerSaving === true,
         slimeActive: physicalMaterial === 'slime' && slime.isActive,
         settling: Math.abs(motion.engagement - (state.hovered ? 1 : 0)) > 0.001,
-        glow: state.displayedAppearance.glowIntensity});
+        glow: palette.glow, themeTransition: themeTransition.active(now)});
     metrics.cadence = cadence;
     timer = cadence ? window.setTimeout(render, 1000 / cadence) : 0;
 }
@@ -295,6 +302,10 @@ function requestUpdate() {
         timer = window.setTimeout(render, 1000 / 30);
 }
 export const controller = { metrics, scene, cube, camera, renderer, render, requestUpdate };
+window.addEventListener('pagehide', () => {
+    window.clearTimeout(timer);
+    for (const { blend } of opticalLayers) blend.dispose();
+});
 function resize() {
     const w = window.innerWidth,
         h = window.innerHeight;
@@ -384,7 +395,6 @@ renderer.domElement.addEventListener(
     { passive: false },
 );
 
-document.querySelector('#library-entry')!.addEventListener('click',()=>{void window.tcube.showLibrary().catch(console.error);});
 renderer.domElement.addEventListener('pointerdown',()=>{renderer.domElement.classList.add('clicked');setTimeout(()=>renderer.domElement.classList.remove('clicked'),160);});
 document.body.addEventListener('dragover',event=>{if(event.dataTransfer?.types.includes('text/plain'))event.preventDefault();});
 document.body.addEventListener('drop',event=>{const text=event.dataTransfer?.getData('text/plain');if(text&&!event.dataTransfer?.files.length){event.preventDefault();void window.tcube.showLibrary(text).catch(console.error);}});

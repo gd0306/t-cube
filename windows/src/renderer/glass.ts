@@ -1,5 +1,6 @@
 import { Color, FrontSide, ShaderMaterial } from 'three';
 import type { Appearance } from '../shared/contracts';
+import type { ThemePalette } from '../core/theme-transition';
 
 /** View-dependent reflections stay visible without an environment map or edge rails. */
 export function createGlassMaterial(): ShaderMaterial {
@@ -55,10 +56,15 @@ export function createGlassMaterial(): ShaderMaterial {
     });
 }
 
-export function updateGlassMaterial(material: ShaderMaterial, appearance: Appearance, engagement: number): void {
-    material.uniforms.primary.value.set(appearance.primaryHex);
-    material.uniforms.secondary.value.set(appearance.secondaryHex);
-    material.uniforms.glow.value = appearance.glowIntensity;
+export function updateGlassMaterial(material: ShaderMaterial, appearance: Appearance, engagement: number, palette?: ThemePalette): void {
+    if (palette) {
+        material.uniforms.primary.value.setRGB(...palette.primary);
+        material.uniforms.secondary.value.setRGB(...palette.secondary);
+    } else {
+        material.uniforms.primary.value.set(appearance.primaryHex);
+        material.uniforms.secondary.value.set(appearance.secondaryHex);
+    }
+    material.uniforms.glow.value = palette?.glow ?? appearance.glowIntensity;
     material.uniforms.engagement.value = engagement;
     material.uniforms.slime.value = appearance.material === 'slime' ? 1 : 0;
 }

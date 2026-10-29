@@ -41,7 +41,7 @@ export class LauncherHost {
     private rotationDrag: RotationDrag | null = null;
     private sequence = 0;
     private visible = true;
-    private idlePowerSaving = true;
+    private idlePowerSaving = false;
     setIdlePowerSaving(enabled: boolean): void { this.idlePowerSaving = enabled; this.publish(); }
     private reducedMotion = false;
     private controlHeld = false;

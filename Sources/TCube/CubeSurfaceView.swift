@@ -1,28 +1,44 @@
 import AppKit
 
-/// Native input is independent of GPU collision readiness and transparent textures.
+/// Native input remains available while optical frames are prepared offscreen.
 @MainActor
 final class CubeSurfaceView: NSView {
     let cubeView: CubeView
     let input: CubeInputOverlay
-    var contentRequested: (() -> Void)?
     var contentCaptureRequested: ((String) -> Void)?
-    private let contentButton = NSButton()
     private let frozenImage = NSImageView()
+    private let frameCapture: ((@escaping (NSImage?) -> Void) -> Void)?
     private var visibilityObserver: NSObjectProtocol?
     private var snapshotGeneration = 0
     private var snapshotPending = false
-    private(set) var rendererDetached = false
     private var managesRendering = false
+    private var applyingAppearance = false
+    private var preparingTheme = false
+    private var pendingAppearance: (() -> Void)?
+    private var transitionTask: Task<Void, Never>?
+    private(set) var rendererDetached = false
     var hasFrozenFrame: Bool { !frozenImage.isHidden && frozenImage.image != nil }
+    var isThemeTransitioning: Bool { preparingTheme || transitionTask != nil || cubeView.presentationTransitionActive }
 
     func enableRenderingManagement() {
         guard !managesRendering else { return }
         managesRendering = true
         cubeView.renderingRequested = { [weak self] in self?.resumeRendering() ?? false }
         cubeView.staticFrameRequested = { [weak self] in self?.freezeStaticFrame() }
+        cubeView.appearanceTransitionRequested = { [weak self] apply in
+            if let self { self.prepareAppearance(apply) } else { apply() }
+        }
         input.renderingRequested = { [weak self] in _ = self?.resumeRendering(forInput: true) }
         observeRenderingWindow()
+    }
+
+    private func invalidatePresentation() {
+        snapshotGeneration += 1
+        snapshotPending = false
+        preparingTheme = false
+        transitionTask?.cancel()
+        transitionTask = nil
+        cubeView.presentationTransitionActive = false
     }
 
     @discardableResult
@@ -30,79 +46,187 @@ final class CubeSurfaceView: NSView {
         guard managesRendering else { cubeView.resumeAnimationUpdates(); return true }
         guard let window, window.isVisible,
               forInput || cubeView.superview === self || window.occlusionState.contains(.visible) else { return false }
-        snapshotGeneration += 1
-        snapshotPending = false
+        if !applyingAppearance {
+            let pending = pendingAppearance
+            pendingAppearance = nil
+            invalidatePresentation()
+            if let pending {
+                applyingAppearance = true
+                pending()
+                applyingAppearance = false
+            }
+        }
+        let retainFrame = hasFrozenFrame && !forInput
+        cubeView.alphaValue = retainFrame ? 0 : 1
         if cubeView.superview !== self {
             cubeView.frame = bounds
-            addSubview(cubeView, positioned: .below, relativeTo: input)
+            addSubview(cubeView, positioned: .below, relativeTo: frozenImage)
         }
-        frozenImage.isHidden = true
+        frozenImage.isHidden = !retainFrame
         rendererDetached = false
         cubeView.resumeAnimationUpdates()
+        if !forInput && !applyingAppearance {
+            let generation = snapshotGeneration
+            cubeView.afterPreparedFrames { [weak self] in
+                guard let self, self.snapshotGeneration == generation, !self.preparingTheme else { return }
+                if self.cubeView.requiresContinuousRendering { self.revealLiveFrame() }
+                else { self.captureStaticFrame(generation: generation, resumeAfterTransition: false) }
+            }
+        }
         return true
+    }
+
+    private func revealLiveFrame() {
+        cubeView.presentationTransitionActive = false
+        cubeView.alphaValue = 1
+        frozenImage.isHidden = true
     }
 
     func synchronizeRenderingVisibility() {
         guard managesRendering else { return }
         if window?.isVisible == true, window?.occlusionState.contains(.visible) == true {
-            _ = resumeRendering()
+            if !isThemeTransitioning { _ = resumeRendering() }
         } else {
-            snapshotGeneration += 1
-            snapshotPending = false
+            let pending = pendingAppearance
+            pendingAppearance = nil
+            invalidatePresentation()
+            if let pending { applyingAppearance = true; pending(); applyingAppearance = false }
             cubeView.suspendAnimationUpdates()
             cubeView.removeFromSuperview()
             rendererDetached = true
         }
     }
 
-    private func freezeStaticFrame() {
-        guard !snapshotPending, cubeView.superview === self, window?.isVisible == true else { return }
-        snapshotPending = true
-        snapshotGeneration += 1
+    private func prepareAppearance(_ apply: @escaping () -> Void) {
+        guard window?.isVisible == true, cubeView.superview === self || hasFrozenFrame else {
+            applyingAppearance = true; apply(); applyingAppearance = false
+            return
+        }
+        invalidatePresentation()
+        preparingTheme = true
+        pendingAppearance = apply
+        cubeView.presentationTransitionActive = true
         let generation = snapshotGeneration
-        cubeView.snapshot(saveToHDR: false) { [weak self] image in
-            MainActor.assumeIsolated {
-                guard let self, self.snapshotGeneration == generation else { return }
-                self.snapshotPending = false
-                guard let image else { self.cubeView.suspendAnimationUpdates(); return }
-                self.frozenImage.image = image
-                self.frozenImage.frame = self.bounds
-                self.frozenImage.isHidden = false
-                self.cubeView.suspendAnimationUpdates()
-                self.cubeView.removeFromSuperview()
-                self.rendererDetached = true
+        if let old = hasFrozenFrame ? frozenImage.image : nil {
+            prepareTarget(from: old, generation: generation)
+        } else {
+            captureFrame { [weak self] old in
+                MainActor.assumeIsolated {
+                    guard let self, self.snapshotGeneration == generation else { return }
+                    self.prepareTarget(from: old, generation: generation)
+                }
             }
         }
     }
 
-    func setContentButtonVisible(_ visible: Bool) { contentButton.isHidden = !visible }
-    @objc private func openContent() { contentRequested?() }
+    private func prepareTarget(from old: NSImage?, generation: Int) {
+        guard let apply = pendingAppearance else { return }
+        pendingAppearance = nil
+        frozenImage.image = old
+        frozenImage.isHidden = old == nil
+        applyingAppearance = true
+        apply()
+        applyingAppearance = false
+        cubeView.presentationTransitionActive = true
+        // A transparent ARView still produces snapshots, but cannot add highlights
+        // behind the old transparent image during material/texture preparation.
+        cubeView.alphaValue = 0
+        cubeView.afterPreparedFrames { [weak self] in
+            guard let self, self.snapshotGeneration == generation else { return }
+            self.captureStaticFrame(generation: generation, resumeAfterTransition: self.cubeView.requiresContinuousRendering)
+        }
+    }
 
-    init(cubeView: CubeView) {
+    private func captureFrame(_ completion: @escaping (NSImage?) -> Void) {
+        if let frameCapture { frameCapture(completion) }
+        else { cubeView.snapshot(saveToHDR: false, completion: completion) }
+    }
+
+    private func freezeStaticFrame() {
+        guard !preparingTheme, !snapshotPending, cubeView.superview === self, window?.isVisible == true else { return }
+        snapshotGeneration += 1
+        captureStaticFrame(generation: snapshotGeneration, resumeAfterTransition: false)
+    }
+
+    private func captureStaticFrame(generation: Int, resumeAfterTransition: Bool) {
+        snapshotPending = true
+        captureFrame { [weak self] image in
+            MainActor.assumeIsolated {
+                guard let self, self.snapshotGeneration == generation else { return }
+                self.snapshotPending = false
+                self.preparingTheme = false
+                guard let image else {
+                    // A failed snapshot must never remove the only usable surface.
+                    self.revealLiveFrame()
+                    if self.cubeView.requiresContinuousRendering { self.cubeView.resumeAnimationUpdates() }
+                    else { self.cubeView.suspendAnimationUpdates() }
+                    return
+                }
+                self.cubeView.suspendAnimationUpdates()
+                self.cubeView.removeFromSuperview()
+                self.rendererDetached = true
+                self.present(image, generation: generation, resumeAfterTransition: resumeAfterTransition)
+            }
+        }
+    }
+
+    private func present(_ image: NSImage, generation: Int, resumeAfterTransition: Bool) {
+        let old = hasFrozenFrame ? frozenImage.image : nil
+        frozenImage.frame = bounds
+        frozenImage.isHidden = false
+        guard let old, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else {
+            frozenImage.image = image
+            finishPresentation(generation: generation, resumeLive: resumeAfterTransition)
+            return
+        }
+        transitionTask = Task { [weak self] in
+            let started = ProcessInfo.processInfo.systemUptime
+            while !Task.isCancelled {
+                guard let self, self.snapshotGeneration == generation else { return }
+                let progress = min(1, (ProcessInfo.processInfo.systemUptime - started) / ThemeFrameBlend.duration)
+                self.frozenImage.image = ThemeFrameBlend.image(from: old, to: image, progress: progress) ?? image
+                if progress == 1 {
+                    self.transitionTask = nil
+                    self.finishPresentation(generation: generation, resumeLive: resumeAfterTransition)
+                    return
+                }
+                do { try await Task.sleep(for: .milliseconds(33)) } catch { return }
+            }
+        }
+    }
+
+    private func finishPresentation(generation: Int, resumeLive: Bool) {
+        guard snapshotGeneration == generation else { return }
+        cubeView.presentationTransitionActive = false
+        if resumeLive, window?.isVisible == true {
+            // Warm the live surface behind the final image before revealing it.
+            applyingAppearance = true
+            _ = resumeRendering()
+            applyingAppearance = false
+            cubeView.presentationTransitionActive = true
+            cubeView.afterPreparedFrames { [weak self] in
+                guard let self, self.snapshotGeneration == generation else { return }
+                self.revealLiveFrame()
+            }
+        }
+    }
+
+    init(cubeView: CubeView, frameCapture: ((@escaping (NSImage?) -> Void) -> Void)? = nil) {
         self.cubeView = cubeView
+        self.frameCapture = frameCapture
         input = CubeInputOverlay(cubeView: cubeView)
         super.init(frame: NSRect(origin: .zero, size: CubeTheme.windowSize))
         frozenImage.imageScaling = .scaleAxesIndependently
         frozenImage.autoresizingMask = [.width, .height]
         frozenImage.isHidden = true
-        addSubview(frozenImage)
         addSubview(cubeView)
+        addSubview(frozenImage)
         addSubview(input)
         input.textDropRequested = { [weak self] text in self?.contentCaptureRequested?(text) }
         cubeView.frame = bounds
         input.frame = bounds
         cubeView.autoresizingMask = [.width, .height]
         input.autoresizingMask = [.width, .height]
-        contentButton.image = NSImage(systemSymbolName: "text.badge.plus", accessibilityDescription: "常用内容")
-        contentButton.bezelStyle = .rounded
-        contentButton.toolTip = "常用内容 · ⌘⇧Space"
-        contentButton.setAccessibilityLabel("打开常用内容库")
-        contentButton.target = self
-        contentButton.action = #selector(openContent)
-        contentButton.frame = NSRect(x: bounds.width - 38, y: 4, width: 32, height: 26)
-        contentButton.autoresizingMask = [.minXMargin, .maxYMargin]
-        contentButton.isHidden = true
-        addSubview(contentButton)
     }
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("Use init(cubeView:)") }
