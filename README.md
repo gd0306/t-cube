@@ -47,6 +47,10 @@ Native app renders with sample system icons, enlarged for detail. All previews s
 - **Glass or Slime material on both platforms.** Use any theme with either material. Slime follows the pointer and springs back while icons stay stable; glass remains the default.
 - **Menu-bar or tray access.** Configure, show, hide, or quit from system controls. Motion respects system animation preferences.
 
+## Content templates (development version)
+
+Enable “作为模板使用” when editing a library item, then add placeholders such as `{{客户姓名}}` in its body or fields. Fill each variable once and preview the result before copying or pasting. Existing items remain ordinary text by default.
+
 ## Office and performance features (0.16.1)
 
 Both platforms include a common-content library (menu bar/tray, or `Command+Shift+Space` on macOS / `Ctrl+Shift+Space` on Windows) with groups, favorites, search, full-text/field copy and focus-checked paste after Accessibility authorization. Settings include validated import/export, pre-import backups, manual backup/restore and explicit broken-launcher relinking. Hover delay is configurable; per-display positions survive disconnects. Idle power saving defaults to on for macOS and off for Windows: rotation and flowing light pause until interaction. Disable it in Performance settings for continuous animation. Windows glass has deeper tint and contours for light desktop visibility. Theme changes blend over 0.4 seconds without exposing preparation frames; the cube has no content-library button.

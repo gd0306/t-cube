@@ -1,6 +1,6 @@
 /** Matches the macOS content-library.json format. */
 export interface SnippetField { id: string; label: string; value: string }
-export interface TextSnippet { id: string; title: string; group: string; body: string; fields: SnippetField[]; isFavorite: boolean }
+export interface TextSnippet { id: string; title: string; group: string; body: string; fields: SnippetField[]; isFavorite: boolean; isTemplate?: boolean }
 export interface SnippetLibrary { version: 1; items: TextSnippet[] }
 export interface ProductivityBridge {
     showLibrary(text?: string): Promise<void>;

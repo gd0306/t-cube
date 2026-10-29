@@ -19,15 +19,30 @@ public struct TextSnippet: Identifiable, Codable, Equatable, Sendable {
     public var body: String
     public var fields: [SnippetField]
     public var isFavorite: Bool
+    public var isTemplate: Bool
 
     public init(id: UUID = UUID(), title: String = "", group: String = "", body: String = "",
-                fields: [SnippetField] = [], isFavorite: Bool = false) {
+                fields: [SnippetField] = [], isFavorite: Bool = false, isTemplate: Bool = false) {
         self.id = id
         self.title = title
         self.group = group
         self.body = body
         self.fields = fields
         self.isFavorite = isFavorite
+        self.isTemplate = isTemplate
+    }
+
+    private enum CodingKeys: String, CodingKey { case id, title, group, body, fields, isFavorite, isTemplate }
+
+    public init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decode(UUID.self, forKey: .id)
+        title = try values.decode(String.self, forKey: .title)
+        group = try values.decode(String.self, forKey: .group)
+        body = try values.decode(String.self, forKey: .body)
+        fields = try values.decode([SnippetField].self, forKey: .fields)
+        isFavorite = try values.decode(Bool.self, forKey: .isFavorite)
+        isTemplate = try values.decodeIfPresent(Bool.self, forKey: .isTemplate) ?? false
     }
 
     public var fullText: String {

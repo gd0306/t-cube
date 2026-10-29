@@ -47,8 +47,9 @@ export async function verifyLibrarySmoke(app: ElectronApplication, widget: Page)
         fields: [{ id: randomUUID(), label: '邮箱', value: `office-${randomUUID().slice(0, 8)}@example.test` }],
     };
     const fullText = `${snippet.body}\n邮箱：${snippet.fields[0].value}`;
+    const template: TextSnippet = { id: randomUUID(), title: `模板 smoke ${randomUUID().slice(0, 8)}`, group: 'Smoke / 办公', body: 'Hello {{name}}, {{name}}!', fields: [], isFavorite: false, isTemplate: true };
     let receiver: ChildProcess | undefined, receiverWindow = 0n, textbox = 0n, library: Page | undefined;
-    let clipboardSaved = false, fixtureSaved = false, failed = false, receiverError = '';
+    let clipboardSaved = false, fixtureSaved = false, templateSaved = false, failed = false, receiverError = '';
     const results: string[] = [];
     function owns(window: bigint): boolean {
         const pid = [0];
@@ -166,6 +167,18 @@ $form.Dispose()
         await until(async () => receiverText(), text => text === `${fullText}${snippet.fields[0].value}`, 'Native individual-field Ctrl+V did not append into owned receiver');
         assert.equal(BigInt(foreground()), receiverWindow);
         results.push('Native individual-field paste reused the captured input field and kept the owned receiver open.');
+        library = await showLibrary();
+        await library.evaluate(item => window.tcube.saveSnippet(item), template);
+        templateSaved = true;
+        await library.reload();
+        await library.locator('#search').fill(template.title);
+        await library.getByRole('button', { name: new RegExp(template.title) }).click();
+        await library.getByRole('button', { name: '粘贴全部', exact: true }).click();
+        await library.getByRole('textbox', { name: 'name' }).fill('Alice');
+        assert.match(await library.locator('#detail pre').innerText(), /Hello Alice, Alice!/);
+        await library.getByRole('button', { name: '粘贴', exact: true }).click();
+        await until(async () => receiverText(), text => text === `${fullText}${snippet.fields[0].value}Hello Alice, Alice!`, 'Native template paste did not reach owned receiver');
+        results.push('Template preview and native paste replace repeated variables in the original receiver.');
         return results;
     } catch (error) {
         failed = true;
@@ -184,6 +197,7 @@ $form.Dispose()
             if (receiver!.exitCode === null && receiver!.signalCode === null) receiver!.kill();
         });
         await stage('cleanup fixture');
+        if (templateSaved && library && !library.isClosed()) await clean(() => library!.evaluate(id => window.tcube.deleteSnippet(id), template.id));
         if (fixtureSaved && library && !library.isClosed()) await clean(() => library!.evaluate(id => window.tcube.deleteSnippet(id), snippet.id));
         if (library && !library.isClosed()) await clean(() => app.evaluate(({ BrowserWindow }, url) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL() === url)?.hide(), library!.url()));
         await stage('restore clipboard');

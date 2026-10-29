@@ -58,3 +58,23 @@ test('corruption preserves bytes and blocks cached edits until explicit successf
 test('whole-snippet text cannot exceed the explicit clipboard IPC limit', () => {
     assert.throws(() => validateSnippetLibrary({ version: 1, items: [{ ...one, body: 'x'.repeat(262140) }] }));
 });
+
+test('template fills repeated variables without interpreting inserted text', async () => {
+    const { templateVariables, renderTemplate } = await import('../src/core/snippet-template');
+    const text = '你好 {{姓名}}，{{姓名}}：{{内容}}';
+    assert.deepEqual(templateVariables(text), ['姓名', '内容']);
+    assert.equal(renderTemplate(text, { 姓名: '小王', 内容: '{{姓名}}' }), '你好 小王，小王：{{姓名}}');
+});
+
+test('template flag is optional for old data and survives validation', () => {
+    assert.equal(validateSnippetLibrary({ version: 1, items: [one] }).items[0].isTemplate ?? false, false);
+    assert.equal(validateSnippetLibrary({ version: 1, items: [{ ...one, isTemplate: true }] }).items[0].isTemplate, true);
+    assert.throws(() => validateSnippetLibrary({ version: 1, items: [{ ...one, isTemplate: 'yes' }] }));
+});
+
+test('template preserves malformed and unfilled placeholders', async () => {
+    const { templateVariables, renderTemplate } = await import('../src/core/snippet-template');
+    const text = '{{ }} {{}} {{first}} {{second}} {{broken';
+    assert.deepEqual(templateVariables(text), ['first', 'second']);
+    assert.equal(renderTemplate(text, { first: 'one' }), '{{ }} {{}} one {{second}} {{broken');
+});

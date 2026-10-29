@@ -7,6 +7,7 @@ struct SnippetLibraryView: View {
     let useText: (String, Bool) -> Void
     @State private var draft: TextSnippet?
     @State private var deleting: TextSnippet?
+    @State private var templateRequest: TemplateRequest?
     @State private var isDropTarget = false
     @FocusState private var searchFocused: Bool
 
@@ -43,6 +44,9 @@ struct SnippetLibraryView: View {
         .sheet(item: $draft) { snippet in
             SnippetEditorSheet(model: model, snippet: snippet)
         }
+        .sheet(item: $templateRequest) { request in
+            TemplateFillSheet(request: request, useText: useText)
+        }
         .confirmationDialog("删除「\(deleting?.title ?? "")」？", isPresented: Binding(
             get: { deleting != nil },
             set: { if !$0 { deleting = nil } }
@@ -60,6 +64,7 @@ struct SnippetLibraryView: View {
             consumePendingCapture()
         }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("TCubeSnippetSearchFocus"))) { _ in
+            templateRequest = nil
             searchFocused = true
         }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("TCubeSnippetCaptureText"))) { notification in
@@ -171,7 +176,7 @@ struct SnippetLibraryView: View {
         .padding(.vertical, 8)
         .accessibilityElement(children: .combine)
         .contextMenu {
-            Button("复制全部") { useText(snippet.fullText, false) }
+            Button("复制全部") { prepareText(snippet.fullText, false, snippet.isTemplate) }
             Button(snippet.isFavorite ? "取消收藏" : "加入收藏") { model.toggleFavorite(snippet.id) }
                 .disabled(!model.mutationsEnabled)
             Button("编辑内容") { draft = snippet }.disabled(!model.mutationsEnabled)
@@ -202,10 +207,10 @@ struct SnippetLibraryView: View {
                         .accessibilityLabel("编辑所选内容").disabled(!model.mutationsEnabled)
                 }
                 HStack(spacing: 10) {
-                    Button("粘贴全部", systemImage: "arrow.up.doc.on.clipboard") { useText(snippet.fullText, true) }
+                    Button("粘贴全部", systemImage: "arrow.up.doc.on.clipboard") { prepareText(snippet.fullText, true, snippet.isTemplate) }
                         .buttonStyle(.borderedProminent)
                         .help("将全部内容粘贴到唤出内容库前的输入框")
-                    Button("复制全部", systemImage: "doc.on.doc") { useText(snippet.fullText, false) }
+                    Button("复制全部", systemImage: "doc.on.doc") { prepareText(snippet.fullText, false, snippet.isTemplate) }
                     Spacer()
                 }
             }
@@ -225,7 +230,7 @@ struct SnippetLibraryView: View {
                             Text("独立字段").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                                 .padding(.bottom, 6)
                             ForEach(snippet.fields) { field in
-                                fieldRow(field)
+                                fieldRow(field, isTemplate: snippet.isTemplate)
                                 if field.id != snippet.fields.last?.id { Divider() }
                             }
                         }
@@ -249,7 +254,7 @@ struct SnippetLibraryView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func fieldRow(_ field: SnippetField) -> some View {
+    private func fieldRow(_ field: SnippetField, isTemplate: Bool) -> some View {
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(field.label.isEmpty ? "未命名字段" : field.label)
@@ -258,9 +263,9 @@ struct SnippetLibraryView: View {
                     .font(.system(size: 14)).textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
-            Button { useText(field.value, false) } label: { Image(systemName: "doc.on.doc") }
+            Button { prepareText(field.value, false, isTemplate) } label: { Image(systemName: "doc.on.doc") }
                 .help("复制字段值").accessibilityLabel("复制字段：\(field.label)")
-            Button { useText(field.value, true) } label: { Image(systemName: "arrow.up.doc.on.clipboard") }
+            Button { prepareText(field.value, true, isTemplate) } label: { Image(systemName: "arrow.up.doc.on.clipboard") }
                 .help("粘贴字段值").accessibilityLabel("粘贴字段：\(field.label)")
         }
         .buttonStyle(.borderless).disabled(field.value.isEmpty)
@@ -295,6 +300,11 @@ struct SnippetLibraryView: View {
         }
         .font(.caption).frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 22).padding(.vertical, 11)
+    }
+
+    private func prepareText(_ text: String, _ paste: Bool, _ isTemplate: Bool) {
+        if !isTemplate || SnippetTemplate(text).variables.isEmpty { useText(text, paste) }
+        else { templateRequest = TemplateRequest(text: text, paste: paste) }
     }
 
     private func captureClipboard() {
@@ -388,6 +398,9 @@ private struct SnippetEditorSheet: View {
                                 .accessibilityLabel("移除字段：\(field.label)")
                         }
                     }
+                    Toggle("作为模板使用", isOn: $snippet.isTemplate)
+                    Text("启用后，可在正文和字段中用 {{变量名}} 设置填写项。")
+                        .font(.caption).foregroundStyle(.secondary)
                     Toggle("加入收藏", isOn: $snippet.isFavorite)
                 }
                 .textFieldStyle(.roundedBorder).padding(2)
@@ -415,5 +428,48 @@ private struct SnippetEditorSheet: View {
             Text(title).font(.callout.weight(.medium))
             content()
         }
+    }
+}
+
+private struct TemplateRequest: Identifiable {
+    let id = UUID()
+    let text: String
+    let paste: Bool
+}
+
+private struct TemplateFillSheet: View {
+    let request: TemplateRequest
+    let useText: (String, Bool) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var values: [String: String] = [:]
+
+    var body: some View {
+        let template = SnippetTemplate(request.text)
+        VStack(alignment: .leading, spacing: 16) {
+            Text("填写模板").font(.title2.weight(.semibold))
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(template.variables, id: \.self) { name in
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(name).font(.callout.weight(.medium))
+                            TextField("填写\(name)", text: Binding(get: { values[name, default: ""] }, set: { values[name] = $0 }))
+                                .textFieldStyle(.roundedBorder).accessibilityLabel(name)
+                        }
+                    }
+                    Text("预览").font(.headline)
+                    Text(template.render(values)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            HStack {
+                Spacer()
+                Button("取消") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button(request.paste ? "粘贴" : "复制") {
+                    let result = template.render(values)
+                    dismiss()
+                    useText(result, request.paste)
+                }.keyboardShortcut(.defaultAction)
+                    .disabled(template.variables.contains { values[$0, default: ""].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })
+            }
+        }.padding(24).frame(width: 520, height: 420)
     }
 }

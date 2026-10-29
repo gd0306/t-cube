@@ -118,3 +118,23 @@ struct SnippetLibraryTests {
         FileManager.default.temporaryDirectory.appendingPathComponent("SnippetLibraryTests-\(UUID().uuidString)", isDirectory: true)
     }
 }
+
+@Test func templateFillsRepeatedVariablesWithoutReplacingInsertedText() {
+    let template = SnippetTemplate("你好 {{姓名}}，{{姓名}}：{{内容}}")
+    #expect(template.variables == ["姓名", "内容"])
+    #expect(template.render(["姓名": "小王", "内容": "{{姓名}}"]) == "你好 小王，小王：{{姓名}}")
+}
+
+@Test func legacySnippetsRemainOrdinaryAndTemplateFlagRoundTrips() throws {
+    let legacy = #"{"id":"11111111-1111-4111-8111-111111111111","title":"Code","group":"","body":"{{literal}}","fields":[],"isFavorite":false}"#.data(using: .utf8)!
+    var snippet = try JSONDecoder().decode(TextSnippet.self, from: legacy)
+    #expect(!snippet.isTemplate)
+    snippet.isTemplate = true
+    #expect(try JSONDecoder().decode(TextSnippet.self, from: JSONEncoder().encode(snippet)).isTemplate)
+}
+
+@Test func templateKeepsMalformedAndUnfilledPlaceholdersIntact() {
+    let template = SnippetTemplate("{{ }} {{}} {{first}} {{second}} {{broken")
+    #expect(template.variables == ["first", "second"])
+    #expect(template.render(["first": "one"]) == "{{ }} {{}} one {{second}} {{broken")
+}

@@ -20,7 +20,7 @@ export function validateSnippetLibrary(value: unknown): SnippetLibrary {
         if (ids.has(item.id.toLowerCase())) throw new Error('内容标识重复。');
         ids.add(item.id.toLowerCase());
         text(item.title, SNIPPET_LIMITS.title); text(item.group, SNIPPET_LIMITS.group); text(item.body, SNIPPET_LIMITS.text);
-        if (!item.title.trim() || typeof item.isFavorite !== 'boolean' || !Array.isArray(item.fields) || item.fields.length > SNIPPET_LIMITS.fields) throw new Error('请填写标题，并检查字段格式。');
+        if ((item.isTemplate !== undefined && typeof item.isTemplate !== 'boolean') || !item.title.trim() || typeof item.isFavorite !== 'boolean' || !Array.isArray(item.fields) || item.fields.length > SNIPPET_LIMITS.fields) throw new Error('请填写标题，并检查字段格式。');
         let hasContent = Boolean(item.body.trim());
         for (const field of item.fields) {
             record(field); validateSnippetId(field.id);
