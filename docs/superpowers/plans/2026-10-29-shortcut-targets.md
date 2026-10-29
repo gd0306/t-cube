@@ -9,7 +9,7 @@
 - [x] macOS core/model, launcher, icons, add/replace UI, maintenance, regression tests.
 - [x] Windows schema, native host, renderer, icons, maintenance, regressions and native smoke.
 - [x] Review both implementations, run full tests/builds, increment versions to 0.17.0, document behavior.
-- [ ] Commit/push, run Windows CI/installer workflow, build and verify macOS DMG, publish matching source and installers with hashes.
-- [ ] Back up installed app, install release build, verify native UI and preserve user data; record results.
+- [x] Commit/push, run Windows CI/installer workflow, build and verify macOS DMG, publish matching source and installers with hashes.
+- [x] Back up installed app, install release build, verify native UI and preserve user data; record results.
 
 Validation must reject unsafe schemes and incorrect kind/target combinations. Tests capture launch callbacks and use temporary stores; never open external apps from unit tests. System settings are selected from a fixed catalog, not arbitrary URI input. New targets must survive save/load and configuration backup/import. Windows native smoke uses isolated userData. Native manual tests must be distinguished from automated checks.

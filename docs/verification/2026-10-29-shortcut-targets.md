@@ -12,3 +12,5 @@ Apps and folders are joined by local files, HTTP(S) websites and curated system-
 - `git diff --check`: passed.
 
 Windows settings URIs were checked against [Microsoft's settings URI reference](https://learn.microsoft.com/en-us/windows/apps/develop/launch/launch-settings). Some pages depend on installed hardware, notably Wi-Fi. macOS destinations were verified against locally installed settings extension identifiers and the system URI handler.
+
+Final CI, packaging, local installation and published artifact hashes: [0.17.0 release verification](2026-10-30-v0.17.0-release.md).

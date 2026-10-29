@@ -41,4 +41,4 @@ User data lives at `~/Library/Application Support/T-Cube/configuration.json`. Ne
 
 ## Local Version Acceptance
 
-When working on the maintainer's Mac, install each completed new version into `/Applications/T-Cube.app` and verify it locally before reporting completion. Quit the running app normally, preserve the previous application under ignored `build/`, and retain existing user configuration. Verify the installed executable matches the built version and distinguish manual desktop checks from automated tests.
+When working on the maintainer's Mac, install each completed new version into `/Applications/T-Cube.app` and verify it locally before reporting completion. Quit the running app normally, preserve the previous application under ignored `build/`, and back up the existing user JSON files alongside it without replacing them with fixtures. Verify the installed executable matches the built version and distinguish manual desktop checks from automated tests.

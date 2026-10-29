@@ -2,7 +2,7 @@
 
 **English** | [简体中文](README-CN.md)
 
-A transparent glass launcher that floats on your desktop. Keep favorite apps and folders in one softly rounded shape. Scroll to turn it, hover to reveal your icons, and click to launch.
+A transparent glass launcher that floats on your desktop. Keep favorite apps, files and web links in one softly rounded shape. Scroll to turn it, hover to reveal your icons, and click to launch.
 
 **macOS 15+ (native Swift) · Windows 10/11 (Electron + Three.js)**
 
@@ -37,7 +37,7 @@ Native app renders with sample system icons, enlarged for detail. All previews s
 ## Features
 
 - **Light, transparent glass.** Soft corners, shallow curved faces, subtle reflections, and crisp icons that wrap around the surface.
-- **Six groups, four shortcuts each.** Add local apps or folders; empty slots stay blank. Click areas follow the curved icons.
+- **Six groups, four shortcuts each.** Add apps, folders, files, websites or settings pages; empty slots stay blank. Click areas follow the curved icons.
 - **Free rotation and positioning.** Scroll in either direction; the cube stays where you stop while hovered. Left drag moves it; right drag rotates it.
 - **Quick placement.** Put the cube in any corner or the center of its screen from the menu bar or Appearance settings. Positions save immediately, with room for system bars.
 - **Wandering idle rotation.** Slowly drift through changing directions; hover to stop instantly and leave to resume. Disable it under **Appearance → Dynamic rotation (动态旋转)**. Reduce Motion pauses it automatically.
