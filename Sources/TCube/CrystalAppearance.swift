@@ -125,12 +125,19 @@ final class CubeAura {
 
     private static func shellMaterial(slime: Bool) -> PhysicallyBasedMaterial {
         var glass = PhysicallyBasedMaterial()
-        glass.baseColor = .init(tint: NSColor(white: 1, alpha: slime ? 0.10 : 0.035))
+        // White reflections alone disappear on light desktops. Neutral glass
+        // absorption retains the silhouette without diffuse light filling its
+        // center; pearl and chroma still provide reflections and theme colors.
+        glass.baseColor = .init(tint: slime
+            ? NSColor(red: 0.18, green: 0.25, blue: 0.34, alpha: 1)
+            : NSColor(white: 0, alpha: 0.85))
         glass.roughness = .init(floatLiteral: slime ? 0.10 : 0.20)
-        glass.specular = .init(floatLiteral: 0.50)
-        glass.clearcoat = .init(floatLiteral: slime ? 1 : 0.55)
+        // Keep the shell's reflected light near its former strength as its
+        // absorption increases; otherwise the key light becomes an opaque spot.
+        glass.specular = .init(floatLiteral: slime ? 0.50 : 0.02)
+        glass.clearcoat = .init(floatLiteral: slime ? 1 : 0.025)
         glass.clearcoatRoughness = .init(floatLiteral: slime ? 0.08 : 0.20)
-        glass.blending = .transparent(opacity: .init(floatLiteral: slime ? 0.28 : 1))
+        glass.blending = .transparent(opacity: .init(floatLiteral: slime ? 0.40 : 1))
         glass.faceCulling = .back
         glass.writesDepth = false
         return glass
