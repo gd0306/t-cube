@@ -10,6 +10,9 @@ final class CubeView: ARView {
     let cube = Entity()
     private let anchor = AnchorEntity(world: .zero)
     private var panels: [CubeFace: ModelEntity] = [:]
+    // At most one signature per live face. Materials own the current textures;
+    // replacing a face never retains a history of its old images or resources.
+    private var faceArtwork: [CubeFace: CubeTheme.FaceArtwork] = [:]
     private var aura: CubeAura!
     private var lightUpdates: (any Cancellable)?
     private var lightElapsed: TimeInterval = 0
@@ -147,16 +150,25 @@ final class CubeView: ARView {
             ? "悬停显示入口；滚动旋转；左键拖动位置；右键拖动旋转；单击面展开入口；右键单击设置。"
             : "悬停显示入口；滚动旋转；左键拖动位置；右键拖动旋转；单击图标直接打开；右键单击设置。")
         for (ordinal, face) in CubeFace.allCases.enumerated() {
-            guard let image = CubeTheme.faceImage(group: model.configuration.group(for: face), ordinal: ordinal, appearance: model.configuration.appearance) else { continue }
+            let group = model.configuration.group(for: face)
+            let artwork = CubeTheme.FaceArtwork(group: group)
+            guard faceArtwork[face] != artwork, let panel = panels[face] else { continue }
             do {
-                let texture = try TextureResource(image: image, options: .init(semantic: .color))
                 var material = UnlitMaterial(applyPostProcessToneMap: false)
-                material.color = .init(tint: .white, texture: .init(texture))
+                if artwork.isEmpty {
+                    material.color = .init(tint: .clear)
+                } else {
+                    guard let image = CubeTheme.faceImage(group: group, ordinal: ordinal,
+                                                         appearance: model.configuration.appearance) else { continue }
+                    let texture = try TextureResource(image: image, options: .init(semantic: .color))
+                    material.color = .init(tint: .white, texture: .init(texture))
+                }
                 material.blending = .transparent(opacity: .init(floatLiteral: 1))
                 material.faceCulling = .back
                 material.writesDepth = false
-                panels[face]?.model?.materials = [material]
-                panels[face]?.components.set(OpacityComponent(opacity: isHovered ? 1 : 0))
+                panel.model?.materials = [material]
+                panel.components.set(OpacityComponent(opacity: isHovered ? 1 : 0))
+                faceArtwork[face] = artwork
             } catch { model.report(error) }
         }
     }

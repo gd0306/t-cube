@@ -1,3 +1,4 @@
+import { AsyncResourceCache } from './resource-cache';
 import { app, nativeImage, shell, type NativeImage } from 'electron';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -11,7 +12,9 @@ export function createApplicationCatalog(
     directory: string,
     userData: string,
 ): InstalledApplications {
-    const images = new Map<string, Promise<NativeImage | null>>();
+    // Serialized picker icons have their own bounded cache. Keep native bitmaps only
+    // while a load is pending; a shell shortcut retains its local image until written.
+    const images = new AsyncResourceCache<NativeImage | null>(32, false);
     async function loadImage(entry: ApplicationCandidate): Promise<NativeImage | null> {
         const target = entry.kind === 'shell' ? `shell:AppsFolder\\${entry.path}` : entry.path;
         try {
@@ -30,12 +33,7 @@ export function createApplicationCatalog(
         return null;
     }
     function image(entry: ApplicationCandidate): Promise<NativeImage | null> {
-        let pending = images.get(entry.id);
-        if (!pending) {
-            pending = loadImage(entry);
-            images.set(entry.id, pending);
-        }
-        return pending;
+        return images.getOrLoad(entry.id, () => loadImage(entry));
     }
     return new InstalledApplications({
         query: async () => {
@@ -67,7 +65,6 @@ export function createApplicationCatalog(
                         maxBuffer: 4 * 1024 * 1024,
                     },
                 );
-                images.clear();
                 const records = JSON.parse(stdout.replace(/^\uFEFF/, '').trim() || '[]');
                 if (!Array.isArray(records)) return records;
                 await Promise.all(
@@ -98,6 +95,7 @@ export function createApplicationCatalog(
                 throw new Error('无法读取 Windows 应用列表，请刷新或使用浏览文件', {cause:error});
             }
         },
+        clearIconResources: () => images.clear(),
         validate: (target) => validateLocalTarget(target, 'application'),
         icon: async (entry) => (await image(entry))?.toDataURL() ?? null,
         shortcut: async (entry) => {

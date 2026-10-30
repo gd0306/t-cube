@@ -63,6 +63,7 @@ final class CubeSurfaceView: NSView {
             addSubview(cubeView, positioned: .below, relativeTo: frozenImage)
         }
         frozenImage.isHidden = !retainFrame
+        if !retainFrame { frozenImage.image = nil }
         rendererDetached = false
         cubeView.resumeAnimationUpdates()
         if !forInput && !applyingAppearance {
@@ -80,6 +81,7 @@ final class CubeSurfaceView: NSView {
         cubeView.presentationTransitionActive = false
         cubeView.alphaValue = 1
         frozenImage.isHidden = true
+        frozenImage.image = nil
     }
 
     func synchronizeRenderingVisibility() {
@@ -179,12 +181,13 @@ final class CubeSurfaceView: NSView {
             finishPresentation(generation: generation, resumeLive: resumeAfterTransition)
             return
         }
+        let blend = ThemeFrameBlend.Prepared(from: old, to: image)
         transitionTask = Task { [weak self] in
             let started = ProcessInfo.processInfo.systemUptime
             while !Task.isCancelled {
                 guard let self, self.snapshotGeneration == generation else { return }
                 let progress = min(1, (ProcessInfo.processInfo.systemUptime - started) / ThemeFrameBlend.duration)
-                self.frozenImage.image = ThemeFrameBlend.image(from: old, to: image, progress: progress) ?? image
+                self.frozenImage.image = blend?.image(progress: progress) ?? image
                 if progress == 1 {
                     self.transitionTask = nil
                     self.finishPresentation(generation: generation, resumeLive: resumeAfterTransition)

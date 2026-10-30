@@ -1,10 +1,10 @@
 # T-Cube for Windows
 
-Version **0.17.0** targets Windows 10 22H2 / Windows 11, x64. This client uses Electron and Three.js; the repository's macOS client remains native Swift.
+Version **0.17.1** targets Windows 10 22H2 / Windows 11, x64. This client uses Electron and Three.js; the repository's macOS client remains native Swift.
 
 ## Installer
 
-Download [T-Cube 0.17.0 for Windows x64](https://github.com/gd0306/t-cube/releases/download/v0.17.0/T-Cube-0.17.0-windows-x64-setup.exe) from [Releases](https://github.com/gd0306/t-cube/releases/tag/v0.17.0). It installs per user, includes Electron/native dependencies, creates shortcuts and an uninstall entry, and requires neither Node.js nor administrator privileges. Quit the previous version before updating. Existing `%APPDATA%\\T-Cube` configuration is retained. The installer is not Authenticode signed.
+Download [T-Cube 0.17.1 for Windows x64](https://github.com/gd0306/t-cube/releases/download/v0.17.1/T-Cube-0.17.1-windows-x64-setup.exe) from [Releases](https://github.com/gd0306/t-cube/releases/tag/v0.17.1). It installs per user, includes Electron/native dependencies, creates shortcuts and an uninstall entry, and requires neither Node.js nor administrator privileges. Quit the previous version before updating. Existing `%APPDATA%\\T-Cube` configuration is retained. The installer is not Authenticode signed.
 
 Under **外观与主题 → 材质**, choose **玻璃** or **史莱姆**. All nine themes, custom colors and automatic cycling work with either material. Glass is the default. Slime follows the mouse with lag and elastic rebound while launcher icons remain rigid; Windows animation preferences disable its motion.
 

@@ -8,7 +8,7 @@
 
 ## 下载安装包
 
-macOS **0.17.0** · Windows **0.17.0**：[macOS Apple Silicon（.dmg）](https://github.com/gd0306/t-cube/releases/download/v0.17.0/T-Cube-0.17.0-macos-arm64.dmg) · [Windows x64 安装程序（.exe）](https://github.com/gd0306/t-cube/releases/download/v0.17.0/T-Cube-0.17.0-windows-x64-setup.exe) · [发布说明与 SHA-256 校验](https://github.com/gd0306/t-cube/releases/tag/v0.17.0)。
+macOS **0.17.1** · Windows **0.17.1**：[macOS Apple Silicon（.dmg）](https://github.com/gd0306/t-cube/releases/download/v0.17.1/T-Cube-0.17.1-macos-arm64.dmg) · [Windows x64 安装程序（.exe）](https://github.com/gd0306/t-cube/releases/download/v0.17.1/T-Cube-0.17.1-windows-x64-setup.exe) · [发布说明与 SHA-256 校验](https://github.com/gd0306/t-cube/releases/tag/v0.17.1)。
 
 Windows 安装包自带运行时，无需安装 Node.js。更新前先退出旧版，原有入口配置会保留。当前 macOS 使用本地签名、未公证，Windows 安装程序未做 Authenticode 签名。
 
@@ -47,6 +47,10 @@ Windows 安装包自带运行时，无需安装 Node.js。更新前先退出旧�
 - **双端玻璃／史莱姆材质**：所有主题都能搭配任一材质。史莱姆随鼠标牵引并弹性回弹，图标保持稳定；默认仍为玻璃。
 - **状态栏常驻**：设置、显示、隐藏与退出集中管理，不占 Dock；光效支持系统「减少动态效果」。
 
+## 内存与资源优化（0.17.1）
+
+减少重复刷新入口、切换主题时的图形资源分配；空面不再创建图标贴图，Windows 应用选择器限制图标缓存。受控压力测试和适用范围见 [内存优化验证](docs/verification/2026-10-30-memory-resources.md)。
+
 ## 快捷入口扩展
 
 在入口编辑中选择应用、文件夹、单个文件、HTTP/HTTPS 网页或预设的系统设置页面。文件用默认应用打开，网页用默认浏览器打开；系统设置从列表选择。旧入口与配置继续保留。
@@ -55,7 +59,7 @@ Windows 安装包自带运行时，无需安装 Node.js。更新前先退出旧�
 
 编辑内容时启用「作为模板使用」，在正文或字段中用 `{{客户姓名}}` 等占位符创建模板；复制或粘贴时填写变量并预览，同名变量只需填写一次。已有内容默认不启用模板，保持原样复制。
 
-## 办公与性能功能（0.17.0）
+## 办公与性能功能（0.17.1）
 
 双端均提供常用内容库（Windows 使用 `Ctrl+Shift+Space`）：通过菜单栏／托盘「常用内容」或快捷键打开（macOS `⌘⇧Space`，Windows `Ctrl+Shift+Space`），支持分组、收藏、搜索、整段与字段复制，以及授权后的原输入框粘贴。
 
@@ -77,7 +81,7 @@ Windows 10 22H2 / Windows 11（x64）使用独立客户端，支持同样的六�
 
 ## macOS 安装与运行
 
-当前源码版本为 **0.17.0**，使用 **master** 分支；安装包版本见上方下载链接。
+当前源码版本为 **0.17.1**，使用 **master** 分支；安装包版本见上方下载链接。
 
 运行需要 macOS 15+；源码构建需要完整 Xcode、Swift 6 和 **macOS 27 SDK**。当前本地打包产物面向 Apple Silicon，使用 ad-hoc 签名，尚未公证。
 
@@ -88,7 +92,7 @@ bash scripts/build-app.sh
 open build/T-Cube.app
 ```
 
-需要自行构建拖拽安装包时，运行 `bash scripts/build-dmg.sh`，打开 `build/T-Cube-0.17.0.dmg`，将应用拖入 **Applications**。更新前先退出旧版，保留原配置。构建产物通过 Releases 分发；系统安全授权由用户确认。
+需要自行构建拖拽安装包时，运行 `bash scripts/build-dmg.sh`，打开 `build/T-Cube-0.17.1.dmg`，将应用拖入 **Applications**。更新前先退出旧版，保留原配置。构建产物通过 Releases 分发；系统安全授权由用户确认。
 
 ### 让 agent 帮忙安装
 

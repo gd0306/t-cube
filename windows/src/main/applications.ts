@@ -1,3 +1,4 @@
+import { AsyncResourceCache } from './resource-cache';
 import { createHash } from 'node:crypto';
 import { win32 } from 'node:path';
 import type { InstalledApplication, LauncherItem } from '../shared/contracts';
@@ -11,6 +12,8 @@ export interface ApplicationServices {
     validate(path: string): Promise<LauncherItem>;
     shortcut(candidate: ApplicationCandidate): Promise<string>;
     icon(candidate: ApplicationCandidate): Promise<string | null>;
+    /** Called only after successful discovery and validation of a replacement catalog. */
+    clearIconResources?(): void;
 }
 
 export function normalizeApplications(input: unknown): ApplicationCandidate[] {
@@ -118,7 +121,7 @@ export class InstalledApplications {
     private loaded = false;
     private validUntil = 0;
     private loading: Promise<InstalledApplication[]> | null = null;
-    private images = new Map<string, Promise<string | null>>();
+    private readonly images = new AsyncResourceCache<string | null>(256);
     constructor(private readonly services: ApplicationServices) {}
     async list(refresh = false): Promise<InstalledApplication[]> {
         if (this.loading) return this.loading;
@@ -131,6 +134,7 @@ export class InstalledApplications {
                 this.loaded = true;
                 this.validUntil = Date.now() + 60_000;
                 this.images.clear();
+                this.services.clearIconResources?.();
                 return this.publicEntries();
             })
             .finally(() => {
@@ -161,12 +165,7 @@ export class InstalledApplications {
             [...new Set(ids)].map(async (id) => {
                 const entry = this.entries.get(id);
                 if (!entry) return;
-                let image = this.images.get(id);
-                if (!image) {
-                    image = this.services.icon(entry).catch(() => null);
-                    this.images.set(id, image);
-                }
-                const url = await image;
+                const url = await this.images.getOrLoad(id, () => this.services.icon(entry).catch(() => null));
                 if (url) icons[id] = url;
             }),
         );

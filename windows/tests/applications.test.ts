@@ -155,3 +155,71 @@ test('a failed refresh preserves valid entries and retries discovery later', asy
     await assert.rejects(catalog.list(true), /unavailable/);
     assert.equal((await catalog.materialize(app.id)).name, 'App');
 });
+
+test('browsing beyond the icon budget reloads the least-recently-used icon and retains a recently viewed icon', async () => {
+    const loads = new Map<string, number>();
+    const catalog = new InstalledApplications({
+        query: async () => Array.from({ length: 258 }, (_, index) => ({ name: `App ${index}`, path: `C:\\Apps\\App${index}.exe` })),
+        validate: async path => ({ id: path, name: path, path, kind: 'application' }),
+        shortcut: async () => { throw Error('unused'); },
+        icon: async entry => {
+            const version = (loads.get(entry.id) ?? 0) + 1;
+            loads.set(entry.id, version);
+            return `data:${entry.name}:${version}`;
+        },
+    });
+    const entries = await catalog.list();
+    for (let index = 0; index < 256; index += 32) await catalog.icons(entries.slice(index, index + 32).map(entry => entry.id));
+    await catalog.icons([entries[0].id]); // Touch the oldest entry before another application is viewed.
+    await catalog.icons([entries[256].id]);
+    assert.equal((await catalog.icons([entries[0].id]))[entries[0].id], 'data:App 0:1');
+    assert.equal((await catalog.icons([entries[1].id]))[entries[1].id], 'data:App 1:2');
+});
+
+test('successful discovery refresh releases pending shell images and removes uninstalled applications', async () => {
+    const { AsyncResourceCache } = await import('../src/main/resource-cache');
+    const nativeImages = new AsyncResourceCache<string>(32, false);
+    let records = [{ name: 'Calculator', path: 'Vendor.Calculator!App' }, { name: 'Editor', path: 'C:\\Editor.exe' }];
+    const finish: Array<(value: string) => void> = [];
+    const catalog = new InstalledApplications({
+        query: async () => records,
+        validate: async path => ({ id: path, name: path, path, kind: 'application' }),
+        shortcut: async () => { throw Error('unused'); },
+        icon: entry => nativeImages.getOrLoad(entry.id, () => new Promise(resolve => { finish.push(resolve); })),
+        clearIconResources: () => nativeImages.clear(),
+    });
+    const entries = await catalog.list(), calculator = entries.find(entry => entry.name === 'Calculator')!, editor = entries.find(entry => entry.name === 'Editor')!;
+    const old = catalog.icons([calculator.id]);
+    records = [{ name: 'Calculator', path: 'Vendor.Calculator!App' }];
+    await catalog.list(true);
+    const refreshed = catalog.icons([calculator.id]);
+    finish[0]('old shell pixels');
+    finish[1]?.('fresh shell pixels');
+    assert.deepEqual(await old, { [calculator.id]: 'old shell pixels' });
+    assert.deepEqual(await refreshed, { [calculator.id]: 'fresh shell pixels' });
+    assert.deepEqual(await catalog.icons([editor.id]), {});
+    await assert.rejects(catalog.materialize(editor.id), /列表/);
+});
+
+test('failed discovery refresh preserves cached icons until a valid replacement catalog is available', async () => {
+    let failure: 'none' | 'query' | 'invalid' = 'none', iconVersion = 0;
+    const catalog = new InstalledApplications({
+        query: async () => {
+            if (failure === 'query') throw Error('offline');
+            return failure === 'invalid' ? null : [{ name: 'Editor', path: 'C:\\Editor.exe' }];
+        },
+        validate: async path => ({ id: path, name: path, path, kind: 'application' }),
+        shortcut: async () => { throw Error('unused'); },
+        icon: async () => `pixels ${++iconVersion}`,
+    });
+    const [entry] = await catalog.list();
+    assert.deepEqual(await catalog.icons([entry.id]), { [entry.id]: 'pixels 1' });
+    for (const mode of ['query', 'invalid'] as const) {
+        failure = mode;
+        await assert.rejects(catalog.list(true));
+        assert.deepEqual(await catalog.icons([entry.id]), { [entry.id]: 'pixels 1' });
+    }
+    failure = 'none';
+    await catalog.list(true);
+    assert.deepEqual(await catalog.icons([entry.id]), { [entry.id]: 'pixels 2' });
+});
