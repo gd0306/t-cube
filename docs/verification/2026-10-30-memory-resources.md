@@ -31,3 +31,20 @@ The opt-in reproduction is `TCUBE_MEMORY_PROFILE=1 TCUBE_MEMORY_PROFILE_OUTPUT=/
 - Node22 typecheck/build and161 Windows tests passed locally (160 passed, one Win32-only skipped).
 - Release app build and mounted DMG verification passed for0.17.1(31). Old application and all three live user JSON files were copied under ignored `build/install-backups/0.17.1/` before replacing the application.
 - Independent cross-platform reviews found no blocking issues. No rendering engine replacement, draft-window destruction, or configuration changes were introduced.
+
+## Installed build and remote verification
+
+Installed0.17.1(31) at `/Applications/T-Cube.app`. The installed and built executable SHA-256 both equal `3bb7a972056dc1123d0e22138297b21d83b9659648ba7a0b6d8f4235df4a44b8`; signature verification passed and the running path was checked. All three live user JSON files were byte-identical to the post-quit backup after installation. The new app's real desktop surface was observed normally running. A24-second initial sample and a subsequent120-second installed-process sample both remained115–120 MB footprint,156 MB lifetime peak. These fresh-process observations are distinct from the controlled before/after workload and from the old14-hour process.
+
+[Windows source installation CI](https://github.com/gd0306/t-cube/actions/runs/41009138808) passed on Windows2022 and2025. [Actual Windows NSIS installer verification](https://github.com/gd0306/t-cube/actions/runs/41009159385) passed, including the existing application picker, website/settings entry, template paste, backup and theme/rendering interaction checks. Downloaded SOURCE_COMMIT matches `e3104330d51e3e26fc76a78ccb7ac39b63c07ce5`. Windows memory savings have not been measured on a physical device; the implemented cache bounds are covered by regression tests.
+
+## Published0.17.1
+
+[Release](https://github.com/gd0306/t-cube/releases/tag/v0.17.1), tag target `e3104330d51e3e26fc76a78ccb7ac39b63c07ce5`.
+
+| Asset | SHA-256 |
+| --- | --- |
+| T-Cube-0.17.1-macos-arm64.dmg | 4539590281e26fad0420d29772f99290c296a92ebe37918ec429983b3b1433e2 |
+| T-Cube-0.17.1-windows-x64-setup.exe | 48e09e2c6fa3b7acfe7911829c637517eddc95ca6d4edd32dfec5737e11e3e26 |
+
+SHA256SUMS.txt accompanies both installers. Existing ad-hoc macOS signing and unsigned Windows distribution remain as documented in the release notes.
