@@ -2,7 +2,7 @@ import { ClipboardHistory } from '../core/clipboard-history';
 import type { ClipboardHistoryState } from '../shared/clipboard-history';
 export interface ClipboardHistoryReader { sequence(): number | null; read(isCurrent: () => boolean): Promise<string | null> }
 export type HistoryScheduler = (callback: () => void, milliseconds: number) => () => void;
-const schedule: HistoryScheduler = (callback, milliseconds) => {
+const schedulePolling: HistoryScheduler = (callback, milliseconds) => {
     const timer = setInterval(callback, milliseconds); timer.unref(); return () => clearInterval(timer);
 };
 
@@ -17,7 +17,7 @@ export class ClipboardHistoryRecorder {
     private ownWrites = 0;
     private stopTimer: (() => void) | undefined;
     constructor(private readonly reader: ClipboardHistoryReader, private readonly changed: (state: ClipboardHistoryState) => void,
-                private readonly schedule: HistoryScheduler = schedule) {}
+                private readonly schedule: HistoryScheduler = schedulePolling) {}
     get state(): ClipboardHistoryState { return { isEnabled: this.enabled, entries: this.history.snapshot(), totalBytes: this.history.totalBytes }; }
     setEnabled(enabled: boolean): void {
         if (this.disposed || this.enabled === enabled) return;

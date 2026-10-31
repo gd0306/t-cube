@@ -10,9 +10,10 @@ Polling is sequence-first at 500 ms only while enabled. Lifecycle generations in
 
 - `swift test --no-parallel --scratch-path .build/tests` passed: 6 synchronous XCTest, 111 native Swift Testing and 112 core cases. Named pasteboards and temporary stores isolate clipboard and persistence tests from user data.
 - A preceding concurrent full run failed two existing rendering lifecycle snapshot tests; the complete serial run passed without product/test changes. These GUI snapshots require exclusive window visibility.
-- Node 22: Windows typecheck and production build passed. 174 test cases: 173 passed, one Win32-only case skipped on macOS.
+- Node 22: Windows typecheck and production build passed. 175 test cases: 174 passed, one Win32-only case skipped on macOS.
 - Owned headless Chromium UI flow used production history services with a fake clipboard and temporary snippet store. Inspected its history screen; no user clipboard content was read.
 - Independent cross-platform reviews covered draft retention, exclusion ordering and async read invalidation; regression fixes were verified before final full checks.
+- Initial Windows native CI exposed a production default-scheduler parameter shadowing error. A default-constructor regression reproduced the ReferenceError before the module scheduler was renamed; all local Windows checks passed after the fix. Remote native verification is rerun against the corrected commit.
 - Release app build, mounted DMG content/signature verification and `git diff --check` passed.
 
 ## Local acceptance

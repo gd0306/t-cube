@@ -183,3 +183,15 @@ test('recorder threads its sequence validity through delayed metadata before tex
     assert.deepEqual(recorder.state.entries, []);
     recorder.dispose();
 });
+
+test('production recorder constructs with its default timer while recording remains off', async () => {
+    const { ClipboardHistoryRecorder } = await import('../src/main/clipboard-history');
+    let reads = 0, notifications = 0;
+    const recorder = new ClipboardHistoryRecorder({ sequence: () => 1, read: async () => { reads++; return 'must not read'; } }, () => { notifications++; });
+    assert.equal(recorder.state.isEnabled, false);
+    assert.deepEqual(recorder.state.entries, []);
+    await recorder.poll();
+    assert.equal(reads, 0);
+    assert.equal(notifications, 0);
+    recorder.dispose();
+});
