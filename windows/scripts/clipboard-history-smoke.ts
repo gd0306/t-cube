@@ -22,8 +22,20 @@ export async function verifyClipboardHistorySmoke(app: ElectronApplication, widg
     const register = user.func('uint32_t __stdcall RegisterClipboardFormatW(str16 name)');
     const hasFormat = user.func('int __stdcall IsClipboardFormatAvailable(uint32_t format)');
     let savedId: string | undefined;
-    const confirm = (dialog: import('playwright').Dialog) => { void dialog.accept(); };
-    library.on('dialog', confirm);
+    // Chromium's CDP dialog.accept can acknowledge a confirm while Electron's
+    // native Windows message box remains open. Supply only the two explicit
+    // confirmation choices in this disposable renderer; production UI is untouched.
+    const confirmationKey = `tcubeOwnedConfirm_${randomUUID().replaceAll('-', '')}`;
+    const expectedConfirmations = ['当前编辑尚未保存，放弃修改？', '清空本次运行的全部剪贴板历史？'];
+    await library.evaluate(({ key, allowed }) => {
+        const state = { original: window.confirm, seen: [] as string[] };
+        (window as unknown as Record<string, unknown>)[key] = state;
+        window.confirm = message => {
+            if (!allowed.includes(String(message))) throw new Error('Unexpected confirmation in owned history fixture');
+            state.seen.push(String(message));
+            return true;
+        };
+    }, { key: confirmationKey, allowed: expectedConfirmations });
     try {
         await widget.evaluate(() => window.tcube.showLibrary());
         await library.getByRole('button', { name: '常用内容', exact: true }).click();
@@ -82,11 +94,16 @@ export async function verifyClipboardHistorySmoke(app: ElectronApplication, widg
         await waitFor(async () => (await state()).entries.length === 1, 'History delete did not remove the selected entry');
         await library.getByRole('button', { name: '清空历史', exact: true }).click();
         await waitFor(async () => (await state()).entries.length === 0, 'History clear did not empty session state');
+        const confirmations = await library.evaluate(key => ((window as unknown as Record<string, { seen: string[] }>)[key]).seen, confirmationKey);
+        assert.deepEqual(confirmations, expectedConfirmations, 'History must request both explicit confirmation choices');
         return ['Opt-in sequence baselines, owned clipboard recording/dedupe, real native privacy/file exclusions, pause/resume, history copy/paste into owned receiver, draft retention and explicit snippet save passed.'];
     } finally {
         await library.evaluate(() => window.tcube.setClipboardHistoryEnabled(false));
         await library.evaluate(() => window.tcube.clearClipboardHistory());
         if (savedId) await library.evaluate(id => window.tcube.deleteSnippet(id), savedId);
-        library.removeListener('dialog', confirm);
+        if (!library.isClosed()) await library.evaluate(key => {
+            const globals = window as unknown as Record<string, { original: typeof window.confirm }>;
+            if (globals[key]) { window.confirm = globals[key].original; delete globals[key]; }
+        }, confirmationKey);
     }
 }
