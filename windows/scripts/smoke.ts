@@ -1,3 +1,4 @@
+import { inputDiagnostics, traceWidgetInput } from './input-diagnostics.js';
 import { verifyShortcutTargetsSmoke } from './shortcut-targets-smoke.js';
 import assert from 'node:assert/strict';
 import { appendFile, mkdir, mkdtemp, writeFile, rm, copyFile, realpath, readFile } from 'node:fs/promises';
@@ -29,6 +30,7 @@ await writeFile(path.join(data, 'configuration.json'), JSON.stringify(configurat
 const results: string[] = [];
 let app: ElectronApplication | undefined;
 let widget!: Page;
+let tracingExpansionInput = false;
 let originalCursor: { x: number; y: number } | undefined;
 let originalAnimations: boolean | undefined;
 let failed = false;
@@ -418,6 +420,7 @@ try {
     results.push('Independent material UI, shared theme/cycling, native slime pointer deformation, stable icon decals, rebound and glass restoration passed.');
 
     results.push(...await verifyLibrarySmoke(app, widget));
+    await writeFile(path.join(output, 'input-after-office.json'), JSON.stringify(await inputDiagnostics(app, widget), null, 2));
     await move(2, 2);
     const idleConfiguration = structuredClone((await snapshot()).state.configuration);
     idleConfiguration.themeCycle.isEnabled = false;
@@ -484,12 +487,15 @@ try {
     await settings.evaluate(config => window.tcube.applyConfiguration(config), updated);
     await settings.evaluate(() => window.tcube.place('center'));
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(win => win.webContents.getURL().endsWith('/settings.html'))?.hide());
+    await traceWidgetInput(widget); tracingExpansionInput = true;
     const centered = await bounds();
     await move(centered.x + centered.width / 2, centered.y + centered.height / 2);
     await until(snapshot, value => value.state.hovered, 'Hover before expansion missing');
     const enlarged = await bounds();
     if (process.platform === 'win32') {
+        await writeFile(path.join(output, 'input-before-expansion.json'), JSON.stringify(await inputDiagnostics(app, widget), null, 2));
         input.button(0, true);
+        await writeFile(path.join(output, 'input-expansion-button-down.json'), JSON.stringify(await inputDiagnostics(app, widget), null, 2));
         await until(snapshot, value => value.state.interactionActive, 'Expansion click not received');
         input.button(0, false);
     } else await widget.mouse.click(enlarged.width / 2, enlarged.height / 2);
@@ -507,6 +513,7 @@ try {
     await writeFile(path.join(output, 'results.json'), JSON.stringify({ platform: process.platform, results }, null, 2));
 } catch (error) {
     failed = true;
+    if (tracingExpansionInput && app && widget) await writeFile(path.join(output, 'input-expansion-failure.json'), JSON.stringify(await inputDiagnostics(app, widget), null, 2)).catch(() => {});
     await writeFile(path.join(output, 'failure.txt'), error instanceof Error ? error.stack ?? error.message : String(error));
     if (widget) await capture(widget, 'failure.png').catch(() => {});
     throw error;
