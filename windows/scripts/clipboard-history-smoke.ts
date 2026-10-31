@@ -98,12 +98,12 @@ export async function verifyClipboardHistorySmoke(app: ElectronApplication, widg
         assert.deepEqual(confirmations, expectedConfirmations, 'History must request both explicit confirmation choices');
         return ['Opt-in sequence baselines, owned clipboard recording/dedupe, real native privacy/file exclusions, pause/resume, history copy/paste into owned receiver, draft retention and explicit snippet save passed.'];
     } finally {
-        await library.evaluate(() => window.tcube.setClipboardHistoryEnabled(false));
-        await library.evaluate(() => window.tcube.clearClipboardHistory());
-        if (savedId) await library.evaluate(id => window.tcube.deleteSnippet(id), savedId);
         if (!library.isClosed()) await library.evaluate(key => {
             const globals = window as unknown as Record<string, { original: typeof window.confirm }>;
             if (globals[key]) { window.confirm = globals[key].original; delete globals[key]; }
         }, confirmationKey);
+        await library.evaluate(() => window.tcube.setClipboardHistoryEnabled(false));
+        await library.evaluate(() => window.tcube.clearClipboardHistory());
+        if (savedId) await library.evaluate(id => window.tcube.deleteSnippet(id), savedId);
     }
 }
