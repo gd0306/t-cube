@@ -1,3 +1,4 @@
+import { verifyClipboardHistorySmoke } from './clipboard-history-smoke';
 import assert from 'node:assert/strict';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
@@ -179,6 +180,7 @@ $form.Dispose()
         await library.getByRole('button', { name: '粘贴', exact: true }).click();
         await until(async () => receiverText(), text => text === `${fullText}${snippet.fields[0].value}Hello Alice, Alice!`, 'Native template paste did not reach owned receiver');
         results.push('Template preview and native paste replace repeated variables in the original receiver.');
+        results.push(...await verifyClipboardHistorySmoke(app, widget, library, receiverText));
         return results;
     } catch (error) {
         failed = true;
@@ -200,6 +202,7 @@ $form.Dispose()
         if (templateSaved && library && !library.isClosed()) await clean(() => library!.evaluate(id => window.tcube.deleteSnippet(id), template.id));
         if (fixtureSaved && library && !library.isClosed()) await clean(() => library!.evaluate(id => window.tcube.deleteSnippet(id), snippet.id));
         if (library && !library.isClosed()) await clean(() => app.evaluate(({ BrowserWindow }, url) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL() === url)?.hide(), library!.url()));
+        if (library && !library.isClosed()) await clean(async () => { await library!.evaluate(() => window.tcube.setClipboardHistoryEnabled(false)); await library!.evaluate(() => window.tcube.clearClipboardHistory()); });
         await stage('restore clipboard');
         if (clipboardSaved) await clean(() => app.evaluate(async ({ clipboard }, key) => {
             const state = globalThis as unknown as Record<string, unknown>;

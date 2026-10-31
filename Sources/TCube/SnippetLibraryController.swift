@@ -16,7 +16,10 @@ final class SnippetPanel: NSPanel {
 
 @MainActor
 final class SnippetLibraryController {
-    let model = SnippetLibraryModel()
+    let model: SnippetLibraryModel
+    let history: ClipboardHistoryModel
+    private let pasteboard: NSPasteboard
+    private let navigation = ClipboardPanelNavigation()
     private var panel: SnippetPanel?
     private var target: NSRunningApplication?
     private var targetField: AXUIElement?
@@ -27,7 +30,10 @@ final class SnippetLibraryController {
     private var handler: EventHandlerRef?
     private var pasteTask: Task<Void, Never>?
 
-    init() {
+    init(pasteboard: NSPasteboard = .general, history: ClipboardHistoryModel? = nil, model: SnippetLibraryModel? = nil) {
+        self.pasteboard = pasteboard
+        self.history = history ?? ClipboardHistoryModel(pasteboard: pasteboard)
+        self.model = model ?? SnippetLibraryModel()
         rememberExternal()
         restoreObserver = NotificationCenter.default.addObserver(forName: .tCubeLibraryDidRestore, object: nil, queue: .main) { [weak self] notification in
             guard let url = notification.object as? URL else { return }
@@ -63,6 +69,7 @@ final class SnippetLibraryController {
     }
 
     func stop() {
+        history.shutdown()
         pasteTask?.cancel()
         if let hotKey { UnregisterEventHotKey(hotKey) }
         if let handler { RemoveEventHandler(handler) }
@@ -82,11 +89,22 @@ final class SnippetLibraryController {
     }
 
     func capture(_ text: String) {
+        navigation.mode = .library
         model.pendingCapture = text
         show()
     }
 
-    func show() {
+    func showHistory() {
+        if panel?.attachedSheet != nil {
+            model.status = "请先完成或取消当前编辑，再打开剪贴板历史。"
+            show(preservingSheet: true)
+            return
+        }
+        navigation.mode = .history
+        show()
+    }
+
+    func show(preservingSheet: Bool = false) {
         pasteTask?.cancel()
         if panel?.isVisible != true {
             rememberExternal()
@@ -94,15 +112,15 @@ final class SnippetLibraryController {
             targetField = target.flatMap { focusedField(pid: $0.processIdentifier) }
         }
         if panel == nil {
-            let window = SnippetPanel(contentRect: NSRect(x: 0, y: 0, width: 900, height: 620), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+            let window = SnippetPanel(contentRect: NSRect(x: 0, y: 0, width: 900, height: 680), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
             window.title = "T-Cube · 常用内容"
             window.dismissed = { [weak self] in self?.dismiss() }
-            window.minSize = NSSize(width: 800, height: 560)
+            window.minSize = NSSize(width: 800, height: 630)
             window.isReleasedWhenClosed = false
             window.level = .floating
             window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
             window.contentView = NSHostingView(rootView: VStack(spacing: 0) {
-                SnippetLibraryView(model: model) { [weak self] text, paste in self?.use(text, paste: paste) }
+                ClipboardPanelView(navigation: navigation, library: model, history: history) { [weak self] text, paste in self?.use(text, paste: paste) }
                 Divider()
                 HStack {
                     Text("⌘⇧Space 呼出 · Esc 收起 · 内容仅保存在本机")
@@ -122,7 +140,9 @@ final class SnippetLibraryController {
         }
         NSApp.activate(ignoringOtherApps: true)
         panel?.makeKeyAndOrderFront(nil)
-        NotificationCenter.default.post(name: Notification.Name("TCubeSnippetSearchFocus"), object: nil)
+        if !preservingSheet {
+            NotificationCenter.default.post(name: Notification.Name("TCubeSnippetSearchFocus"), object: nil)
+        }
     }
 
     func requestPasteAccess() {
@@ -149,15 +169,16 @@ final class SnippetLibraryController {
     func use(_ text: String, paste: Bool) {
         guard !text.isEmpty else { return }
         pasteTask?.cancel()
-        NSPasteboard.general.clearContents()
-        guard NSPasteboard.general.setString(text, forType: .string) else { model.status = "无法写入剪贴板，请重试。"; return }
+        pasteboard.clearContents()
+        guard pasteboard.setString(text, forType: .string) else { model.status = "无法写入剪贴板，请重试。"; return }
+        history.markSelfWrite()
         model.status = "已复制"
         guard paste else { return }
         guard AXIsProcessTrusted() else { requestPasteAccess(); return }
         guard let target, !target.isTerminated, let originalField = targetField else {
             model.status = "已复制。请先点中目标输入框，再按 ⌘⇧Space 呼出后粘贴。"; return
         }
-        let changeCount = NSPasteboard.general.changeCount
+        let changeCount = pasteboard.changeCount
         panel?.orderOut(nil)
         target.activate(options: [])
         pasteTask = Task { [weak self] in
@@ -169,7 +190,7 @@ final class SnippetLibraryController {
                 if PasteEligibility.allows(target: pid, frontmost: NSWorkspace.shared.frontmostApplication?.processIdentifier,
                     own: ProcessInfo.processInfo.processIdentifier, trusted: AXIsProcessTrusted(),
                     sameField: focused.map { CFEqual($0, originalField) } ?? false),
-                    !target.isTerminated, NSPasteboard.general.changeCount == changeCount {
+                    !target.isTerminated, self.pasteboard.changeCount == changeCount {
                     guard let down = CGEvent(keyboardEventSource: nil, virtualKey: 9, keyDown: true),
                           let up = CGEvent(keyboardEventSource: nil, virtualKey: 9, keyDown: false) else { break }
                     down.flags = .maskCommand; up.flags = .maskCommand

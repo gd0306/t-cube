@@ -4,6 +4,7 @@ import SwiftUI
 
 struct SnippetLibraryView: View {
     @ObservedObject var model: SnippetLibraryModel
+    var isActive = true
     let useText: (String, Bool) -> Void
     @State private var draft: TextSnippet?
     @State private var deleting: TextSnippet?
@@ -60,15 +61,18 @@ struct SnippetLibraryView: View {
             Text("删除后无法撤销。")
         }
         .onAppear {
-            searchFocused = true
+            searchFocused = isActive
             consumePendingCapture()
         }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("TCubeSnippetSearchFocus"))) { _ in
             templateRequest = nil
-            searchFocused = true
+            searchFocused = isActive
         }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("TCubeSnippetCaptureText"))) { notification in
             if let text = notification.userInfo?["text"] as? String { model.pendingCapture = text }
+        }
+        .onChange(of: isActive) { _, active in
+            searchFocused = active
         }
         .onChange(of: model.pendingCapture) { _, _ in
             consumePendingCapture()

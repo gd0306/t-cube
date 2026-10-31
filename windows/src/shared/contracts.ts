@@ -1,3 +1,4 @@
+import type { ClipboardHistoryBridge } from './clipboard-history';
 import type { ProductivityBridge } from './productivity';
 import type { MaintenanceBridge, LifecycleBridge } from './maintenance';
 export const FACES = ['front', 'right', 'back', 'left', 'top', 'bottom'] as const;
@@ -47,7 +48,7 @@ export interface Hit { face: Face; slot: number | null }
 export interface TargetRequest { face: Face; slot: number; kind: 'application' | 'folder' | 'file' }
 export type URLTargetRequest = { face: Face; slot: number } & ({ kind: 'website'; name: string; url: string } | { kind: 'systemSettings'; settingsId: string });
 export interface InstalledApplication { id: string; name: string; detail: string }
-export interface DesktopBridge extends ProductivityBridge, MaintenanceBridge, LifecycleBridge {
+export interface DesktopBridge extends ProductivityBridge, MaintenanceBridge, LifecycleBridge, ClipboardHistoryBridge {
     getPerformanceSettings(): Promise<{idlePowerSaving:boolean}>;
     setPerformanceSettings(idlePowerSaving:boolean): Promise<void>;
     getSnapshot(): Promise<Snapshot>;

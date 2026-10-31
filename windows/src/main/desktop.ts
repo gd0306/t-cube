@@ -88,7 +88,7 @@ export class DesktopApplication {
             void dialog.showMessageBox({type:'warning',message:'显示器位置记忆暂不可用，原文件已保留。',detail:String(error),buttons:['继续']});
         });
         this.office = new OfficeServices({host:this.host,directory:app.getPath('userData'),rendererPath:this.html('library'),
-            whenLauncherOperationsIdle:()=>this.whenLauncherOperationsIdle(),
+            whenLauncherOperationsIdle:()=>this.whenLauncherOperationsIdle(),historyChanged:()=>this.updateTray(),
             createLibraryWindow:()=>this.createWindow('library',{title:'T-Cube · 常用内容',width:940,height:680,minWidth:800,minHeight:560,backgroundColor:'#f6f8fc',autoHideMenuBar:true,alwaysOnTop:true}),
             role:id=>this.roles.get(id)??null});
         await this.office.start();
@@ -236,6 +236,7 @@ export class DesktopApplication {
             { label: this.widget.isVisible() ? 'Hide cube' : 'Show cube', click: () => this.toggleWidget() },
             { label: 'Settings…', click: () => this.showSettings() },
             {label:'常用内容…    Ctrl+Shift+Space',click:run(()=>this.office?.showLibrary())},
+            {label:`剪贴板历史…（${this.office?.clipboardHistory.state.isEnabled ? '正在记录' : '已暂停'}）`,click:run(()=>this.office?.showClipboardHistory())},
             { label: 'Placement', submenu: placements.map(([label, placement]) => ({ label, click: run(() => this.host.place(placement)) })) },
             { label: 'Cube size', submenu: [0.65, 0.85, 1, 1.25, 1.6].map(scale => ({ label: `${Math.round(scale * 100)}%`,
                 click: run(() => this.host.applyConfiguration({ ...this.host.snapshot.state.configuration, scale })) })) },

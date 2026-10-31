@@ -8,7 +8,7 @@
 
 ## 下载安装包
 
-macOS **0.17.1** · Windows **0.17.1**：[macOS Apple Silicon（.dmg）](https://github.com/gd0306/t-cube/releases/download/v0.17.1/T-Cube-0.17.1-macos-arm64.dmg) · [Windows x64 安装程序（.exe）](https://github.com/gd0306/t-cube/releases/download/v0.17.1/T-Cube-0.17.1-windows-x64-setup.exe) · [发布说明与 SHA-256 校验](https://github.com/gd0306/t-cube/releases/tag/v0.17.1)。
+macOS **0.18.0** · Windows **0.18.0**：[macOS Apple Silicon（.dmg）](https://github.com/gd0306/t-cube/releases/download/v0.18.0/T-Cube-0.18.0-macos-arm64.dmg) · [Windows x64 安装程序（.exe）](https://github.com/gd0306/t-cube/releases/download/v0.18.0/T-Cube-0.18.0-windows-x64-setup.exe) · [发布说明与 SHA-256 校验](https://github.com/gd0306/t-cube/releases/tag/v0.18.0)。
 
 Windows 安装包自带运行时，无需安装 Node.js。更新前先退出旧版，原有入口配置会保留。当前 macOS 使用本地签名、未公证，Windows 安装程序未做 Authenticode 签名。
 
@@ -55,6 +55,12 @@ Windows 安装包自带运行时，无需安装 Node.js。更新前先退出旧�
 
 在入口编辑中选择应用、文件夹、单个文件、HTTP/HTTPS 网页或预设的系统设置页面。文件用默认应用打开，网页用默认浏览器打开；系统设置从列表选择。旧入口与配置继续保留。
 
+## 剪贴板历史试用版（0.18.0）
+
+从菜单栏／托盘「剪贴板历史」或常用内容窗口顶部标签进入，点击「启用记录」后，再复制新的纯文本即可看到记录。支持最新优先、原文去重、搜索、删除、清空、复制、检查原窗口后的粘贴，以及「存为常用内容」草稿；需要点击保存才会进入常用内容库。
+
+每次启动默认暂停，启用／恢复时不读取剪贴板原有内容。历史仅保存在内存中，退出即清除，不进入备份或导出；最多 100 条，单条最多 64 KiB UTF-8，总文本最多 2 MiB。会尽力跳过文件复制及带有敏感、临时或排除标记的内容，但无法识别所有敏感信息；可随时暂停或清空。本版不包含图片历史、持久化或云同步。
+
 ## 常用内容模板
 
 编辑内容时启用「作为模板使用」，在正文或字段中用 `{{客户姓名}}` 等占位符创建模板；复制或粘贴时填写变量并预览，同名变量只需填写一次。已有内容默认不启用模板，保持原样复制。
@@ -81,7 +87,7 @@ Windows 10 22H2 / Windows 11（x64）使用独立客户端，支持同样的六�
 
 ## macOS 安装与运行
 
-当前源码版本为 **0.17.1**，使用 **master** 分支；安装包版本见上方下载链接。
+当前源码版本为 **0.18.0**，使用 **master** 分支；安装包版本见上方下载链接。
 
 运行需要 macOS 15+；源码构建需要完整 Xcode、Swift 6 和 **macOS 27 SDK**。当前本地打包产物面向 Apple Silicon，使用 ad-hoc 签名，尚未公证。
 
@@ -92,7 +98,7 @@ bash scripts/build-app.sh
 open build/T-Cube.app
 ```
 
-需要自行构建拖拽安装包时，运行 `bash scripts/build-dmg.sh`，打开 `build/T-Cube-0.17.1.dmg`，将应用拖入 **Applications**。更新前先退出旧版，保留原配置。构建产物通过 Releases 分发；系统安全授权由用户确认。
+需要自行构建拖拽安装包时，运行 `bash scripts/build-dmg.sh`，打开 `build/T-Cube-0.18.0.dmg`，将应用拖入 **Applications**。更新前先退出旧版，保留原配置。构建产物通过 Releases 分发；系统安全授权由用户确认。
 
 ### 让 agent 帮忙安装
 

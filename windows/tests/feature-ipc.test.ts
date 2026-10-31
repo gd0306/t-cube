@@ -23,3 +23,18 @@ test('content and privileged file/system operations authorize role and main fram
     await assert.rejects(handlers.get(C.saveSnippet)!(event,'x'.repeat(8*1024*1024+1)),/请求过大/);
     assert.equal(calls,2);
 });
+
+test('clipboard history reads and mutations are library-only and reject child frames', async () => {
+    const handlers = new Map<string, (event: any, value?: unknown) => Promise<unknown>>();
+    let role: WindowRole = 'settings', calls = 0;
+    const operations = Object.fromEntries(Object.keys(FEATURE_ROLES).map(name => [name, () => { calls++; }]));
+    registerFeatureIPC({ handle: (channel, operation) => handlers.set(channel, operation) }, () => role, operations, () => false, () => {});
+    const frame = {}, event = { sender: { id: 1, mainFrame: frame }, senderFrame: frame };
+    for (const channel of [C.getClipboardHistory, C.setClipboardHistoryEnabled, C.deleteClipboardHistoryEntry, C.clearClipboardHistory, C.useClipboardHistoryEntry]) {
+        assert.ok(handlers.has(channel));
+        await assert.rejects(handlers.get(channel)!(event), /authorized/);
+        role = 'library'; await assert.rejects(handlers.get(channel)!({ ...event, senderFrame: {} }), /authorized/);
+        role = 'settings';
+    }
+    assert.equal(calls, 0);
+});

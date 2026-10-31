@@ -1,14 +1,16 @@
 # T-Cube for Windows
 
-Version **0.17.1** targets Windows 10 22H2 / Windows 11, x64. This client uses Electron and Three.js; the repository's macOS client remains native Swift.
+Version **0.18.0** targets Windows 10 22H2 / Windows 11, x64. This client uses Electron and Three.js; the repository's macOS client remains native Swift.
 
 ## Installer
 
-Download [T-Cube 0.17.1 for Windows x64](https://github.com/gd0306/t-cube/releases/download/v0.17.1/T-Cube-0.17.1-windows-x64-setup.exe) from [Releases](https://github.com/gd0306/t-cube/releases/tag/v0.17.1). It installs per user, includes Electron/native dependencies, creates shortcuts and an uninstall entry, and requires neither Node.js nor administrator privileges. Quit the previous version before updating. Existing `%APPDATA%\\T-Cube` configuration is retained. The installer is not Authenticode signed.
+Download [T-Cube 0.18.0 for Windows x64](https://github.com/gd0306/t-cube/releases/download/v0.18.0/T-Cube-0.18.0-windows-x64-setup.exe) from [Releases](https://github.com/gd0306/t-cube/releases/tag/v0.18.0). It installs per user, includes Electron/native dependencies, creates shortcuts and an uninstall entry, and requires neither Node.js nor administrator privileges. Quit the previous version before updating. Existing `%APPDATA%\\T-Cube` configuration is retained. The installer is not Authenticode signed.
 
 Under **外观与主题 → 材质**, choose **玻璃** or **史莱姆**. All nine themes, custom colors and automatic cycling work with either material. Glass is the default. Slime follows the mouse with lag and elastic rebound while launcher icons remain rigid; Windows animation preferences disable its motion.
 
 ## Office tools and idle performance
+
+Clipboard history is available from the tray or the **剪贴板历史** tab. It starts paused on every launch; choose **启用记录**, then make a new plain-text copy. Search, delete, clear, copy, focus-checked paste and explicitly save a common-content draft. Records stay in memory and disappear on exit; they are excluded from backup/export. Limits are 100 items, 64 KiB UTF-8 per item and 2 MiB text total. File drops and supported exclusion markers are skipped, but unmarked sensitive text may still be recorded. No image history or cloud sync.
 
 Open **常用内容** from the tray or `Ctrl+Shift+Space`. Store reusable text and structured fields, group/favorite/search them, and copy or paste whole entries or individual fields. Clipboard capture and dropped text open a draft for review. Paste restores the original input window only while its process identity/focus still match; otherwise text remains copied for manual paste.
 

@@ -4,6 +4,7 @@ import type {WindowRole} from './ipc';
 interface Event {sender:{id:number;mainFrame:unknown};senderFrame:unknown}
 export interface FeatureIPC {handle(channel:string,callback:(event:Event,value?:unknown)=>Promise<unknown>):void}
 export const FEATURE_ROLES:Partial<Record<keyof DesktopBridge,WindowRole[]>>={
+    showClipboardHistory:['widget','settings','expanded','library'],getClipboardHistory:['library'],setClipboardHistoryEnabled:['library'],deleteClipboardHistoryEntry:['library'],clearClipboardHistory:['library'],useClipboardHistoryEntry:['library'],
     showLibrary:['widget','settings','expanded','library'],getLibrary:['library'],saveSnippet:['library'],deleteSnippet:['library'],moveSnippet:['library'],useSnippetText:['library'],captureClipboard:['library'],
     getMaintenanceState:['settings'],exportBackup:['settings'],previewImportBackup:['settings'],confirmImportBackup:['settings'],createBackup:['settings'],repairLauncher:['settings'],revealBackups:['settings'],
     getLifecycleState:['settings'],setLoginEnabled:['settings'],setAutomaticUpdates:['settings'],checkForUpdates:['settings'],installUpdate:['settings'],openReleasePage:['settings'],getPerformanceSettings:['settings','widget'],setPerformanceSettings:['settings']

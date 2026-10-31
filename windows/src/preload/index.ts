@@ -9,6 +9,8 @@ function subscribe<T>(channel: string, callback: (value: T) => void): () => void
     return () => ipcRenderer.removeListener(channel, listener);
 }
 const bridge: DesktopBridge = {
+    showClipboardHistory:()=>ipcRenderer.invoke(F.showClipboardHistory),getClipboardHistory:()=>ipcRenderer.invoke(F.getClipboardHistory),setClipboardHistoryEnabled:enabled=>ipcRenderer.invoke(F.setClipboardHistoryEnabled,enabled),deleteClipboardHistoryEntry:id=>ipcRenderer.invoke(F.deleteClipboardHistoryEntry,id),clearClipboardHistory:()=>ipcRenderer.invoke(F.clearClipboardHistory),useClipboardHistoryEntry:request=>ipcRenderer.invoke(F.useClipboardHistoryEntry,request),
+    onClipboardHistoryChanged:callback=>subscribe(F.clipboardHistoryChanged,callback),onShowClipboardHistory:callback=>subscribe(F.showClipboardHistoryMode,callback),
     showLibrary: text => ipcRenderer.invoke(F.showLibrary,text), getLibrary:()=>ipcRenderer.invoke(F.getLibrary),
     saveSnippet:snippet=>ipcRenderer.invoke(F.saveSnippet,snippet),deleteSnippet:id=>ipcRenderer.invoke(F.deleteSnippet,id),moveSnippet:request=>ipcRenderer.invoke(F.moveSnippet,request),
     useSnippetText:request=>ipcRenderer.invoke(F.useSnippetText,request),captureClipboard:()=>ipcRenderer.invoke(F.captureClipboard),

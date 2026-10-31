@@ -160,6 +160,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         _ = item("隐藏立方体", #selector(toggleCube))
         _ = item("常用内容…    ⌘⇧Space", #selector(openContentLibrary))
+        _ = item("剪贴板历史…", #selector(openClipboardHistory))
+        _ = item("暂停剪贴板记录", #selector(pauseClipboardHistory))
         _ = item("设置…", #selector(openEditor), key: ",")
         _ = item("检查更新…", #selector(checkUpdates))
         let placement = NSMenuItem(title: "快捷位置", action: nil, keyEquivalent: "")
@@ -183,10 +185,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let mainMenu = NSMenu()
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu(title: "T-Cube")
+        appMenu.delegate = self
         let contentItem = NSMenuItem(title: "常用内容…", action: #selector(openContentLibrary), keyEquivalent: " ")
         contentItem.keyEquivalentModifierMask = [.command, .shift]
         contentItem.target = self
         appMenu.addItem(contentItem)
+        let historyItem = NSMenuItem(title: "剪贴板历史…", action: #selector(openClipboardHistory), keyEquivalent: "")
+        historyItem.target = self
+        appMenu.addItem(historyItem)
+        let pauseHistoryItem = NSMenuItem(title: "暂停剪贴板记录", action: #selector(pauseClipboardHistory), keyEquivalent: "")
+        pauseHistoryItem.target = self
+        appMenu.addItem(pauseHistoryItem)
         let settings = NSMenuItem(title: "设置…", action: #selector(openEditor), keyEquivalent: ",")
         settings.target = self
         appMenu.addItem(settings)
@@ -208,7 +217,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
-        menu.items.first?.title = panel.isVisible ? "隐藏立方体" : "显示立方体"
+        menu.items.first(where: { $0.action == #selector(toggleCube) })?.title = panel.isVisible ? "隐藏立方体" : "显示立方体"
+        menu.items.first(where: { $0.action == #selector(openClipboardHistory) })?.title =
+            snippetLibrary.history.isEnabled ? "剪贴板历史…（记录中）" : "剪贴板历史…"
+        menu.items.first(where: { $0.action == #selector(pauseClipboardHistory) })?.isHidden = !snippetLibrary.history.isEnabled
         if let options = menu.items.first(where: { $0.title == "尺寸" })?.submenu?.items {
             for item in options { item.state = (item.representedObject as? Double) == model.configuration.scale ? .on : .off }
         }
@@ -224,6 +236,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         model.change { $0.scale = scale }
     }
     @objc private func openContentLibrary() { snippetLibrary.show() }
+    @objc private func openClipboardHistory() { snippetLibrary.showHistory() }
+    @objc private func pauseClipboardHistory() { snippetLibrary.history.pause() }
     @objc private func checkUpdates() { lifecycle.checkForUpdates() }
     @objc private func openEditor() { showEditor() }
 

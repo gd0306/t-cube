@@ -1,8 +1,23 @@
+import { ClipboardHistoryPanel } from './clipboard-history';
 import type {} from '../shared/contracts';
 import { templateVariables, renderTemplate } from '../core/snippet-template';
 import type { SnippetLibrary, TextSnippet, SnippetField } from '../shared/productivity';
 import { filteredSnippets, fullSnippetText, SNIPPET_LIMITS, validateSnippetText } from '../core/snippet-library';
 const bridge = window.tcube;
+let mode: 'library' | 'history' = 'library';
+function setMode(next: typeof mode) {
+    mode = next;
+    document.querySelector<HTMLElement>('#library-panel')!.hidden = next !== 'library';
+    document.querySelector<HTMLElement>('#history-panel')!.hidden = next !== 'history';
+    document.querySelector<HTMLElement>('#snippet-actions')!.hidden = next !== 'library';
+    document.querySelector('#library-mode')!.setAttribute('aria-pressed', String(next === 'library'));
+    document.querySelector('#history-mode')!.setAttribute('aria-pressed', String(next === 'history'));
+}
+const historyPanel = new ClipboardHistoryPanel(document.querySelector<HTMLElement>('#history-panel')!, bridge, text => {
+    if (newDraft(text)) setMode('library');
+});
+document.querySelector<HTMLButtonElement>('#library-mode')!.onclick = () => setMode('library');
+document.querySelector<HTMLButtonElement>('#history-mode')!.onclick = () => setMode('history');
 const list = document.querySelector<HTMLElement>('#list')!, detail = document.querySelector<HTMLElement>('#detail')!, error = document.querySelector<HTMLElement>('#error')!, status = document.querySelector<HTMLElement>('#status')!;
 const search = document.querySelector<HTMLInputElement>('#search')!, favorites = document.querySelector<HTMLInputElement>('#favorites')!, group = document.querySelector<HTMLSelectElement>('#group')!;
 let displayedItems: TextSnippet[] = [];
@@ -57,11 +72,11 @@ function render() {
 }
 function allowDiscard() { return (!draft && !templateFill) || window.confirm(templateFill ? '模板尚未使用，放弃填写？' : '当前编辑尚未保存，放弃修改？'); }
 function newDraft(text = '') {
-    if (blocked || !allowDiscard()) return;
+    if (blocked || !allowDiscard()) return false;
     validateSnippetText(text);
     templateFill = undefined;
     draft = { id: crypto.randomUUID(), title: text.split(/\r?\n/).find(line => line.trim())?.slice(0, 40) ?? '', group: group.value, body: text, fields: [], isFavorite: false };
-    status.textContent = text ? '请检查收录文字，点击保存后才会加入内容库。' : '填写正文或字段，保存后即可快速使用。'; render();
+    status.textContent = text ? '请检查收录文字，点击保存后才会加入内容库。' : '填写正文或字段，保存后即可快速使用。'; render(); return true;
 }
 function useText(text: string, paste: boolean) { void run(async () => { const result = await bridge.useSnippetText({ text, paste }); status.textContent = result.status; }); }
 function prepareText(text: string, paste: boolean, isTemplate: boolean) {
@@ -173,8 +188,8 @@ async function reloadLibrary() { const next = await bridge.getLibrary(); draft =
 function handleCapture(text: string) {
     if (busy) { capturePending = text; return; }
     if (draft) { status.textContent = '请先保存或取消当前编辑，再收录新的文字。'; return; }
-    try { newDraft(text); } catch (reason) { setError(reason); }
+    try { if (newDraft(text)) setMode('library'); } catch (reason) { setError(reason); }
 }
-const unsubscribers = [bridge.onLibraryCapture(handleCapture), bridge.onLibraryChanged(() => { if (busy) reloadPending = true; else void run(reloadLibrary); })];
-window.addEventListener('unload', () => unsubscribers.forEach(unsubscribe => unsubscribe()));
+const unsubscribers = [bridge.onShowClipboardHistory(() => setMode('history')), bridge.onLibraryCapture(handleCapture), bridge.onLibraryChanged(() => { if (busy) reloadPending = true; else void run(reloadLibrary); })];
+window.addEventListener('unload', () => { historyPanel.dispose(); unsubscribers.forEach(unsubscribe => unsubscribe()); });
 void run(async () => { try { update(await bridge.getLibrary()); } catch (reason) { blocked = true; render(); throw reason; } });

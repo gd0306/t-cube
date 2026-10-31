@@ -1,3 +1,6 @@
+import { ClipboardHistoryRecorder, clipboardHistoryOperations } from './clipboard-history';
+import { readHistoryClipboardItems } from './history-clipboard-reader';
+import { clipboardHistoryFormatsAllowed } from '../native/clipboard-history';
 import {app,BrowserWindow,clipboard,dialog,globalShortcut,ipcMain,screen} from 'electron';
 import path from 'node:path';
 import type {LauncherHost} from './application';
@@ -16,9 +19,10 @@ import {FACES,type Face} from '../shared/contracts';
 const record=(value:unknown):Record<string,unknown>=>{if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('Invalid request');return value as Record<string,unknown>;};
 const string=(value:unknown,max=128):string=>{if(typeof value!=='string'||!value.length||value.length>max)throw new Error('Invalid text');return value;};
 const boolean=(value:unknown):boolean=>{if(typeof value!=='boolean')throw new Error('Invalid preference');return value;};
-export interface OfficeOptions {whenLauncherOperationsIdle:()=>Promise<void>;host:LauncherHost;directory:string;rendererPath:string;createLibraryWindow:()=>BrowserWindow;role:(id:number)=>WindowRole|null}
+export interface OfficeOptions {whenLauncherOperationsIdle:()=>Promise<void>;host:LauncherHost;directory:string;rendererPath:string;createLibraryWindow:()=>BrowserWindow;role:(id:number)=>WindowRole|null;historyChanged?:()=>void}
 export class OfficeServices {
     libraryWindow:BrowserWindow|null=null;
+    readonly clipboardHistory: ClipboardHistoryRecorder;
     readonly library:ContentLibraryService;
     readonly maintenance:MaintenanceService;
     readonly performance:PerformanceStore;
@@ -34,6 +38,19 @@ export class OfficeServices {
     async whenIdle():Promise<void>{while(this.pending.size)await Promise.allSettled([...this.pending]);}
     get isRestoring(){return this.quitting||this.restoreGate||this.maintenance.isRestoring;}
     constructor(private readonly options:OfficeOptions){
+        this.clipboardHistory = new ClipboardHistoryRecorder({
+            sequence: clipboardSequenceNumber,
+            read: async isCurrent => {
+                const allowed = () => isCurrent() && clipboardHistoryFormatsAllowed();
+                if (!allowed()) return null;
+                const items = await clipboard.read();
+                if (!allowed()) return null;
+                return readHistoryClipboardItems(items, allowed);
+            },
+        }, state => {
+            this.libraryWindow?.webContents.send(C.clipboardHistoryChanged, state);
+            this.options.historyChanged?.();
+        });
         const configurationPath=path.join(options.directory,'configuration.json'),libraryPath=path.join(options.directory,'content-library.json');
         this.library=new ContentLibraryService(new SnippetStore(libraryPath));
         this.performance=new PerformanceStore(path.join(options.directory,'performance-preferences.json'));
@@ -69,10 +86,14 @@ export class OfficeServices {
         window.show();window.focus();
         if(text!==undefined)window.webContents.send(C.libraryCapture,text);
     }
+    async showClipboardHistory() {
+        await this.showLibrary();
+        this.libraryWindow?.webContents.send(C.showClipboardHistoryMode);
+    }
     private async use(value:unknown){
         const request=record(value),text=string(request.text,262144),paste=boolean(request.paste);validateSnippetText(text);
         const generation=++this.pasteGeneration;
-        await clipboard.writeText(text);
+        await this.clipboardHistory.performOwnWrite(() => clipboard.writeText(text));
         const sequence = clipboardSequenceNumber();
         if(!paste)return{status:'已复制。'};
         this.libraryWindow?.hide();
@@ -82,6 +103,8 @@ export class OfficeServices {
     }
     private registerIPC(){
         const operations:Record<string,(value:unknown)=>unknown>={
+            ...clipboardHistoryOperations(this.clipboardHistory, request => this.use(request)),
+            showClipboardHistory: value => { if (value !== undefined) throw new Error('Invalid history request'); return this.showClipboardHistory(); },
             showLibrary:value=>this.showLibrary(value===undefined?undefined:string(value,262144)),getLibrary:()=>this.library.get(),
             saveSnippet:value=>this.library.save(value as TextSnippet),deleteSnippet:value=>this.library.delete(string(value)),
             moveSnippet:value=>{const v=record(value);return this.library.move({id:string(v.id),neighborId:string(v.neighborId)});},
@@ -104,5 +127,5 @@ export class OfficeServices {
         }]));
         registerFeatureIPC(ipcMain,this.options.role,tracked,()=>this.isRestoring,error=>this.options.host.reportError(error));
     }
-    dispose(){this.pasteGeneration++;if(this.shortcutRegistered)globalShortcut.unregister('CommandOrControl+Shift+Space');this.lifecycle?.dispose();}
+    dispose(){this.clipboardHistory.dispose();this.pasteGeneration++;if(this.shortcutRegistered)globalShortcut.unregister('CommandOrControl+Shift+Space');this.lifecycle?.dispose();}
 }

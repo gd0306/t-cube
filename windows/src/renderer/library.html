@@ -8,9 +8,11 @@
     <title>T-Cube · 常用内容</title>
 </head>
 <body>
-    <header><div><small>T-CUBE · 本机资料库</small><h1>常用内容</h1></div><div class="actions"><button id="capture">从剪贴板收录</button><button id="add" class="primary">＋ 新建内容</button></div></header>
+    <header><div><small>T-CUBE · 本机资料库</small><h1>常用内容</h1></div><div id="snippet-actions" class="actions"><button id="capture">从剪贴板收录</button><button id="add" class="primary">＋ 新建内容</button></div></header>
+    <nav class="library-modes" aria-label="内容模式"><button id="library-mode" aria-pressed="true">常用内容</button><button id="history-mode" aria-pressed="false">剪贴板历史</button></nav>
+    <div id="history-panel" hidden></div>
     <div id="error" role="alert" hidden></div>
-    <main>
+    <main id="library-panel">
         <aside aria-label="内容列表">
             <label class="search"><span class="visually-hidden">搜索内容</span><input id="search" type="search" placeholder="搜索标题、正文或字段" /></label>
             <div class="filters"><label><input id="favorites" type="checkbox" /> 只看收藏</label><select id="group" aria-label="按分组筛选"><option value="">全部分组</option></select></div>
