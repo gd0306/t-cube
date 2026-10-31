@@ -8,7 +8,7 @@ export async function traceWidgetInput(widget: Page): Promise<void> {
         (window as unknown as Record<string, unknown>).__tcubeInputTrace = events;
         for (const type of ['pointerdown', 'pointerup', 'pointercancel', 'pointermove', 'lostpointercapture', 'mousedown', 'mouseup', 'mousemove', 'click', 'mouseenter', 'mouseleave']) {
             document.addEventListener(type, event => {
-                const mouse = event as MouseEvent, target = event.target as Element | null;
+                const mouse = event as MouseEvent, target = event.target instanceof Element ? event.target : null;
                 events.push({ type, time: Date.now(), buttons: mouse.buttons, button: mouse.button, x: mouse.clientX, y: mouse.clientY,
                     trusted: event.isTrusted, target: target ? { tag: target.tagName, id: target.id, className: target.getAttribute('class') } : null });
                 if (events.length > 80) events.shift();
