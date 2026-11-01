@@ -1,5 +1,5 @@
 import { Box3, BufferGeometry, Float32BufferAttribute, Quaternion, Ray, Triangle, Vector2, Vector3 } from 'three';
-import { FACES, type Face, type Hit } from '../shared/contracts';
+import { FACES, type Configuration, type Face, type Hit, type Slots } from '../shared/contracts';
 
 export const DISPLAY_TILT = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), -0.66)
     .multiply(new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), 0.52));
@@ -9,6 +9,10 @@ export const ICON_RECTS = [
     { x: 175, y: 230, width: 216, height: 216 }, { x: 633, y: 230, width: 216, height: 216 },
     { x: 175, y: 600, width: 216, height: 216 }, { x: 633, y: 600, width: 216, height: 216 },
 ] as const;
+/** Shared by atlas painting and curved-surface picking; all coordinates are top-left. */
+export const WEBSITE_TITLE_RECTS = ICON_RECTS.map(rect => ({
+    x: rect.x + rect.width / 2 - 177, y: rect.y + rect.height + 12, width: 354, height: 74,
+}));
 
 export function faceQuaternion(face: Face): Quaternion {
     switch (face) {
@@ -92,11 +96,14 @@ export function createFaceGeometry(face: Face): BufferGeometry {
 }
 
 /** UV has Three's bottom-left origin, while native painted rectangles start at top-left. */
-export function iconSlotAtUV(u: number, v: number): number | null {
+export function iconSlotAtUV(u: number, v: number, slots?: Slots): number | null {
     if (!Number.isFinite(u) || !Number.isFinite(v)) return null;
     const x = u * TEXTURE_SIZE, y = (1 - v) * TEXTURE_SIZE;
     const index = ICON_RECTS.findIndex(rect => x >= rect.x && x < rect.x + rect.width && y >= rect.y && y < rect.y + rect.height);
-    return index < 0 ? null : index;
+    if (index >= 0) return index;
+    const title = WEBSITE_TITLE_RECTS.findIndex((rect, slot) => slots?.[slot]?.kind === 'website'
+        && x >= rect.x && x < rect.x + rect.width && y >= rect.y && y < rect.y + rect.height);
+    return title < 0 ? null : title;
 }
 
 const bounds = new Box3(new Vector3(-0.502, -0.502, -0.502), new Vector3(0.502, 0.502, 0.502));
@@ -120,7 +127,7 @@ function intersect(ray: Ray, mesh: BufferGeometry, cull: boolean): { distance: n
     return nearest;
 }
 
-export function pickCube(ray: Ray, quaternion: Quaternion, direct: boolean): Hit | null {
+export function pickCube(ray: Ray, quaternion: Quaternion, direct: boolean, groups?: Configuration['groups']): Hit | null {
     if (![...ray.origin.toArray(), ...ray.direction.toArray(), ...quaternion.toArray()].every(Number.isFinite)
         || ray.direction.lengthSq() === 0 || quaternion.lengthSq() === 0) return null;
     const inverse = quaternion.clone().normalize().invert();
@@ -134,7 +141,7 @@ export function pickCube(ray: Ray, quaternion: Quaternion, direct: boolean): Hit
             if (hit && (!nearest || hit.distance < nearest.distance)) nearest = { face, ...hit };
         }
         if (!nearest) return null;
-        const slot = iconSlotAtUV(nearest.uv.x, nearest.uv.y);
+        const slot = iconSlotAtUV(nearest.uv.x, nearest.uv.y, groups?.[nearest.face].slots);
         return slot === null ? null : { face: nearest.face, slot };
     }
     body ??= createBodyGeometry();

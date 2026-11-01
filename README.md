@@ -8,7 +8,7 @@ A transparent glass launcher that floats on your desktop. Keep favorite apps, fi
 
 ## Download installers
 
-macOS **0.18.0** · Windows **0.18.0**: [macOS Apple Silicon (.dmg)](https://github.com/gd0306/t-cube/releases/download/v0.18.0/T-Cube-0.18.0-macos-arm64.dmg) · [Windows x64 installer (.exe)](https://github.com/gd0306/t-cube/releases/download/v0.18.0/T-Cube-0.18.0-windows-x64-setup.exe) · [Release notes and SHA-256 checksums](https://github.com/gd0306/t-cube/releases/tag/v0.18.0).
+macOS **0.18.1** · Windows **0.18.1**: [macOS Apple Silicon (.dmg)](https://github.com/gd0306/t-cube/releases/download/v0.18.1/T-Cube-0.18.1-macos-arm64.dmg) · [Windows x64 installer (.exe)](https://github.com/gd0306/t-cube/releases/download/v0.18.1/T-Cube-0.18.1-windows-x64-setup.exe) · [Release notes and SHA-256 checksums](https://github.com/gd0306/t-cube/releases/tag/v0.18.1).
 
 The Windows installer includes its runtime and needs no Node.js installation. Quit an existing T-Cube before updating; shortcut configuration is preserved. These builds are unsigned/ad-hoc signed, not notarized or Developer ID/Authenticode signed.
 
@@ -61,6 +61,10 @@ Open **剪贴板历史** from the menu bar/tray or the content-library tab, then
 
 History stays in memory, is cleared on exit, and is excluded from backups/export. Limits: 100 items, 64 KiB UTF-8 per item, 2 MiB total text. File copies and supported sensitive/temporary/exclusion markers are skipped on a best-effort basis; unmarked sensitive text can still be recorded. Pause or clear from the history view. Images, persistence and cloud sync are outside this prototype.
 
+## Website titles (0.18.1)
+
+Website entries display the title you supplied beneath the icon on the cube and expanded face. Long names use a single line with an ellipsis; hover for the full title. Title clicks follow the same launch/expand setting as the icon. Names are drawn locally into the existing face artwork, with no favicon requests or configuration migration.
+
 ## Content templates
 
 Enable “作为模板使用” when editing a library item, then add placeholders such as `{{客户姓名}}` in its body or fields. Fill each variable once and preview the result before copying or pasting. Existing items remain ordinary text by default.
@@ -83,7 +87,7 @@ Install https://github.com/gd0306/t-cube (master) on Windows. Follow windows/REA
 
 ## macOS install and run
 
-Current source version: **0.18.0** on **master**. Published installer versions are listed above.
+Current source version: **0.18.1** on **master**. Published installer versions are listed above.
 
 Running requires macOS 15+. Building requires full Xcode with Swift 6 and the **macOS 27 SDK**. Current local packages target Apple Silicon and use ad-hoc signing; they are not notarized.
 
@@ -94,7 +98,7 @@ bash scripts/build-app.sh
 open build/T-Cube.app
 ```
 
-For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.18.0.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are distributed through Releases; macOS security approvals remain with the user.
+For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.18.1.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are distributed through Releases; macOS security approvals remain with the user.
 
 ### Let an agent install it
 

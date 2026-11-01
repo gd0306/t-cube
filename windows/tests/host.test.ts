@@ -166,6 +166,42 @@ test('native slime pointer uses the final clamped enlarged frame and keeps its p
     } finally { await f.dispose(); }
 });
 
+test('website hover publishes normalized native coordinates without enabling slime contact or extra polling', async () => {
+    const f = await fixture();
+    try {
+        await f.host.addURLTarget({ face: 'front', slot: 1, kind: 'website', name: 'Docs', url: 'https://example.invalid/' });
+        const config = f.store.snapshot;
+        config.hover.isEnabled = true;
+        await f.host.applyConfiguration(config);
+        f.pointer(150, 170); f.host.poll();
+        assert.deepEqual(f.host.geometry.displayFrame, { x: 0, y: 0, width: 656, height: 656 });
+        assert.deepEqual(f.host.snapshot.state.hoverPointer, { x: 150 / 656, y: 170 / 656 });
+        assert.equal(f.host.snapshot.state.pointer, null);
+        const unchanged = f.broadcasts;
+        f.host.poll(); f.host.poll();
+        assert.equal(f.broadcasts, unchanged);
+        f.input.controlHeld = true; f.host.poll();
+        assert.deepEqual(f.host.snapshot.state.hoverPointer, { x: 150 / 656, y: 170 / 656 });
+        f.input.controlHeld = false; f.host.poll();
+        f.pointer(400, 300); f.host.poll();
+        assert.deepEqual(f.host.snapshot.state.hoverPointer, { x: 400 / 656, y: 300 / 656 });
+        assert.equal(f.host.snapshot.state.pointer, null);
+        const gesture = f.host.beginPointer(0);
+        assert.equal(f.host.snapshot.state.hoverPointer, null);
+        f.input.primaryDown = false; f.host.poll();
+        await f.host.endPointer({ gestureId: gesture, button: 0, hit: null });
+        assert.deepEqual(f.host.snapshot.state.hoverPointer, { x: 400 / 656, y: 300 / 656 });
+        f.host.setVisible(false);
+        assert.equal(f.host.snapshot.state.hoverPointer, null);
+        f.host.setVisible(true);
+        f.pointer(1000, 1000); f.host.poll();
+        assert.equal(f.host.snapshot.state.hoverPointer, null);
+        const outside = f.broadcasts;
+        f.pointer(1100, 1100); f.host.poll();
+        assert.equal(f.broadcasts, outside);
+    } finally { await f.dispose(); }
+});
+
 test('material changes expose the latest sampled pointer without resetting the theme phase', async () => {
     const f = await fixture();
     try {

@@ -86,6 +86,40 @@ struct DirectLaunchTests {
         #expect(launches == 0)
     }
 
+    @Test func websiteTitlesLaunchTheSameSlotWhileApplicationCaptionMarginsStayInactive() async throws {
+        let (view, window, model, directory) = try fixture()
+        defer { window.orderOut(nil); view.suspendAnimationUpdates(); model.stopThemeCycle(); try? FileManager.default.removeItem(at: directory) }
+        model.change { try $0.place(WebsiteTarget.item(title: "工作仓库", address: "https://example.com/work"), to: .front, slot: 0, replacing: true) }
+        view.refreshTextures()
+        view.cube.orientation = CubeRotation.snapped(to: .front)
+        try await Task.sleep(for: .milliseconds(150))
+        var launched: [Int] = []
+        view.launchRequested = { slot, _ in launched.append(slot) }
+        // Hand-derived centers of the caption strip below each top-row icon.
+        try click(projected([-0.18785156, 0.01394531], face: .front, view: view), view: view, window: window)
+        try click(projected([0.18785156, 0.01394531], face: .front, view: view), view: view, window: window)
+        #expect(launched == [0])
+    }
+
+    @Test func hoveringAWebsiteShowsItsFullTitleAndLeavingRestoresInteractionHelp() async throws {
+        let (view, window, model, directory) = try fixture()
+        defer { window.orderOut(nil); view.suspendAnimationUpdates(); model.stopThemeCycle(); try? FileManager.default.removeItem(at: directory) }
+        let fullName = "工作仓库 — " + String(repeating: "完整标题", count: 40)
+        model.change { try $0.place(WebsiteTarget.item(title: fullName, address: "https://example.com/work"), to: .front, slot: 0, replacing: true) }
+        view.refreshTextures()
+        view.cube.orientation = CubeRotation.snapped(to: .front)
+        let surface = CubeSurfaceView(cubeView: view)
+        window.contentView = surface
+        try await Task.sleep(for: .milliseconds(150))
+        let point = try projected([-0.18785156, 0.01394531], face: .front, view: view)
+        surface.input.mouseMoved(with: try event(.mouseMoved, at: point, window: window))
+        let owner = surface.input as? any NSViewToolTipOwner
+        #expect(owner != nil)
+        let local = surface.input.convert(point, from: nil)
+        #expect(owner?.view(surface.input, stringForToolTip: 0, point: local, userData: nil) == fullName)
+        #expect(owner?.view(surface.input, stringForToolTip: 0, point: CGPoint(x: -20, y: -20), userData: nil).contains("拖动") == true)
+    }
+
     private func fixture() throws -> (CubeView, NSPanel, AppModel, URL) {
         _ = NSApplication.shared
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

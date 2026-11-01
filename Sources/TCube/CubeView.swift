@@ -315,11 +315,19 @@ final class CubeView: ARView {
             model.selectedFace = face
             faceRequested?(face, NSRect(x: point.x - 1, y: point.y - 1, width: 2, height: 2))
         } else {
-            guard isHovered, let hit = CubeFacePicking.icon(origin: origin, direction: direction),
+            guard isHovered, let hit = CubeFacePicking.icon(origin: origin, direction: direction, configuration: model.configuration),
                   model.configuration.group(for: hit.face).slots[hit.slot] != nil else { return }
             model.selectedFace = hit.face
             launchRequested?(hit.slot, hit.face)
         }
+    }
+
+    func websiteTitle(atWindowPoint point: NSPoint) -> String? {
+        guard let ray = ray(through: convert(point, from: nil)),
+              let hit = CubeFacePicking.icon(origin: cube.convert(position: ray.origin, from: nil),
+                  direction: cube.convert(direction: ray.direction, from: nil), configuration: model.configuration),
+              let item = model.configuration.group(for: hit.face).slots[hit.slot], item.kind == .website else { return nil }
+        return item.name
     }
 
     private func finishMove(translation: SIMD2<Float>) {

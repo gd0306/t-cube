@@ -12,13 +12,13 @@ enum CubeTheme {
     static let muted = NSColor(calibratedWhite: 1, alpha: 0.58)
     static let bodyCorner: Float = 0.025
 
-    /// The ordered icon sources are the only configuration values painted in a face.
-    /// Display names and appearance settings must not invalidate its texture.
+    /// Only icon sources and visible website titles invalidate a face texture.
     struct FaceArtwork: Equatable {
         struct IconSource: Equatable {
             let url: URL
             let kind: LauncherItem.Kind
             let bookmark: Data?
+            let websiteTitle: String?
         }
 
         let slots: [IconSource?]
@@ -27,7 +27,7 @@ enum CubeTheme {
         init(group: FaceGroup) {
             slots = group.slots.map { item in
                 item.map { IconSource(url: $0.url, kind: $0.kind,
-                                      bookmark: $0.kind.isLocal ? $0.bookmark : nil) }
+                                      bookmark: $0.kind.isLocal ? $0.bookmark : nil, websiteTitle: $0.websiteDisplayTitle) }
             }
         }
     }
@@ -47,10 +47,22 @@ enum CubeTheme {
         NSGraphicsContext.saveGraphicsState()
         defer { NSGraphicsContext.restoreGraphicsState() }
         NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: true)
-        // All six faces draw icons only; empty slots and surrounding pixels stay clear.
+        // Website captions share the existing atlas; empty slots and surrounding pixels stay clear.
         for slot in 0..<4 {
             if let item = group.slots[slot] {
                 LauncherService.icon(for: item).draw(in: FaceLayout.iconRect(slot), from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: [.interpolation: NSImageInterpolation.high])
+                if let title = item.websiteDisplayTitle {
+                    let rect = FaceLayout.websiteTitleRect(slot)
+                    NSColor.black.withAlphaComponent(0.60).setFill()
+                    NSBezierPath(roundedRect: rect, xRadius: 14, yRadius: 14).fill()
+                    let paragraph = NSMutableParagraphStyle()
+                    paragraph.alignment = .center
+                    paragraph.lineBreakMode = .byTruncatingTail
+                    (title as NSString).draw(in: rect.insetBy(dx: 8, dy: 4), withAttributes: [
+                        .font: NSFont.systemFont(ofSize: 54, weight: .semibold),
+                        .foregroundColor: NSColor.white, .paragraphStyle: paragraph
+                    ])
+                }
             }
         }
         guard let rendered = context.makeImage() else { return nil }

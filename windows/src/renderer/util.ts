@@ -1,5 +1,21 @@
 import type { Snapshot } from '../shared/contracts';
 
+/** Keep atlas measurement bounded, preserve graphemes, and never compress wide text. */
+export function fitWebsiteTitle(name: string, width: number, measure: (text: string) => number): string {
+    if (!Number.isFinite(width) || width <= 0) return '';
+    const graphemes: string[] = [];
+    for (const part of new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(name.replace(/\s+/gu, ' ').trim())) {
+        graphemes.push(part.segment);
+        if (graphemes.length > 120) break;
+    }
+    const bounded = graphemes.length > 120;
+    if (!bounded && measure(graphemes.join('')) <= width) return graphemes.join('');
+    if (measure('…') > width) return '';
+    graphemes.length = Math.min(graphemes.length, 119);
+    while (graphemes.length && measure(graphemes.join('') + '…') > width) graphemes.pop();
+    return graphemes.join('') + '…';
+}
+
 export function padTransparentRGB(
     pixels: Uint8ClampedArray,
     width: number,

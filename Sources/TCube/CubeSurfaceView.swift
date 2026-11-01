@@ -255,11 +255,12 @@ final class CubeSurfaceView: NSView {
 }
 
 @MainActor
-final class CubeInputOverlay: NSView {
+final class CubeInputOverlay: NSView, NSViewToolTipOwner {
     private unowned let cubeView: CubeView
     var renderingRequested: (() -> Void)?
     private var clickFeedback: NSPoint?
     private var feedbackGeneration = 0
+    private var interactionHelp = ""
 
     private func showClickFeedback(at point: NSPoint) {
         clickFeedback = point
@@ -289,7 +290,16 @@ final class CubeInputOverlay: NSView {
     func updateInteractionHelp(expandsFaces: Bool) {
         let click = expandsFaces ? "单击面展开入口" : "单击图标直接打开"
         setAccessibilityLabel("立方体：左键拖动位置，右键拖动旋转，按住 Ctrl 恢复原大小，Ctrl 加左键按原大小拖动，滚动旋转，\(click)")
-        toolTip = "左键拖动位置 · 右键拖动旋转 · Ctrl 恢复原大小 · Ctrl＋左键按原大小拖动 · 滚动旋转 · \(click) · 右键设置"
+        interactionHelp = "左键拖动位置 · 右键拖动旋转 · Ctrl 恢复原大小 · Ctrl＋左键按原大小拖动 · 滚动旋转 · \(click) · 右键设置"
+        registerWebsiteToolTip()
+    }
+    private func registerWebsiteToolTip() {
+        removeAllToolTips()
+        if !bounds.isEmpty { addToolTip(bounds, owner: self, userData: nil) }
+    }
+    func view(_ view: NSView, stringForToolTip tag: NSView.ToolTipTag, point: NSPoint, userData: UnsafeMutableRawPointer?) -> String {
+        if bounds.contains(point), let title = cubeView.websiteTitle(atWindowPoint: convert(point, to: nil)) { return title }
+        return interactionHelp
     }
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("Use init(cubeView:)") }
@@ -312,6 +322,7 @@ final class CubeInputOverlay: NSView {
         for area in trackingAreas { removeTrackingArea(area) }
         addTrackingArea(NSTrackingArea(rect: bounds, options: [.activeAlways, .inVisibleRect, .mouseEnteredAndExited, .mouseMoved], owner: self))
         super.updateTrackingAreas()
+        registerWebsiteToolTip()
     }
     private func updateHover(_ inside: Bool, event: NSEvent? = nil) {
         if inside { renderingRequested?() }

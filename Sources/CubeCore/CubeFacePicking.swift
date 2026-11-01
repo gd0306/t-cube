@@ -5,7 +5,7 @@ public enum CubeFacePicking {
     private static let body = SoftGlassGeometry()
     private static let decal = CurvedFaceGeometry()
 
-    public static func icon(origin: SIMD3<Float>, direction: SIMD3<Float>) -> (face: CubeFace, slot: Int)? {
+    public static func icon(origin: SIMD3<Float>, direction: SIMD3<Float>, configuration: CubeConfiguration? = nil) -> (face: CubeFace, slot: Int)? {
         guard intersectsBounds(origin: origin, direction: direction) else { return nil }
         var nearest: (face: CubeFace, distance: Float, uv: SIMD2<Float>)?
         for face in CubeFace.allCases {
@@ -19,7 +19,7 @@ public enum CubeFacePicking {
         }
         guard let nearest else { return nil }
         let local = (nearest.uv - SIMD2(repeating: 0.5)) * FaceLayout.panelSide
-        guard let slot = FaceLayout.iconSlot(at: local) else { return nil }
+        guard let slot = FaceLayout.iconSlot(at: local, includingWebsiteTitlesIn: configuration?.group(for: nearest.face)) else { return nil }
         return (nearest.face, slot)
     }
 

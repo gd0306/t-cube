@@ -34,6 +34,8 @@ export interface ViewState {
     hovered: boolean;
     /** Native cursor normalized to [0, 1], from the displayed frame's top-left; active slime contact only. */
     pointer: Point | null;
+    /** Native website-hover sample in displayed-frame coordinates; omitted only by older hosts. */
+    hoverPointer?: Point | null;
     controlHeld: boolean;
     interactionActive: boolean;
     rotationDrag: RotationDrag | null;

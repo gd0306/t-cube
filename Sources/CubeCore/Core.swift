@@ -69,6 +69,12 @@ public struct LauncherItem: Identifiable, Codable, Equatable, Sendable {
         return components.string ?? url.absoluteString
     }
 
+    /// Bounded single-line artwork; full name remains available for tooltips and editing.
+    public var websiteDisplayTitle: String? {
+        guard kind == .website else { return nil }
+        return String(name.split(whereSeparator: \.isWhitespace).joined(separator: " ").prefix(120))
+    }
+
     public var targetDescription: String { kind.isLocal ? url.path : url.absoluteString }
     public func validate() throws {
         switch kind {

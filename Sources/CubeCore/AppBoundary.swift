@@ -21,11 +21,19 @@ public enum FaceLayout {
         return CGRect(x: slot.midX - 108, y: slot.minY + 6, width: 216, height: 216)
     }
 
-    public static func iconSlot(at local: SIMD2<Float>) -> Int? {
+    public static func websiteTitleRect(_ index: Int) -> CGRect {
+        let slot = slotRect(index)
+        return CGRect(x: slot.minX + 16, y: iconRect(index).maxY + 12, width: slot.width - 32, height: 74)
+    }
+
+    public static func iconSlot(at local: SIMD2<Float>, includingWebsiteTitlesIn group: FaceGroup? = nil) -> Int? {
         guard local.x.isFinite, local.y.isFinite else { return nil }
         let point = CGPoint(x: CGFloat(local.x / panelSide + 0.5) * textureSize,
                             y: CGFloat(0.5 - local.y / panelSide) * textureSize)
-        return (0..<4).first { iconRect($0).contains(point) }
+        return (0..<4).first { index in
+            iconRect(index).contains(point) ||
+                (group?.slots[index]?.kind == .website && websiteTitleRect(index).contains(point))
+        }
     }
     public static func slot(at local: SIMD2<Float>) -> Int? {
         guard local.x.isFinite, local.y.isFinite else { return nil }

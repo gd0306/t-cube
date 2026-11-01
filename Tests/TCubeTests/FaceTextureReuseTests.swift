@@ -30,7 +30,7 @@ struct FaceTextureReuseTests {
 
     @Test func unchangedRefreshesAndNonArtworkSettingsKeepTheExistingFaceTextures() throws {
         try withView { model, view, _ in
-            let original = try textures(in: view)
+            var original = try textures(in: view)
             #expect(original.count == 2)
             #expect(original.values.allSatisfy { $0.width == 1024 && $0.height == 1024 })
             view.refreshTextures()
@@ -43,6 +43,9 @@ struct FaceTextureReuseTests {
             var renamed = try #require(model.configuration.group(for: .front).slots[0])
             renamed.name = "重新命名的入口"
             model.change { try $0.place(renamed, to: .front, slot: 0, replacing: true) }
+            view.refreshTextures()
+            try expectOnlyChangedFace(.front, comparedTo: original, in: view)
+            original = try textures(in: view)
             view.refreshTextures()
             try expectSameTextures(original, in: view)
 

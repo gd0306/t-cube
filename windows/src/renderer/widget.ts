@@ -5,6 +5,7 @@ import {
     createBodyGeometry,
     createFaceGeometry,
     ICON_RECTS,
+    WEBSITE_TITLE_RECTS,
     TEXTURE_SIZE,
     pickCube,
     pickSurfacePoint,
@@ -13,7 +14,7 @@ import { SlimeMotion } from '../core/slime';
 import { SlimeShell } from '../core/slime-geometry';
 import { applyScrollRotation, DragRotation, IdleRotation, PrismMotion } from '../core/rotation';
 import { FACES, type Appearance, type Face, type Snapshot } from '../shared/contracts';
-import { padTransparentRGB, subscribe, wheelDelta } from './util';
+import { fitWebsiteTitle, padTransparentRGB, subscribe, wheelDelta } from './util';
 import { gestureHit } from './state';
 import { createGlassMaterial, updateGlassMaterial } from './glass';
 import { OpticalTransition } from './optical-transition';
@@ -31,6 +32,8 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setClearColor(0, 0);
 document.body.prepend(renderer.domElement);
+renderer.domElement.setAttribute('role', 'img');
+renderer.domElement.setAttribute('aria-label', 'T-Cube');
 const idle = new IdleRotation(),
     dragRotation = new DragRotation(),
     motion = new PrismMotion();
@@ -209,6 +212,18 @@ async function updateIcons(data: Snapshot) {
                 const r = ICON_RECTS[i];
                 ctx.drawImage(image, r.x, r.y, r.width, r.height);
             }
+            if (item?.kind === 'website') {
+                const r = WEBSITE_TITLE_RECTS[i];
+                ctx.font = '600 54px system-ui';
+                const title = fitWebsiteTitle(item.name, r.width - 24, text => ctx.measureText(text).width);
+                if (title) {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                    ctx.beginPath(); ctx.roundRect(r.x, r.y, r.width, r.height, 20); ctx.fill();
+                    ctx.fillStyle = 'white';
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText(title, r.x + r.width / 2, r.y + r.height / 2);
+                }
+            }
         });
         const pixels = ctx.getImageData(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
         padTransparentRGB(pixels.data, TEXTURE_SIZE, TEXTURE_SIZE);
@@ -285,6 +300,7 @@ function render() {
         (1 - 0.86 * motion.engagement);
     energy.visible = palette.energy > 0;
     renderer.render(scene, camera);
+    updateWebsiteTooltip();
     metrics.frames++;
     dirty = false;
     const cadence = animationCadence({visible: state.visible, documentVisible: !document.hidden,
@@ -334,6 +350,40 @@ window.tcube.onError((message) => {
     }, 5000);
 });
 let active: { button: 0 | 2; id: Promise<number>; ended: boolean } | null = null;
+let hoverPoint: { x: number; y: number } | null = null;
+let tooltipKey = '';
+function hitAtPoint(x: number, y: number, direct: boolean) {
+    if (!snapshot) return null;
+    const rect = renderer.domElement.getBoundingClientRect();
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(new THREE.Vector2(
+        ((x - rect.left) / rect.width) * 2 - 1,
+        1 - ((y - rect.top) / rect.height) * 2), camera);
+    return pickCube(raycaster.ray, cube.quaternion, direct, snapshot.state.configuration.groups);
+}
+function updateWebsiteTooltip() {
+    // Inactive transparent windows may not receive DOM pointermove. New hosts publish their
+    // existing native cursor sample; only older hosts fall back to DOM coordinates.
+    const native = snapshot?.state.hoverPointer;
+    const rect = renderer.domElement.getBoundingClientRect();
+    const point = native === undefined ? hoverPoint : native
+        ? { x: rect.left + native.x * rect.width, y: rect.top + native.y * rect.height } : null;
+    // The cube pauses on hover. Reuse its hit until the pointer, pose, layout or item changes.
+    const key = point && snapshot?.state.hovered
+        ? [point.x, point.y, ...cube.quaternion.toArray(), innerWidth, innerHeight, textureVersion].join(':') : '';
+    if (key === tooltipKey) return;
+    tooltipKey = key;
+    const hit = point && snapshot?.state.hovered ? hitAtPoint(point.x, point.y, true) : null;
+    const item = hit?.slot !== null && hit ? snapshot?.state.configuration.groups[hit.face].slots[hit.slot] : null;
+    const title = item?.kind === 'website' ? item.name : '';
+    if (renderer.domElement.title !== title) renderer.domElement.title = title;
+    renderer.domElement.setAttribute('aria-label', title || 'T-Cube');
+}
+renderer.domElement.addEventListener('pointermove', event => {
+    hoverPoint = { x: event.clientX, y: event.clientY };
+    updateWebsiteTooltip();
+});
+renderer.domElement.addEventListener('pointerleave', () => { hoverPoint = null; updateWebsiteTooltip(); });
 renderer.domElement.addEventListener('contextmenu', (event) => event.preventDefault());
 renderer.domElement.addEventListener('pointerdown', (event) => {
     if (event.button !== 0 && event.button !== 2) return;
@@ -349,24 +399,8 @@ function end(event: PointerEvent) {
     if (!gesture || gesture.ended) return;
     gesture.ended = true;
     active = null;
-    const hit = gestureHit(event.type, () => {
-        const rect = renderer.domElement.getBoundingClientRect();
-        const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(
-            new THREE.Vector2(
-                ((event.clientX - rect.left) / rect.width) * 2 - 1,
-                1 - ((event.clientY - rect.top) / rect.height) * 2,
-            ),
-            camera,
-        );
-        return snapshot
-            ? pickCube(
-                  raycaster.ray,
-                  cube.quaternion,
-                  !snapshot.state.configuration.expandsFacesOnClick,
-              )
-            : null;
-    });
+    const hit = gestureHit(event.type, () => hitAtPoint(event.clientX, event.clientY,
+        !snapshot?.state.configuration.expandsFacesOnClick));
     void gesture.id
         .then((gestureId) =>
             window.tcube.endPointer({

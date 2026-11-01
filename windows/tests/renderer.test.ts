@@ -1,6 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { padTransparentRGB, wheelDelta } from '../src/renderer/util';
+import { fitWebsiteTitle, padTransparentRGB, wheelDelta } from '../src/renderer/util';
+
+test('website captions normalize whitespace and truncate measured graphemes with an ellipsis', () => {
+    const fit = fitWebsiteTitle;
+    const measure = (text: string) => Array.from(new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(text)).length * 10;
+    assert.equal(fit('  文档\n  入口  ', 100, measure), '文档 入口');
+    assert.equal(fit('文档入口很长', 40, measure), '文档入…');
+    assert.equal(fit('👨‍👩‍👧‍👦ABC', 30, measure), '👨‍👩‍👧‍👦A…');
+    assert.equal(fit('A'.repeat(10000), 100000, measure), 'A'.repeat(119) + '…');
+    assert.equal(fit('文档', 5, measure), '');
+    assert.equal(fit('文档', NaN, measure), '');
+});
 
 test('transparent padding extends color without changing coverage', () => {
     const data = new Uint8ClampedArray(5 * 4);

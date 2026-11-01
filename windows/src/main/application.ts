@@ -77,8 +77,15 @@ export class LauncherHost {
             pointer = { x: Math.max(0, Math.min(1, (this.pointer.x - frame.x) / frame.width)),
                 y: Math.max(0, Math.min(1, (this.pointer.y - frame.y) / frame.height)) };
         }
+        let hoverPointer: Point | null = null;
+        if (this.visible && this.geometry.hovered && !interactionActive && this.pointer
+            && Object.values(this.configuration.groups).some(group => group.slots.some(item => item?.kind === 'website'))) {
+            const frame = this.geometry.displayFrame;
+            const x = (this.pointer.x - frame.x) / frame.width, y = (this.pointer.y - frame.y) / frame.height;
+            if (x >= 0 && x < 1 && y >= 0 && y < 1) hoverPointer = { x, y };
+        }
         return { state: { idlePowerSaving: this.idlePowerSaving, configuration: structuredClone(this.configuration), displayedAppearance: resolved.appearance,
-            activeTheme: resolved.theme, hovered: this.geometry.hovered, pointer, controlHeld: this.controlHeld,
+            activeTheme: resolved.theme, hovered: this.geometry.hovered, pointer, hoverPointer, controlHeld: this.controlHeld,
             interactionActive, rotationDrag: this.rotationDrag, reducedMotion: this.reducedMotion,
             visible: this.visible, expandedFace: this.expandedFace, platform: this.services.platform }, icons: { ...this.icons } };
     }

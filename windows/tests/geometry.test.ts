@@ -3,6 +3,36 @@ import assert from 'node:assert/strict';
 import { Quaternion, Ray, Vector3 } from 'three';
 import { createBodyGeometry, createFaceGeometry, faceQuaternion, iconSlotAtUV, pickCube } from '../src/core/geometry';
 import { FACES } from '../src/shared/contracts';
+import { defaultConfiguration } from '../src/core/configuration';
+
+test('website titles are selectable below icons without making ordinary or empty slots clickable', () => {
+    const slots = defaultConfiguration().groups.front.slots;
+    slots[0] = { id: 'web', kind: 'website', name: '文档入口', path: 'https://example.invalid/' };
+    slots[1] = { id: 'app', kind: 'application', name: 'App', path: 'C:\\App.exe' };
+    // First-row caption centers are at (283, 486) and (741, 486) in the atlas.
+    assert.equal(iconSlotAtUV(283 / 1024, 1 - 486 / 1024, slots), 0);
+    assert.equal(iconSlotAtUV(741 / 1024, 1 - 486 / 1024, slots), null);
+    assert.equal(iconSlotAtUV(283 / 1024, 1 - 856 / 1024, slots), null);
+    assert.equal(iconSlotAtUV(512 / 1024, 1 - 486 / 1024, slots), null);
+});
+
+test('website title picking follows the curved face and presented rotation on all six faces', () => {
+    const groups = defaultConfiguration().groups;
+    const rotation = new Quaternion().setFromAxisAngle(new Vector3(0.3, 1, 0.2).normalize(), 0.7);
+    for (const face of FACES) {
+        groups[face].slots[0] = { id: face, kind: 'website', name: '文档', path: 'https://example.invalid/' };
+        const orientation = faceQuaternion(face);
+        const normal = new Vector3(0, 0, 1).applyQuaternion(orientation).applyQuaternion(rotation);
+        // Ray aligned to atlas (283, 486); x/z and y/z preserve projected face UV.
+        const target = new Vector3((283 / 1024 - 0.5) * 0.84, (0.5 - 486 / 1024) * 0.84, 0.5)
+            .applyQuaternion(orientation).applyQuaternion(rotation);
+        const ray = new Ray(target.clone().addScaledVector(normal, 3), normal.clone().negate());
+        assert.deepEqual(pickCube(ray, rotation, true, groups), { face, slot: 0 });
+        assert.deepEqual(pickCube(ray, rotation, false, groups), { face, slot: null });
+        groups[face].slots[0]!.kind = 'application';
+        assert.equal(pickCube(ray, rotation, true, groups), null);
+    }
+});
 
 test('quartic shell is closed with outward triangles and no duplicated seam vertices', () => {
     const g = createBodyGeometry(), p = g.getAttribute('position'), n = g.getAttribute('normal'), ids = g.index!;

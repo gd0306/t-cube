@@ -90,7 +90,7 @@ private final class ExpandedFacePanel: NSPanel {
     override func cancelOperation(_ sender: Any?) { dismissRequested?() }
 }
 
-private struct ExpandedFaceView: View {
+struct ExpandedFaceView: View {
     @ObservedObject var model: AppModel
     let face: CubeFace
     let close: () -> Void
@@ -104,13 +104,23 @@ private struct ExpandedFaceView: View {
                         close()
                         model.launch(slot: slot, face: face)
                     } label: {
-                        Image(nsImage: LauncherService.icon(for: item)).resizable()
-                            .frame(width: 64, height: 64)
-                            .frame(maxWidth: .infinity).frame(height: 88)
-                            .contentShape(Rectangle())
+                        VStack(spacing: 3) {
+                            Image(nsImage: LauncherService.icon(for: item)).resizable()
+                                .frame(width: 64, height: 64)
+                            if let title = item.websiteDisplayTitle {
+                                Text(title).font(.system(size: 11, weight: .semibold))
+                                    .lineLimit(1).truncationMode(.tail)
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 5).padding(.vertical, 2)
+                                    .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 4))
+                            }
+                        }
+                        .frame(maxWidth: .infinity).frame(height: 88)
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("打开\(item.name)")
+                    .help(item.name)
                 } else {
                     Color.clear.frame(height: 88).accessibilityHidden(true)
                 }

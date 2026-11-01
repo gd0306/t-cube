@@ -1,5 +1,6 @@
 import { inputDiagnostics, traceWidgetInput } from './input-diagnostics.js';
 import { verifyShortcutTargetsSmoke } from './shortcut-targets-smoke.js';
+import { projectedWebsiteTitle, verifyWebsiteTitlesSmoke, websiteTitle } from './website-titles-smoke.js';
 import assert from 'node:assert/strict';
 import { appendFile, mkdir, mkdtemp, writeFile, rm, copyFile, realpath, readFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
@@ -502,11 +503,49 @@ try {
     const expanded = await until(async () => app!.windows(), pages => pages.some(page => page.url().endsWith('/expanded.html')), 'Expansion missing').then(pages => pages.find(page => page.url().endsWith('/expanded.html'))!);
     await until(() => expanded.locator('button').count(), count => count === 4, 'Expansion should contain exactly four icon buttons');
     await sendPreviewIcons();
-    assert.equal((await expanded.locator('body').innerText()).trim(), '');
+    const expandedFace = (await snapshot()).state.expandedFace!;
+    const expectedTitles = (await snapshot()).state.configuration.groups[expandedFace].slots
+        .filter(item => item?.kind === 'website').map(item => item!.name.replace(/\s+/gu, ' ').trim());
+    assert.equal((await expanded.locator('body').innerText()).trim(), expectedTitles.join('\n'));
     await capture(expanded, 'expanded.png');
     await expanded.keyboard.press('Escape');
     await until(snapshot, value => value.state.expandedFace === null, 'Escape failed to close expansion');
-    results.push('Four-icon expansion has no visible text/close control and Escape dismisses it.');
+    results.push('Four-icon expansion shows captions only for websites and Escape dismisses it.');
+    results.push(...await verifyWebsiteTitlesSmoke(widget, settings, async () => {
+        const frame = await bounds();
+        await move(frame.x + frame.width / 2, frame.y + frame.height / 2);
+        await until(snapshot, value => value.state.hovered, 'Website fixture hover missing');
+        const hovered = await bounds();
+        if (process.platform === 'win32') {
+            input.button(0, true);
+            await until(snapshot, value => value.state.interactionActive, 'Website expansion click missing');
+            input.button(0, false);
+        } else await widget.mouse.click(hovered.width / 2, hovered.height / 2);
+        return until(async () => app!.windows(), pages => pages.some(page => page.url().endsWith('/expanded.html')),
+            'Website fixture expansion missing').then(pages => pages.find(page => page.url().endsWith('/expanded.html'))!);
+    }, capture, async () => {
+        if (process.platform !== 'win32') return;
+        const resting = await bounds();
+        await move(resting.x + resting.width / 2, resting.y + resting.height / 2);
+        await until(snapshot, value => value.state.hovered, 'Native website fixture hover missing');
+        const frame = await bounds();
+        await until(() => widget.evaluate(() => ({ width: innerWidth, height: innerHeight })),
+            size => size.width === frame.width && size.height === frame.height, 'Website fixture renderer resize missing');
+        assert.equal(await app!.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()
+            .find(win => win.webContents.getURL().endsWith('/widget.html'))!.isFocused()), false,
+            'Website hover must work on the inactive Windows widget');
+        const point = await projectedWebsiteTitle(widget);
+        await move(frame.x + point.x, frame.y + point.y);
+        await until(snapshot, value => !!value.state.hoverPointer
+            && Math.abs(value.state.hoverPointer.x - point.x / frame.width) < 2 / frame.width
+            && Math.abs(value.state.hoverPointer.y - point.y / frame.height) < 2 / frame.height,
+            'Native website hover sample missing');
+        await until(() => widget.locator('canvas').getAttribute('title'), title => title === websiteTitle,
+            'Inactive native hover did not set the full website tooltip');
+        assert.equal(await widget.locator('canvas').getAttribute('aria-label'), websiteTitle);
+        await capture(widget, 'website-titles-native-hover.png');
+        results.push('Inactive Windows widget uses the native projected title hover point to expose its full tooltip and accessible name without opening a website.');
+    }));
     assert.deepEqual(errors, []);
     results.push('No widget renderer exceptions.');
     console.log(results.join('\n'));
