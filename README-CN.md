@@ -65,6 +65,8 @@ Windows 安装包自带运行时，无需安装 Node.js。更新前先退出旧�
 
 网页图标下方直接显示添加时填写的标题，立方体和展开面板均支持。长标题单行省略，悬停可查看完整标题；点击标题与点击图标使用相同的打开／展开设置。标题跟随图标旋转和缩放，直接在现有贴图中绘制，无需联网获取图标，也无需重新添加已有网页。
 
+<img src="docs/images/website-titles-expanded.png" width="220" alt="Website titles beneath the icons: short Chinese names, a truncated long title and Emoji">
+
 ## 常用内容模板
 
 编辑内容时启用「作为模板使用」，在正文或字段中用 `{{客户姓名}}` 等占位符创建模板；复制或粘贴时填写变量并预览，同名变量只需填写一次。已有内容默认不启用模板，保持原样复制。

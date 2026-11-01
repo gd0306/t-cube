@@ -65,6 +65,8 @@ History stays in memory, is cleared on exit, and is excluded from backups/export
 
 Website entries display the title you supplied beneath the icon on the cube and expanded face. Long names use a single line with an ellipsis; hover for the full title. Title clicks follow the same launch/expand setting as the icon. Names are drawn locally into the existing face artwork, with no favicon requests or configuration migration.
 
+<img src="docs/images/website-titles-expanded.png" width="220" alt="Website titles beneath the icons: short Chinese names, a truncated long title and Emoji">
+
 ## Content templates
 
 Enable “作为模板使用” when editing a library item, then add placeholders such as `{{客户姓名}}` in its body or fields. Fill each variable once and preview the result before copying or pasting. Existing items remain ordinary text by default.
