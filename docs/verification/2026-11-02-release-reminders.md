@@ -20,4 +20,17 @@ Installed and built executable SHA-256: `e5e68285915eeb534a6b4a64dc154dd930a360c
 
 ## Remote acceptance
 
-Windows source-matrix installation and actual NSIS installation verification will be recorded here after CI completes. Publication follows successful verification of both platform artifacts and their checksums. Existing local macOS signing and unsigned Windows distribution remain unchanged.
+[Windows source installation CI](https://github.com/gd0306/t-cube/actions/runs/41415492076) passed on Windows 2022 and 2025 at `b706db4c45bbe47a7e4f86b04e3412231c94a27a`. Each target-platform suite passed 203 tests with one macOS Chrome-only UI fixture skipped. Native installed UI assertions verify the reminder mode, default-off checkbox, enabled manual checks and hidden installer action. Existing native input, clipboard, backup, website titles and rendering checks passed using isolated fixtures.
+
+[Actual NSIS installation verification](https://github.com/gd0306/t-cube/actions/runs/41415526250) passed on the first attempt. Downloaded both native diagnostic artifacts and checked their 24 successful desktop results. Installer `SOURCE_COMMIT.txt` exactly matches the source commit above; the downloaded executable matches its build-provided checksum.
+
+Existing local macOS signing and unsigned Windows distribution remain unchanged.
+
+
+Published [0.19.0](https://github.com/gd0306/t-cube/releases/tag/v0.19.0) as the latest stable release. The remote tag and installer source record match the verified feature commit. All three remote asset digests match local files; the publicly downloaded checksum manifest is byte-identical.
+
+| Asset | SHA-256 |
+| --- | --- |
+| T-Cube-0.19.0-macos-arm64.dmg | 43103f5b9450946d5f261d2e90c6c0fcef6573bf19bc0cee4f342cf9191ae0df |
+| T-Cube-0.19.0-windows-x64-setup.exe | 294374415272b3a99cf028f01ed772f843913ed07864797a86c4152c22d17a17 |
+| SHA256SUMS.txt | f1a709081a9a583dfe8a4371e13dd7a0ffa608a194620eb386ba3eabd2bace0e |
