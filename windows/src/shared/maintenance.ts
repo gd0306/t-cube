@@ -10,7 +10,7 @@ export interface MaintenanceBridge {
     repairLauncher(request: { face: Face; slot: number }): Promise<void>;
     revealBackups(): Promise<void>;
 }
-export interface LifecycleState { loginEnabled: boolean; loginSupported: boolean; automaticUpdates: boolean; updatesEnabled: boolean; status: string; version: string; updateReady: boolean; releaseURL: string }
+export interface LifecycleState { updateMode?: 'reminder'; checksSupported?: boolean; latestVersion?: string; isChecking?: boolean; loginEnabled: boolean; loginSupported: boolean; automaticUpdates: boolean; updatesEnabled: boolean; status: string; version: string; updateReady: boolean; releaseURL: string }
 export interface LifecycleBridge {
     getLifecycleState(): Promise<LifecycleState>;
     setLoginEnabled(enabled: boolean): Promise<LifecycleState>;

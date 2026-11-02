@@ -464,6 +464,17 @@ try {
     const lifecycle = await settings.evaluate(() => window.tcube.getLifecycleState());
     assert.equal(lifecycle.version, JSON.parse(await readFile(path.resolve('package.json'), 'utf8')).version);
     assert.equal(lifecycle.updatesEnabled, false, 'Unsigned CI installers must not enable automatic replacement');
+    assert.equal(lifecycle.updateMode, 'reminder');
+    const reminderSupported = process.platform === 'win32' && await app.evaluate(({app}) => app.isPackaged);
+    assert.equal(lifecycle.checksSupported, reminderSupported);
+    assert.equal(lifecycle.automaticUpdates, false, 'Fresh unsigned installations must leave reminder checks off');
+    assert.equal(lifecycle.updateReady, false);
+    await settings.getByRole('button', {name:'启动与更新',exact:true}).click();
+    const reminderCheckbox = settings.getByLabel('自动检查新版本（仅提醒）');
+    assert.equal(await reminderCheckbox.isChecked(), false);
+    assert.equal(await reminderCheckbox.isEnabled(), reminderSupported);
+    assert.equal(await settings.getByRole('button', {name:'检查更新',exact:true}).isEnabled(), reminderSupported);
+    assert.equal(await settings.getByRole('button', {name:'重启并安装更新'}).isVisible(), false);
     results.push('Opt-in office mode stops frame rendering; continuous mode resumes at 15Hz; backup preview/restore and unsigned updater gate passed.');
 
     const saved = await snapshot();

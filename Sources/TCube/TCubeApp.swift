@@ -252,6 +252,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func quit() { NSApp.terminate(nil) }
 
     func applicationWillTerminate(_ notification: Notification) {
+        lifecycle.stop()
         snippetLibrary.stop()
         model.stopThemeCycle()
         cubeView.suspendAnimationUpdates()

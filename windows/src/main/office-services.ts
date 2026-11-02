@@ -10,7 +10,7 @@ import {validateSnippetText} from '../core/snippet-library';
 import {ContentLibraryService} from './content-library';
 import {capturePasteTarget,pasteToTarget,clipboardSequenceNumber,type PasteTarget} from '../native/paste-target';
 import {MaintenanceService} from './maintenance';
-import {createLifecycleService,type LifecycleController} from './lifecycle';
+import {createLifecycleService,type LifecycleService} from './lifecycle';
 import {PerformanceStore} from './performance';
 import {FEATURE_CHANNELS as C} from '../shared/feature-channels';
 import {registerFeatureIPC} from './feature-ipc';
@@ -26,7 +26,7 @@ export class OfficeServices {
     readonly library:ContentLibraryService;
     readonly maintenance:MaintenanceService;
     readonly performance:PerformanceStore;
-    lifecycle!:LifecycleController;
+    lifecycle!:LifecycleService;
     private target:PasteTarget|null=null;
     private restoreGate=false;
     private quitting=false;
@@ -64,7 +64,7 @@ export class OfficeServices {
             }});
     }
     async start(){
-        this.lifecycle=await createLifecycleService();await this.lifecycle.start();
+        this.lifecycle=await createLifecycleService();
         try{this.options.host.setIdlePowerSaving((await this.performance.load()).idlePowerSaving);}catch(error){this.options.host.reportError(error);}
         this.shortcutRegistered=globalShortcut.register('CommandOrControl+Shift+Space',()=>{void this.showLibrary().catch(error=>this.options.host.reportError(error));});
         if(!this.shortcutRegistered)this.options.host.reportError('常用内容快捷键已被占用，可从托盘或立方体打开。');

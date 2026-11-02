@@ -8,7 +8,7 @@ A transparent glass launcher that floats on your desktop. Keep favorite apps, fi
 
 ## Download installers
 
-macOS **0.18.1** · Windows **0.18.1**: [macOS Apple Silicon (.dmg)](https://github.com/gd0306/t-cube/releases/download/v0.18.1/T-Cube-0.18.1-macos-arm64.dmg) · [Windows x64 installer (.exe)](https://github.com/gd0306/t-cube/releases/download/v0.18.1/T-Cube-0.18.1-windows-x64-setup.exe) · [Release notes and SHA-256 checksums](https://github.com/gd0306/t-cube/releases/tag/v0.18.1).
+macOS **0.19.0** · Windows **0.19.0**: [macOS Apple Silicon (.dmg)](https://github.com/gd0306/t-cube/releases/download/v0.19.0/T-Cube-0.19.0-macos-arm64.dmg) · [Windows x64 installer (.exe)](https://github.com/gd0306/t-cube/releases/download/v0.19.0/T-Cube-0.19.0-windows-x64-setup.exe) · [Release notes and SHA-256 checksums](https://github.com/gd0306/t-cube/releases/tag/v0.19.0).
 
 The Windows installer includes its runtime and needs no Node.js installation. Quit an existing T-Cube before updating; shortcut configuration is preserved. These builds are unsigned/ad-hoc signed, not notarized or Developer ID/Authenticode signed.
 
@@ -61,6 +61,10 @@ Open **剪贴板历史** from the menu bar/tray or the content-library tab, then
 
 History stays in memory, is cleared on exit, and is excluded from backups/export. Limits: 100 items, 64 KiB UTF-8 per item, 2 MiB total text. File copies and supported sensitive/temporary/exclusion markers are skipped on a best-effort basis; unmarked sensitive text can still be recorded. Pause or clear from the history view. Images, persistence and cloud sync are outside this prototype.
 
+## Release reminders (0.19.0)
+
+Settings → 启动与更新 offers manual checks and opt-in automatic release reminders. Automatic checks default to off; enabling them reads the latest stable GitHub release anonymously every six hours and prompts once per newer version, with limits preserved across restarts. Manual checks have a one-minute cooldown. No signing certificate, public key or token is needed; GitHub API connectivity is required. Network errors and rate limits show a retry status. Reminders open the release page for manual download and installation.
+
 ## Website titles (0.18.1)
 
 Website entries display the title you supplied beneath the icon on the cube and expanded face. Long names use a single line with an ellipsis; hover for the full title. Title clicks follow the same launch/expand setting as the icon. Names are drawn locally into the existing face artwork, with no favicon requests or configuration migration.
@@ -75,7 +79,7 @@ Enable “作为模板使用” when editing a library item, then add placeholde
 
 Both platforms include a common-content library (menu bar/tray, or `Command+Shift+Space` on macOS / `Ctrl+Shift+Space` on Windows) with groups, favorites, search, full-text/field copy and focus-checked paste after Accessibility authorization. Settings include validated import/export, pre-import backups, manual backup/restore and explicit broken-launcher relinking. Hover delay is configurable; per-display positions survive disconnects. Idle power saving defaults to on for macOS and off for Windows: rotation and flowing light pause until interaction. Disable it in Performance settings for continuous animation. Windows glass has deeper tint and contours for light desktop visibility. Theme changes blend over 0.4 seconds without exposing preparation frames; the cube has no content-library button.
 
-Login at startup uses the system login-item service and changes only when enabled by the user. Sparkle authenticated updates and Developer ID/notarization packaging are integrated; production activation requires the release owner's EdDSA key configuration and signing credentials. Builds without a public key visibly disable in-app updates and offer Releases. See the [release guide](docs/updates/RELEASE-GUIDE.md). Windows also supports login settings; see [Windows signing and updates](docs/windows-signing-updates.md).
+Login at startup uses the system login-item service and changes only when enabled by the user. Sparkle authenticated updates and Developer ID/notarization packaging are integrated; production activation requires the release owner's EdDSA key configuration and signing credentials. Builds without a public key disable in-app download/install and use lightweight release reminders instead. See the [release guide](docs/updates/RELEASE-GUIDE.md). Windows also supports login settings; see [Windows signing and updates](docs/windows-signing-updates.md).
 
 ## Windows source installation
 
@@ -89,7 +93,7 @@ Install https://github.com/gd0306/t-cube (master) on Windows. Follow windows/REA
 
 ## macOS install and run
 
-Current source version: **0.18.1** on **master**. Published installer versions are listed above.
+Current source version: **0.19.0** on **master**. Published installer versions are listed above.
 
 Running requires macOS 15+. Building requires full Xcode with Swift 6 and the **macOS 27 SDK**. Current local packages target Apple Silicon and use ad-hoc signing; they are not notarized.
 
@@ -100,7 +104,7 @@ bash scripts/build-app.sh
 open build/T-Cube.app
 ```
 
-For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.18.1.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are distributed through Releases; macOS security approvals remain with the user.
+For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.19.0.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are distributed through Releases; macOS security approvals remain with the user.
 
 ### Let an agent install it
 

@@ -1,8 +1,10 @@
 # macOS signing and authenticated updates
 
+Since 0.19.0, builds without the Sparkle public key offer a separate lightweight reminder in Settings → 启动与更新. It requires only access to `api.github.com`, defaults to off, checks the latest stable release every six hours when enabled, and offers manual checks with a one-minute cooldown. Reminder preferences, attempt time and the highest notified version persist across restarts. Requests are anonymous, reject redirects, time out after 15 seconds, cap responses at 512 KiB and honor rate-limit delays. Only the fixed project release page is opened; no assets are downloaded or installed. This path needs no appcast, token or signing credentials. The authenticated updater below remains separate.
+
 T-Cube embeds the official Sparkle 2.10.0 binary framework, pinned in `Package.swift` and `Package.resolved`. The updater uses Sparkle's standard check, download, signature validation, install, and relaunch UI. Automatic checks start disabled; users can enable them in settings. Installations always require confirmation. `SUVerifyUpdateBeforeExtraction` requires authentication before unpacking an archive.
 
-The checked-in appcast is intentionally empty. No release is published by building or pushing this repository. The default application has an empty `SUPublicEDKey`, so in-app update checks remain disabled with a visible explanation and a link to GitHub Releases. Setting a feed URL alone never enables updates. Existing installations without Sparkle need a one-time manual upgrade.
+The checked-in appcast is intentionally empty. No release is published by building or pushing this repository. The default application has an empty `SUPublicEDKey`, so authenticated in-app downloading and installation remain disabled. Lightweight release reminders are available instead. Setting a feed URL alone never enables updates. Existing installations without Sparkle need a one-time manual upgrade.
 
 ## Production prerequisites
 

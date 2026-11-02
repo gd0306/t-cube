@@ -1,6 +1,8 @@
 # Windows signed updates
 
-Windows 0.16.0 uses the pinned `electron-updater` 6.8.11 NSIS updater. The runtime uses the public HTTPS GitHub feed for `gd0306/t-cube`; no API credential is embedded. The publisher identity is baked into the installer from `TCUBE_UPDATE_PUBLISHER`, not accepted from renderer requests or runtime URLs. With no publisher configured, update checks, downloads and installation are disabled and settings links to Releases for manual installation.
+Unsigned 0.19.0 installers offer manual checks and opt-in six-hour reminders through Settings → 启动与更新. Automatic checks default to off, persist independently in `release-reminder.json`, and remember the attempt time and highest notified version. They need GitHub API connectivity but no token or certificate. Requests are anonymous, reject redirects, time out after 15 seconds, cap response bytes at 512 KiB and honor rate limits. Manual checks have a one-minute cooldown. The reminder opens a validated project release page for manual download and installation. No updater assets are consumed.
+
+The authenticated path introduced in Windows 0.16.0 uses the pinned `electron-updater` 6.8.11 NSIS updater. The runtime uses the public HTTPS GitHub feed for `gd0306/t-cube`; no API credential is embedded. The publisher identity is baked into the installer from `TCUBE_UPDATE_PUBLISHER`, not accepted from renderer requests or runtime URLs. With no publisher configured, authenticated downloads and installation are disabled; 0.19.0 provides lightweight release reminders instead.
 
 Automatic checks default to off and persist in the application's `userData/lifecycle-preferences.json`. Enabling automatic checks schedules one check every six hours. Every download prompts the user; every installation prompts again. Closing T-Cube does not automatically install an update. Login startup is independent and reads the actual OS login state; startup and CI never enable it automatically.
 
@@ -10,7 +12,7 @@ Supply an owner-controlled Authenticode certificate via electron-builder's `CSC_
 
 Run `npm ci`, `npm run build`, then `npm run package:win` in `windows/` on Windows. Packaging uses `--publish never`, so generating an installer never publishes it. The configured GitHub provider causes electron-builder to generate `app-update.yml` inside the packaged resources and release update metadata such as `latest.yml`. Keep `verifyUpdateCodeSignature: true` and the updater's default Authenticode verification. Do not override its signature verifier.
 
-Publish the exact verified `T-Cube-0.16.0-windows-x64-setup.exe`, its `.blockmap`, and `latest.yml` together on the Windows release tag. Verify the metadata references that installer, compare SHA-512/hash and file size against the uploaded asset, and run the actual installer verification before publishing. Unsigned installers may still be distributed for manual installation with the publisher environment omitted; such builds visibly leave updates disabled.
+Publish the exact verified `T-Cube-0.16.0-windows-x64-setup.exe`, its `.blockmap`, and `latest.yml` together on the Windows release tag. Verify the metadata references that installer, compare SHA-512/hash and file size against the uploaded asset, and run the actual installer verification before publishing. Unsigned installers may still be distributed for manual installation with the publisher environment omitted; such builds use release reminders and leave authenticated installation disabled.
 
 ## Local data maintenance
 

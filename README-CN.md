@@ -8,7 +8,7 @@
 
 ## 下载安装包
 
-macOS **0.18.1** · Windows **0.18.1**：[macOS Apple Silicon（.dmg）](https://github.com/gd0306/t-cube/releases/download/v0.18.1/T-Cube-0.18.1-macos-arm64.dmg) · [Windows x64 安装程序（.exe）](https://github.com/gd0306/t-cube/releases/download/v0.18.1/T-Cube-0.18.1-windows-x64-setup.exe) · [发布说明与 SHA-256 校验](https://github.com/gd0306/t-cube/releases/tag/v0.18.1)。
+macOS **0.19.0** · Windows **0.19.0**：[macOS Apple Silicon（.dmg）](https://github.com/gd0306/t-cube/releases/download/v0.19.0/T-Cube-0.19.0-macos-arm64.dmg) · [Windows x64 安装程序（.exe）](https://github.com/gd0306/t-cube/releases/download/v0.19.0/T-Cube-0.19.0-windows-x64-setup.exe) · [发布说明与 SHA-256 校验](https://github.com/gd0306/t-cube/releases/tag/v0.19.0)。
 
 Windows 安装包自带运行时，无需安装 Node.js。更新前先退出旧版，原有入口配置会保留。当前 macOS 使用本地签名、未公证，Windows 安装程序未做 Authenticode 签名。
 
@@ -61,6 +61,10 @@ Windows 安装包自带运行时，无需安装 Node.js。更新前先退出旧�
 
 每次启动默认暂停，启用／恢复时不读取剪贴板原有内容。历史仅保存在内存中，退出即清除，不进入备份或导出；最多 100 条，单条最多 64 KiB UTF-8，总文本最多 2 MiB。会尽力跳过文件复制及带有敏感、临时或排除标记的内容，但无法识别所有敏感信息；可随时暂停或清空。本版不包含图片历史、持久化或云同步。
 
+## 版本提醒（0.19.0）
+
+在「设置 → 启动与更新」中可手动检查，或开启「自动检查新版本（仅提醒）」。自动检查默认关闭；开启后每 6 小时匿名读取 GitHub 最新稳定版，同一版本只自动提醒一次，重启后保留频率限制。手动检查至少间隔 1 分钟。无需配置证书、公钥或 Token，只需能够访问 GitHub API；网络异常或限流会显示状态并等待重试。提醒仅提供发布页，下载和安装由用户手动完成。
+
 ## 网页标题（0.18.1）
 
 网页图标下方直接显示添加时填写的标题，立方体和展开面板均支持。长标题单行省略，悬停可查看完整标题；点击标题与点击图标使用相同的打开／展开设置。标题跟随图标旋转和缩放，直接在现有贴图中绘制，无需联网获取图标，也无需重新添加已有网页。
@@ -77,7 +81,7 @@ Windows 安装包自带运行时，无需安装 Node.js。更新前先退出旧�
 
 设置页新增「配置与备份」和「启动与更新」。可预览导入、自动保留导入前备份、手动备份或恢复，并重新关联失效入口。悬停延迟可调；多屏位置独立记忆，断开显示器时回到可见区域。macOS 默认开启静置省电，Windows 默认关闭；可在性能设置中选择。开启时暂停静置旋转和流动光效；鼠标交互后恢复。设置中关闭省电可保留持续动画。Windows 加深玻璃底色和轮廓，改善白底可见度；默认开启单击面展开。主题轮换采用约 0.4 秒柔和过渡，立方体上移除常用内容按钮，保留菜单栏／托盘与快捷键入口。
 
-开机启动通过系统登录项管理，默认不主动注册。已接入 Sparkle 签名更新和 Developer ID/公证构建流程；启用正式更新需要发布者配置 EdDSA 公钥、匹配的签名私钥与发布源。目前未配置公钥的本地构建会明确停用应用内更新，可查看 Releases。详见 [签名与更新发布指南](docs/updates/RELEASE-GUIDE.md)。Windows 同样支持开机启动设置，签名更新说明见 [Windows 指南](docs/windows-signing-updates.md)。
+开机启动通过系统登录项管理，默认不主动注册。已接入 Sparkle 签名更新和 Developer ID/公证构建流程；启用正式更新需要发布者配置 EdDSA 公钥、匹配的签名私钥与发布源。未配置公钥的构建停用应用内下载安装，但可使用轻量版本提醒。详见 [签名与更新发布指南](docs/updates/RELEASE-GUIDE.md)。Windows 同样支持开机启动设置，签名更新说明见 [Windows 指南](docs/windows-signing-updates.md)。
 
 <img src="docs/images/windows-office-library.png" width="760" alt="Windows 常用内容与独立字段复制粘贴">
 
@@ -93,7 +97,7 @@ Windows 10 22H2 / Windows 11（x64）使用独立客户端，支持同样的六�
 
 ## macOS 安装与运行
 
-当前源码版本为 **0.18.1**，使用 **master** 分支；安装包版本见上方下载链接。
+当前源码版本为 **0.19.0**，使用 **master** 分支；安装包版本见上方下载链接。
 
 运行需要 macOS 15+；源码构建需要完整 Xcode、Swift 6 和 **macOS 27 SDK**。当前本地打包产物面向 Apple Silicon，使用 ad-hoc 签名，尚未公证。
 
@@ -104,7 +108,7 @@ bash scripts/build-app.sh
 open build/T-Cube.app
 ```
 
-需要自行构建拖拽安装包时，运行 `bash scripts/build-dmg.sh`，打开 `build/T-Cube-0.18.1.dmg`，将应用拖入 **Applications**。更新前先退出旧版，保留原配置。构建产物通过 Releases 分发；系统安全授权由用户确认。
+需要自行构建拖拽安装包时，运行 `bash scripts/build-dmg.sh`，打开 `build/T-Cube-0.19.0.dmg`，将应用拖入 **Applications**。更新前先退出旧版，保留原配置。构建产物通过 Releases 分发；系统安全授权由用户确认。
 
 ### 让 agent 帮忙安装
 

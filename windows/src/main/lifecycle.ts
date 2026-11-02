@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { LifecycleBridge, LifecycleState } from '../shared/maintenance';
 import { atomicWrite } from '../core/configuration-archive';
+import { ReleaseReminderController, ReminderStore, fetchLatestRelease } from './release-reminder';
 
 export const RELEASE_URL = 'https://github.com/gd0306/t-cube/releases';
 export function updatePolicy(platform: string, packaged: boolean, publishers: string[]): { enabled: boolean; status: string } {
@@ -100,10 +101,27 @@ export class LifecycleController implements LifecycleBridge {
     openReleasePage() { return this.options.openReleasePage(); }
 }
 /** Electron is loaded here, leaving policy and preferences testable without a desktop session. */
-export async function createLifecycleService(): Promise<LifecycleController> {
-    const { app, dialog, shell } = await import('electron');
+export type LifecycleService = LifecycleController | ReleaseReminderController;
+export async function createLifecycleService(): Promise<LifecycleService> {
+    const { app, dialog, shell, powerMonitor } = await import('electron');
     let publisher = '';
-    try { const metadata = JSON.parse(await readFile(join(app.getAppPath(), 'package.json'), 'utf8')); if (typeof metadata.tcubeUpdatePublisher === 'string') publisher = metadata.tcubeUpdatePublisher.trim(); } catch { /* Absence safely disables updates. */ }
+    try { const metadata = JSON.parse(await readFile(join(app.getAppPath(), 'package.json'), 'utf8')); if (typeof metadata.tcubeUpdatePublisher === 'string') publisher = metadata.tcubeUpdatePublisher.trim(); } catch { /* Absence safely disables signed installation. */ }
+    if (!publisher) {
+        const suspend = () => controller.pause();
+        const resume = () => { void controller.resume().catch(() => controller.pause()); };
+        const controller = new ReleaseReminderController({ platform: process.platform, packaged: app.isPackaged, version: app.getVersion(),
+            store: new ReminderStore(join(app.getPath('userData'), 'release-reminder.json')),
+            getLogin: () => app.getLoginItemSettings({ path: process.execPath }).openAtLogin,
+            setLogin: enabled => app.setLoginItemSettings({ openAtLogin: enabled, path: process.execPath }),
+            fetchRelease: fetchLatestRelease,
+            notify: async release => (await dialog.showMessageBox({ type: 'info', title: 'T-Cube 新版本', message: `发现新版本 ${release.version}`, detail: '可前往 GitHub 发布页查看说明并手动下载。', buttons: ['查看发布页', '稍后'], defaultId: 1, cancelId: 1 })).response === 0,
+            open: url => shell.openExternal(url),
+            onDispose: () => { powerMonitor.removeListener('suspend', suspend); powerMonitor.removeListener('resume', resume); },
+        });
+        powerMonitor.on('suspend', suspend); powerMonitor.on('resume', resume);
+        // Metadata checks and dialogs must not delay desktop/IPC startup.
+        void controller.start().catch(() => controller.pause()); return controller;
+    }
     const preferencePath = join(app.getPath('userData'), 'lifecycle-preferences.json');
     const controller = new LifecycleController({ platform: process.platform, packaged: app.isPackaged, version: app.getVersion(), publishers: publisher ? [publisher] : [],
         getLogin: () => app.getLoginItemSettings({ path: process.execPath }).openAtLogin,
