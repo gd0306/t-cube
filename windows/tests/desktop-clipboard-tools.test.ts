@@ -207,3 +207,18 @@ test('native minimum-width edge containers preserve exact logical handle region 
     assert.deepEqual(edgeHandleWindowLayout(right,{width:32,height:56},work),{frame:{x:-32,y:100,width:32,height:56},shape:{x:22,y:0,width:10,height:56}});
     assert.deepEqual(edgeHandleWindowLayout(right,{width:10,height:56},work),{frame:right,shape:{x:0,y:0,width:10,height:56}});
 });
+test('passive cube hover protects edge presentation while fullscreen hides it; real busy interaction remains protected',async()=>{
+    const {DesktopPresentation,presentationProtection}=await import('../src/core/desktop-presentation');
+    const hover={interactionActive:false,expandedFace:null,hovered:true};
+    const protection=presentationProtection(hover,false);
+    assert.equal(protection.protected,false,'Passive hover must not prevent fullscreen hiding');
+    assert.equal(protection.edgeHovered,true,'Expanded hover geometry still protects edge collapse');
+    const input={frame:{x:8,y:100,width:164,height:164},displays:[{x:0,y:0,width:1000,height:800}],cursor:{x:300,y:200},enabled:true,fullscreen:false,manualVisible:true,now:0};
+    const edge=new DesktopPresentation();edge.update({...input,...protection});
+    assert.equal(edge.update({...input,...protection,now:900}).collapsed,false);
+    const fullscreen=new DesktopPresentation();assert.equal(fullscreen.update({...input,...protection,fullscreen:true}).visible,false);
+    for(const [state,settings] of [[{...hover,interactionActive:true},false],[{...hover,expandedFace:'front'},false],[hover,true]] as const){
+        const busy=presentationProtection(state,settings);assert.equal(busy.protected,true);
+        assert.equal(new DesktopPresentation().update({...input,...busy,fullscreen:true}).visible,true);
+    }
+});

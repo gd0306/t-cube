@@ -96,11 +96,16 @@ export async function verifyDesktopPresentationSmoke(app:ElectronApplication,wid
         }
         await configure(false,true);await settings.evaluate(()=>window.tcube.place('center'));await hidePanels();
         await until(async()=>(await read()).state.visible,'Center should reveal');
+        if((await read()).state.configuration.hover.isEnabled)await until(async()=>(await read()).state.hovered,'Centered stationary cursor must exercise passive hover before fullscreen');
         const physical=await app.evaluate(({screen},bounds)=>({origin:screen.dipToScreenPoint({x:bounds.x,y:bounds.y}),end:screen.dipToScreenPoint({x:bounds.x+bounds.width,y:bounds.y+bounds.height})}),display.bounds);
         setStyle(receiver,-16,style & ~0x00c40000);
         assert.ok(position(receiver,0,physical.origin.x,physical.origin.y,physical.end.x-physical.origin.x,physical.end.y-physical.origin.y,0x0020));
         activate(receiver);
-        await until(async()=>!(await read()).state.visible,'Owned app fullscreen did not hide cube');
+        const fullscreenDiagnostic=async(stage:string)=>{const state=(await read()).state;const panels=await app.evaluate(({BrowserWindow,screen})=>({cursor:screen.getCursorScreenPoint(),windows:BrowserWindow.getAllWindows().map(window=>({title:window.getTitle(),visible:window.isVisible(),frame:window.getBounds()}))}));diagnostics.push({fullscreenStage:stage,widget:{visible:state.visible,hovered:state.hovered,interactionActive:state.interactionActive,expandedFace:state.expandedFace},nativeReceiver:nativeGeometry(Buffer.from(receiver.toString(16).padStart(16,'0'),'hex').reverse().toString('hex')),receiverStyle:getStyle(receiver,-16),expectedDisplay:physical,panels});await saveDiagnostics();};
+        await fullscreenDiagnostic('before-hide');
+        try{await until(async()=>!(await read()).state.visible,'Owned app fullscreen did not hide cube');}
+        catch(error){await fullscreenDiagnostic('hide-failed');throw error;}
+        await fullscreenDiagnostic('hidden');
         await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(window=>window.webContents.getURL().endsWith('/widget.html'))!.close());
         show(receiver,6); // minimize the owned fullscreen receiver
         await new Promise(resolve=>setTimeout(resolve,1300));assert.equal((await read()).state.visible,false,'Fullscreen exit must not undo manual hide');

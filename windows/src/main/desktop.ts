@@ -1,4 +1,4 @@
-import { DesktopPresentation, isFullscreenOnDisplay, edgeHandleWindowLayout } from '../core/desktop-presentation';
+import { DesktopPresentation, isFullscreenOnDisplay, edgeHandleWindowLayout, presentationProtection } from '../core/desktop-presentation';
 import { fullscreenFrameOnDisplay } from '../native/fullscreen';
 import {OfficeServices} from './office-services';
 import {DisplayPositionStore} from './display-position-store';
@@ -231,7 +231,7 @@ export class DesktopApplication {
         } else if (!config.hideWhenFullscreen) { this.fullscreenFrame = null; this.fullscreenSample = 0; }
         const result = this.presentation.update({frame,displays:screen.getAllDisplays().map(display=>display.workArea),physicalDisplays:screen.getAllDisplays().map(display=>display.bounds),cursor:screen.getCursorScreenPoint(),
             enabled:config.edgeCollapseEnabled,fullscreen:config.hideWhenFullscreen && isFullscreenOnDisplay(this.fullscreenFrame,display.bounds),
-            manualVisible:this.host.manualVisible,protected:state.interactionActive || state.expandedFace !== null || Boolean(this.settings?.isVisible()) || state.hovered,now});
+            manualVisible:this.host.manualVisible,...presentationProtection(state,Boolean(this.settings?.isVisible())),now});
         this.wasCollapsed = result.collapsed;
         if (result.handle) {
             const ready = this.showEdgeHandle(result.handle);

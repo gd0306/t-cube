@@ -19,7 +19,7 @@ export function isFullscreenOnDisplay(frame: Rect | null, display: Rect): boolea
     return Boolean(frame && Math.abs(frame.x - display.x) <= 2 && Math.abs(frame.y - display.y) <= 2
         && Math.abs(frame.width - display.width) <= 2 && Math.abs(frame.height - display.height) <= 2);
 }
-export interface PresentationInput {frame: Rect; displays: Rect[]; physicalDisplays?: Rect[]; cursor: Point; enabled: boolean; fullscreen: boolean; manualVisible: boolean; protected: boolean; now: number}
+export interface PresentationInput {frame: Rect; displays: Rect[]; physicalDisplays?: Rect[]; cursor: Point; enabled: boolean; fullscreen: boolean; manualVisible: boolean; protected: boolean; edgeHovered?: boolean; now: number}
 /** Presentation never owns or edits the user's resting geometry or visibility intent. */
 export class DesktopPresentation {
     private outsideSince: number | undefined;
@@ -34,7 +34,7 @@ export class DesktopPresentation {
         const fullscreenHidden = input.fullscreen && !this.fullscreenRevealed && !input.protected;
         const geometry = JSON.stringify([input.frame, input.displays, input.physicalDisplays]);
         if (geometry !== this.geometry) { this.geometry = geometry; this.reset(); }
-        if (!input.manualVisible || fullscreenHidden || input.protected || !handle) this.reset();
+        if (!input.manualVisible || fullscreenHidden || input.protected || input.edgeHovered || !handle) this.reset();
         else if (contains(input.frame, input.cursor) || contains(handle, input.cursor)) this.reset();
         else { this.outsideSince ??= input.now; if (input.now - this.outsideSince >= 800) this.collapsed = true; }
         return {visible: input.manualVisible && !fullscreenHidden && !this.collapsed, collapsed: this.collapsed, handle: this.collapsed ? handle : null};
@@ -47,4 +47,9 @@ export function edgeHandleWindowLayout(handle:Rect,nativeSize:{width:number;heig
     const x=left?handle.x:handle.x+handle.width-width;
     const y=Math.max(work.y,Math.min(handle.y,work.y+work.height-height));
     return {frame:{x,y,width,height},shape:{x:handle.x-x,y:handle.y-y,width:handle.width,height:handle.height}};
+}
+
+/** Hover enlargement protects only edge collapse; fullscreen yields only to deliberate interaction or settings. */
+export function presentationProtection(state:{interactionActive:boolean;expandedFace:string|null;hovered:boolean},settingsVisible:boolean):{protected:boolean;edgeHovered:boolean}{
+    return {protected:state.interactionActive || state.expandedFace!==null || settingsVisible,edgeHovered:state.hovered};
 }
