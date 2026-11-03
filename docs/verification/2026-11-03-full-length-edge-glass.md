@@ -32,4 +32,23 @@ The PNGs preserve alpha. Native previews now use a transparent/clear host window
 
 ## Acceptance
 
-Build 37 was locally installed and rejected by the user; it was never published. The current build 38 and its DMG are ready. The old application and four recursive JSON files are backed up under ignored `build/install-backups/0.20.2/20261104-015027/`. Normal exit, build-38 installation and new exact-source Windows CI are pending. The native computer-use service remains unavailable, so actual desktop clicking/live backdrop inspection has not been performed by the agent. The release remains a draft.
+Build 37 was locally installed and rejected by the user; it was never published. After the user normally quit it, process absence was verified and all four recursive user JSON files were backed up again. The previous app and pre-/post-exit JSON snapshots are preserved under ignored `build/install-backups/0.20.2/20261104-015027/`. Build 38 was staged, deep-strict code-signature verified, installed into `/Applications/T-Cube.app`, and launched as PID 46816. Built/staged/installed executable hashes match and all four JSON files matched their post-exit backup byte for byte before launch. The native computer-use service remains unavailable: the agent has not performed actual desktop clicking/live backdrop inspection. The user inspected the installed build and explicitly confirmed that the background visibly transmits through the handle (reply: “能”). This is user desktop acceptance in the current system appearance; both appearances were covered by automated fixtures. Both exact-source Windows CI runs have passed and the release is now public.
+
+
+## Current source and artifact provenance
+
+- Source: `f8b460606ce94cf161f9ba8113150c486a33a731`.
+- Built/installed executable SHA-256: `1bb1a66c41431a641ae454a8cec6b2a9eab5e6846a40db1d6abce93c4f71ae72`.
+- macOS DMG SHA-256: `75bdb804a37a0ee2ab31c045211aa728908205174be7569bc5b2309c2cfc0dbd`.
+
+
+## Remote verification
+
+- [Windows source native verification](https://github.com/gd0306/t-cube/actions/runs/41688324742): Windows 2022 passed all 25 native checks. The first Windows 2025 attempt passed edge appearance/static preferences and all four hidden zero-animation cycles, then failed at the later ordinary widget expansion-hover stage; diagnostics also contain the fixture's 150-second watchdog marker. The exact cause is not proven by those artifacts. Only the failed 2025 job was rerun at the same source, with code and assertions unchanged; it passed all 25 native checks. The successful attempt artifact was selected by its latest creation time/ID (`13256382025`), since a name-only CLI download selected the earlier failed artifact. Its results and four hidden zero-animation cycles were verified. The initial failure is preserved as diagnostic evidence, not described as a proven product fix.
+- [Actual x64 NSIS installation verification](https://github.com/gd0306/t-cube/actions/runs/41688341994): passed at the current source. Downloaded SOURCE_COMMIT.txt matches the full source commit; installer checksum matches CI. Installed-app diagnostics contain 25 checks and four hidden cycles with zero animation and released compositor hints.
+- Windows installer SHA-256: `71f3c40bc47736f7ca318a3faef2c03d3d01eda56ca3a57f7d1ad752b7f3df06`.
+
+
+## Published release
+
+[Release v0.20.2](https://github.com/gd0306/t-cube/releases/tag/v0.20.2) is public and latest. Both platform installers and SHA256SUMS.txt have uploaded digests and byte sizes matching local files. The public checksum file was downloaded and compared byte for byte. The release tag points to the tested transparent source `f8b460606ce94cf161f9ba8113150c486a33a731`; subsequent master changes only record acceptance. Build 37 was never published; the macOS release contains build 38.
