@@ -31,7 +31,7 @@ try{
             assert.ok(coverage.coversEnds && coverage.opacity >= .1, `Whole-length reflection must remain visible at ${scheme} phase ${phase}: ${JSON.stringify(coverage)}`);
             // Inspect the actual browser screenshot; transparent gradient stops must fail too.
             const png = (await page.screenshot({omitBackground:true})).toString('base64');
-            const brightness = await page.evaluate(async png => {
+            const pixels = await page.evaluate(async png => {
                 const bytes = Uint8Array.from(atob(png), c => c.charCodeAt(0));
                 const bitmap = await createImageBitmap(new Blob([bytes], {type:'image/png'}));
                 const canvas = document.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height;
@@ -39,12 +39,29 @@ try{
                 const rect = document.querySelector('.edge-capsule')!.getBoundingClientRect(), scale = canvas.width / innerWidth;
                 return [.12,.5,.88].map(fraction => {
                     const pixel = context.getImageData(Math.floor((rect.x+rect.width/2)*scale), Math.floor((rect.y+rect.height*fraction)*scale),1,1).data;
-                    return (pixel[0]+pixel[1]+pixel[2])/765;
+                    return {brightness:(pixel[0]+pixel[1]+pixel[2])/765, alpha:pixel[3]/255};
                 });
             }, png);
-            for (const end of [brightness[0],brightness[2]]) assert.ok(end > (scheme==='dark'?.16:.7) && end > brightness[1]*.45,
-                `Both ${scheme} ends must retain reflection at phase ${phase}: ${brightness}`);
+            for (const pixel of pixels) assert.ok(pixel.alpha > .05 && pixel.alpha < .48,
+                `${scheme} glass must transmit most background content at phase ${phase}: ${JSON.stringify(pixels)}`);
+            for (const end of [pixels[0],pixels[2]]) assert.ok(end.brightness > (scheme==='dark'?.16:.7) && end.brightness > pixels[1].brightness*.45,
+                `Both ${scheme} ends must retain reflection at phase ${phase}: ${JSON.stringify(pixels)}`);
         }
+        const backgrounds: number[] = [];
+        for (const color of ['black','white']) {
+            await page.evaluate(color => {document.body.style.background = color;}, color);
+            const png = (await page.screenshot()).toString('base64');
+            backgrounds.push(await page.evaluate(async png => {
+                const bitmap = await createImageBitmap(new Blob([Uint8Array.from(atob(png), c=>c.charCodeAt(0))], {type:'image/png'}));
+                const canvas = document.createElement('canvas'); canvas.width=bitmap.width; canvas.height=bitmap.height;
+                const context = canvas.getContext('2d')!; context.drawImage(bitmap,0,0); bitmap.close();
+                const rect = document.querySelector('.edge-capsule')!.getBoundingClientRect(), scale=canvas.width/innerWidth;
+                const pixel=context.getImageData(Math.floor((rect.x+rect.width/2)*scale),Math.floor((rect.y+rect.height/2)*scale),1,1).data;
+                return (pixel[0]+pixel[1]+pixel[2])/765;
+            }, png));
+        }
+        assert.ok(backgrounds[1]-backgrounds[0]>.52, `${scheme} glass must preserve changing background contrast: ${backgrounds}`);
+        await page.evaluate(() => {document.body.style.background='transparent';});
         await page.evaluate(() => document.getAnimations()[0].play());
     };
     await verifyWholeReflection('light');

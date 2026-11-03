@@ -1,24 +1,24 @@
 :root {
     color-scheme: light dark;
     --edge-theme: light;
-    --edge-glass: linear-gradient(105deg, rgba(255, 255, 255, .96), rgba(225, 235, 244, .86) 58%, rgba(255, 255, 255, .78));
-    --edge-border: rgba(151, 169, 185, .70);
-    --edge-inner: rgba(255, 255, 255, .92);
-    --edge-shade: rgba(78, 101, 122, .13);
+    --edge-glass: linear-gradient(105deg, rgba(255, 255, 255, .08), rgba(225, 235, 244, .12) 58%, rgba(255, 255, 255, .08));
+    --edge-border: rgba(151, 169, 185, .38);
+    --edge-inner: rgba(255, 255, 255, .30);
+    --edge-shade: rgba(78, 101, 122, .05);
     --edge-solid: #f1f5f8;
-    --edge-light: rgba(255, 255, 255, .85);
-    --edge-reflection: rgba(255, 255, 255, .30);
+    --edge-light: rgba(255, 255, 255, .26);
+    --edge-reflection: rgba(255, 255, 255, .06);
 }
 @media (prefers-color-scheme: dark) {
     :root {
         --edge-theme: dark;
-        --edge-glass: linear-gradient(105deg, rgba(35, 47, 66, .94), rgba(15, 25, 42, .92) 58%, rgba(28, 41, 62, .94));
-        --edge-border: rgba(107, 132, 163, .64);
-        --edge-inner: rgba(188, 211, 238, .18);
-        --edge-shade: rgba(0, 3, 10, .34);
+        --edge-glass: linear-gradient(105deg, rgba(35, 47, 66, .10), rgba(15, 25, 42, .14) 58%, rgba(28, 41, 62, .10));
+        --edge-border: rgba(107, 132, 163, .34);
+        --edge-inner: rgba(188, 211, 238, .12);
+        --edge-shade: rgba(0, 3, 10, .06);
         --edge-solid: #111b2b;
-        --edge-light: rgba(202, 225, 250, .55);
-        --edge-reflection: rgba(128, 171, 220, .26);
+        --edge-light: rgba(202, 225, 250, .22);
+        --edge-reflection: rgba(128, 171, 220, .06);
     }
 }
 html, body {

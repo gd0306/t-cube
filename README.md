@@ -57,7 +57,7 @@ Add apps, folders, individual files, HTTP/HTTPS websites and selected system-set
 
 ## System appearance edge glass (0.20.2)
 
-The collapsed handle follows OS light/dark appearance: white frosted glass or deep space black, with a quiet internal shimmer. The reflection spans the whole capsule throughout its cycle, including both ends, instead of isolating a bright band in the middle. Its 10×56 hit region and reveal behavior stay unchanged; cube themes are unaffected. Shimmer runs only while visible, stops while hidden and becomes static for reduced motion/transparency (and macOS Low Power Mode). macOS uses native background material; Windows provides frosted styling rather than desktop backdrop blur. Small compositor layers animate without waking 3D rendering or adding a JavaScript/Swift frame loop.
+The collapsed handle follows OS light/dark appearance: transparent glass with a light white or dark blue-black tint and a quiet internal shimmer. The desktop remains visible through the pane; tint and reflection do not fill it with a solid color. The reflection spans the whole capsule throughout its cycle, including both ends, instead of isolating a bright band in the middle. Its 10×56 hit region and reveal behavior stay unchanged; cube themes are unaffected. Shimmer runs only while visible, stops while hidden and becomes static for reduced motion/transparency (and macOS Low Power Mode). macOS uses native background material; Windows provides frosted styling rather than desktop backdrop blur. Small compositor layers animate without waking 3D rendering or adding a JavaScript/Swift frame loop.
 
 ## Desktop auto-hide and clipboard tools (0.20.0)
 

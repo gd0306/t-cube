@@ -15,7 +15,8 @@ struct EdgeGlassViewTests {
         for (name, appearance) in [("light", NSAppearance.Name.aqua), ("dark", .darkAqua)] {
             let view = EdgeRevealView(motionAllowed: { false }, transparencyAllowed: { true }, windowVisible: { $0.isVisible }, reveal: {})
             let window = NSPanel(contentRect: CGRect(x: 180, y: 180, width: 10, height: 56), styleMask: [.borderless], backing: .buffered, defer: false)
-            window.isReleasedWhenClosed = false; window.contentView = view
+            window.isReleasedWhenClosed = false; window.isOpaque = false; window.backgroundColor = .clear
+            window.contentView = view
             window.appearance = NSAppearance(named: appearance); window.orderFrontRegardless()
             defer { view.shutdown(); window.orderOut(nil); window.contentView = nil }
             view.setPresented(true); view.refreshSystemStyle(); view.layoutSubtreeIfNeeded()
@@ -26,6 +27,57 @@ struct EdgeGlassViewTests {
             }
             #expect(opaquePixels > bitmap.pixelsWide * bitmap.pixelsHigh / 4, "Glass preview must contain visible material pixels")
             try #require(bitmap.representation(using: .png, properties: [:])).write(to: folder.appendingPathComponent("mac-edge-\(name).png"))
+        }
+    }
+
+    @Test func lightAndDarkGlassLetMostOfTheBackgroundThrough() throws {
+        _ = NSApplication.shared
+        for appearance in [NSAppearance.Name.aqua, .darkAqua] {
+            let view = EdgeRevealView(motionAllowed: { false }, transparencyAllowed: { true },
+                windowVisible: { $0.isVisible }, reveal: {})
+            let window = NSPanel(contentRect: CGRect(x: 180, y: 180, width: 10, height: 56),
+                styleMask: [.borderless], backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false; window.isOpaque = false; window.backgroundColor = .clear
+            window.contentView = view; window.appearance = NSAppearance(named: appearance); window.orderFrontRegardless()
+            defer { view.shutdown(); window.orderOut(nil); window.contentView = nil }
+            view.setPresented(true); view.refreshSystemStyle(); view.layoutSubtreeIfNeeded()
+            let bitmap = try #require(view.bitmapImageRepForCachingDisplay(in: view.bounds))
+            view.cacheDisplay(in: view.bounds, to: bitmap)
+            for fraction in [CGFloat(0.12), 0.5, 0.88] {
+                let color = try #require(bitmap.colorAt(x: bitmap.pixelsWide / 2,
+                    y: Int(CGFloat(bitmap.pixelsHigh - 1) * fraction))?.usingColorSpace(.deviceRGB))
+                #expect(color.alphaComponent > 0.05 && color.alphaComponent < 0.48,
+                    "Glass must transmit most background content in both system appearances")
+            }
+            let material = try #require(view.subviews.compactMap { $0 as? NSVisualEffectView }.first)
+            #expect(material.alphaValue < 0.2, "The native backdrop material must not fill the transparent pane")
+        }
+    }
+
+    @Test func changingBackgroundRemainsVisibleThroughBothGlassAppearances() throws {
+        _ = NSApplication.shared
+        for appearance in [NSAppearance.Name.aqua, .darkAqua] {
+            let backdrop = NSView(frame: CGRect(x: 0, y: 0, width: 30, height: 76))
+            backdrop.wantsLayer = true
+            let view = EdgeRevealView(motionAllowed: { false }, transparencyAllowed: { true },
+                windowVisible: { $0.isVisible }, reveal: {})
+            view.frame.origin = CGPoint(x: 10, y: 10); backdrop.addSubview(view)
+            let window = NSPanel(contentRect: backdrop.bounds, styleMask: [.borderless], backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false; window.isOpaque = false; window.backgroundColor = .clear
+            window.contentView = backdrop; window.appearance = NSAppearance(named: appearance); window.orderFrontRegardless()
+            defer { view.shutdown(); window.orderOut(nil); window.contentView = nil }
+            view.setPresented(true); view.refreshSystemStyle(); backdrop.layoutSubtreeIfNeeded()
+            var samples: [CGFloat] = []
+            for color in [NSColor.black, NSColor.white] {
+                CATransaction.begin(); CATransaction.setDisableActions(true)
+                backdrop.layer?.backgroundColor = color.cgColor; CATransaction.commit()
+                let bitmap = try #require(backdrop.bitmapImageRepForCachingDisplay(in: backdrop.bounds))
+                backdrop.cacheDisplay(in: backdrop.bounds, to: bitmap)
+                let pixel = try #require(bitmap.colorAt(x: bitmap.pixelsWide / 2, y: bitmap.pixelsHigh / 2)?.usingColorSpace(.deviceRGB))
+                samples.append((pixel.redComponent + pixel.greenComponent + pixel.blueComponent) / 3)
+            }
+            #expect(samples[1] - samples[0] > 0.52,
+                "Most of a changed background must remain visible through the actual native glass view")
         }
     }
 

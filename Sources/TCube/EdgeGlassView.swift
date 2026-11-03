@@ -33,11 +33,12 @@ final class EdgeRevealView: NSView {
         wantsLayer = true
         layer?.shadowColor = NSColor.black.cgColor
         layer?.shadowRadius = 1
-        layer?.shadowOpacity = 0.16
+        layer?.shadowOpacity = 0.06
         layer?.shadowOffset = CGSize(width: 0, height: -0.5)
         material.material = .popover
         material.blendingMode = .behindWindow
         material.state = .active
+        material.alphaValue = 0.14
         material.wantsLayer = true
         material.layer?.cornerRadius = 4
         material.layer?.masksToBounds = true
@@ -121,16 +122,16 @@ final class EdgeRevealView: NSView {
         CATransaction.begin(); CATransaction.setDisableActions(true)
         material.isHidden = !translucent
         if dark {
-            tint.colors = [color(0.09, 0.12, 0.18, translucent ? 0.72 : 1), color(0.035, 0.055, 0.09, translucent ? 0.80 : 1)]
-            tint.borderColor = color(0.66, 0.75, 0.88, 0.40)
-            gleam.colors = [color(0.52, 0.70, 0.92, 0.16), color(0.62, 0.78, 0.96, 0.22),
-                color(0.76, 0.86, 1, 0.32), color(0.90, 0.95, 1, 0.40),
-                color(0.68, 0.81, 0.98, 0.28), color(0.55, 0.72, 0.94, 0.20), color(0.52, 0.70, 0.92, 0.16)]
+            tint.colors = [color(0.09, 0.12, 0.18, translucent ? 0.10 : 1), color(0.035, 0.055, 0.09, translucent ? 0.14 : 1)]
+            tint.borderColor = color(0.66, 0.75, 0.88, 0.30)
+            gleam.colors = [color(0.52, 0.70, 0.92, 0.04), color(0.62, 0.78, 0.96, 0.06),
+                color(0.76, 0.86, 1, 0.10), color(0.90, 0.95, 1, 0.14),
+                color(0.68, 0.81, 0.98, 0.09), color(0.55, 0.72, 0.94, 0.06), color(0.52, 0.70, 0.92, 0.04)]
         } else {
-            tint.colors = [color(1, 1, 1, translucent ? 0.60 : 1), color(0.87, 0.91, 0.96, translucent ? 0.68 : 1)]
-            tint.borderColor = color(1, 1, 1, 0.90)
-            gleam.colors = [color(1, 1, 1, 0.20), color(1, 1, 1, 0.28), color(1, 1, 1, 0.40),
-                color(1, 1, 1, 0.64), color(1, 1, 1, 0.40), color(1, 1, 1, 0.28), color(1, 1, 1, 0.20)]
+            tint.colors = [color(1, 1, 1, translucent ? 0.08 : 1), color(0.87, 0.91, 0.96, translucent ? 0.12 : 1)]
+            tint.borderColor = color(1, 1, 1, 0.50)
+            gleam.colors = [color(1, 1, 1, 0.04), color(1, 1, 1, 0.06), color(1, 1, 1, 0.12),
+                color(1, 1, 1, 0.20), color(1, 1, 1, 0.12), color(1, 1, 1, 0.06), color(1, 1, 1, 0.04)]
         }
         CATransaction.commit()
         needsLayout = true
