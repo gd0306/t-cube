@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import koffi from 'koffi';
 import type { ElectronApplication, Page } from 'playwright';
 import { nativeInput } from './native-input';
+import {edgeGlassSample,verifyEdgeGlassMediaSmoke} from './edge-glass-smoke';
 import {edgeHandle} from '../src/core/desktop-presentation';
 import {mkdir,writeFile} from 'node:fs/promises';
 import path from 'node:path';
@@ -81,19 +82,22 @@ export async function verifyDesktopPresentationSmoke(app:ElectronApplication,wid
             const expectedPixels=await app.evaluate(({screen},frame)=>screen.dipToScreenRect(null,frame),expected);
             const visual=await app.evaluate(async({BrowserWindow},id)=>{const window=BrowserWindow.fromId(id)!;return window.webContents.executeJavaScript("(()=>{const rect=document.querySelector('div').getBoundingClientRect();return {x:rect.x,y:rect.y,width:rect.width,height:rect.height,viewportWidth:innerWidth,viewportHeight:innerHeight};})()");},edges[0].id) as {x:number;y:number;width:number;height:number;viewportWidth:number;viewportHeight:number};
             diagnostics.push({cycle,requested:expected,expectedPixels,electron:edges[0],visual,native:geometry});await saveDiagnostics();
-            assert.equal(visual.width,6);assert.equal(visual.height,48);
+            assert.equal(visual.width,8);assert.equal(visual.height,52);
             assert.ok(visual.x>=0 && visual.y>=0 && visual.x+visual.width<=visual.viewportWidth && visual.y+visual.height<=visual.viewportHeight,'Visible bar must fit the actual renderer content');
             if(cycle===0 || cycle===3){const png=await app.evaluate(async({BrowserWindow},id)=>(await BrowserWindow.fromId(id)!.webContents.capturePage()).toPNG().toString('base64'),edges[0].id);await writeFile(path.resolve(`.cache/smoke/desktop-edge-${cycle===0?'left':'right'}.png`),Buffer.from(png,'base64'));}
-            assert.ok(Math.abs(edges[0].frame.x+visual.x-expected.x-2)<=1,'Visible bar must remain inside the10px handle on either edge');
+            assert.ok(Math.abs(edges[0].frame.x+visual.x-expected.x-1)<=1,'Visible bar must remain inside the10px handle on either edge');
             assert.ok(geometry.absolute,'Native edge region must be set');
             for(const key of ['x','y','width','height'] as const)assert.ok(Math.abs(geometry.absolute[key]-expectedPixels[key])<=1,`Native10x56 edge region mismatch: ${key}`);
             assert.equal(geometry.insideHit,true,'Handle hit region must receive the pointer');assert.equal(geometry.outsideHit,false,'Transparent container outside10px handle must pass the pointer through');
             assert.deepEqual((await read()).state.configuration.windowPosition,resting,'Collapsed geometry must not persist');
+            if(cycle===0){diagnostics.push({glassMedia:await verifyEdgeGlassMediaSmoke(app,edges[0].id)});await saveDiagnostics();}
             const frames=await widget.evaluate(async()=>{const {controller}=await import(new URL('widget.js',location.href).href);return controller.metrics.frames;});
             await new Promise(resolve=>setTimeout(resolve,300));
             assert.equal(await widget.evaluate(async()=>{const {controller}=await import(new URL('widget.js',location.href).href);return controller.metrics.frames;}),frames,'Collapsed renderer must stop');
             await move(expected.x+5,expected.y+28);
             await until(async()=>(await read()).state.visible,'Edge hover did not reveal');
+            await until(async()=>{const glass=await edgeGlassSample(app,edges[0].id);return glass.hidden && glass.animations===0 && glass.active==='false' && glass.willChange==='auto';},'Hidden native edge must cancel its animation/compositor hint');
+            diagnostics.push({hiddenGlassCycle:cycle,...await edgeGlassSample(app,edges[0].id)});await saveDiagnostics();
             await move(display.work.x+display.work.width/2,display.work.y+display.work.height/2);
         }
         await configure(false,true);await settings.evaluate(()=>window.tcube.place('center'));await hidePanels();

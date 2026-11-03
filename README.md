@@ -8,7 +8,7 @@ A transparent glass launcher that floats on your desktop. Keep favorite apps, fi
 
 ## Download installers
 
-macOS **0.20.0** · Windows **0.20.0**: [macOS Apple Silicon (.dmg)](https://github.com/gd0306/t-cube/releases/download/v0.20.0/T-Cube-0.20.0-macos-arm64.dmg) · [Windows x64 installer (.exe)](https://github.com/gd0306/t-cube/releases/download/v0.20.0/T-Cube-0.20.0-windows-x64-setup.exe) · [Release notes and SHA-256 checksums](https://github.com/gd0306/t-cube/releases/tag/v0.20.0).
+macOS **0.20.1** · Windows **0.20.1**: [macOS Apple Silicon (.dmg)](https://github.com/gd0306/t-cube/releases/download/v0.20.1/T-Cube-0.20.1-macos-arm64.dmg) · [Windows x64 installer (.exe)](https://github.com/gd0306/t-cube/releases/download/v0.20.1/T-Cube-0.20.1-windows-x64-setup.exe) · [Release notes and SHA-256 checksums](https://github.com/gd0306/t-cube/releases/tag/v0.20.1).
 
 The Windows installer includes its runtime and needs no Node.js installation. Quit an existing T-Cube before updating; shortcut configuration is preserved. These builds are unsigned/ad-hoc signed, not notarized or Developer ID/Authenticode signed.
 
@@ -55,6 +55,10 @@ Unchanged launcher textures are reused, empty faces allocate no atlas, and theme
 
 Add apps, folders, individual files, HTTP/HTTPS websites and selected system-settings pages from the shortcut editor. Files use their default application, websites use the default browser, and settings pages are chosen from a built-in list. Existing shortcuts and configuration are retained.
 
+## System appearance edge glass (0.20.1)
+
+The collapsed handle follows OS light/dark appearance: white frosted glass or deep space black, with a quiet internal shimmer. Its 10×56 hit region and reveal behavior stay unchanged; cube themes are unaffected. Shimmer runs only while visible, stops while hidden and becomes static for reduced motion/transparency (and macOS Low Power Mode). macOS uses native background material; Windows provides frosted styling rather than desktop backdrop blur. Small compositor layers animate without waking 3D rendering or adding a JavaScript/Swift frame loop.
+
 ## Desktop auto-hide and clipboard tools (0.20.0)
 
 Appearance settings offer independent, default-off edge collapse and fullscreen hiding. Near an outer left/right display edge, leaving the cube for about 0.8 seconds shows a narrow reveal handle. Hovering restores the cube without changing its saved resting position. Active dragging, expanded entries and settings are protected. Fullscreen hiding is display-local; manually hidden cubes stay hidden. Collapsed/hidden cubes pause 3D rendering.
@@ -95,7 +99,7 @@ Install https://github.com/gd0306/t-cube (master) on Windows. Follow windows/REA
 
 ## macOS install and run
 
-Current source version: **0.20.0** on **master**. Published installer versions are listed above.
+Current source version: **0.20.1** on **master**. Published installer versions are listed above.
 
 Running requires macOS 15+. Building requires full Xcode with Swift 6 and the **macOS 27 SDK**. Current local packages target Apple Silicon and use ad-hoc signing; they are not notarized.
 
@@ -106,7 +110,7 @@ bash scripts/build-app.sh
 open build/T-Cube.app
 ```
 
-For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.20.0.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are distributed through Releases; macOS security approvals remain with the user.
+For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.20.1.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are distributed through Releases; macOS security approvals remain with the user.
 
 ### Let an agent install it
 

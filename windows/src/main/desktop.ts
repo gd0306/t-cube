@@ -240,13 +240,12 @@ export class DesktopApplication {
     }
     private showEdgeHandle(frame: Rect): boolean {
         if (!this.edgeWindow) {
-            this.edgeWindow = new BrowserWindow({title:'T-Cube Edge',width:10,height:56,minWidth:10,maxWidth:10,minHeight:56,maxHeight:56,show:false,frame:false,transparent:true,hasShadow:false,resizable:false,focusable:false,
+            this.edgeWindow = new BrowserWindow({title:'T-Cube Edge',width:10,height:56,minWidth:10,maxWidth:10,minHeight:56,maxHeight:56,show:false,paintWhenInitiallyHidden:false,frame:false,transparent:true,hasShadow:false,resizable:false,focusable:false,
                 skipTaskbar:true,alwaysOnTop:true,thickFrame:false,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}});
             this.edgeWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));
-            const html = `<!doctype html><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>T-Cube Edge</title><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}div{width:6px;height:48px;margin:4px 2px;border-radius:4px;background:#8fbacbdd;box-shadow:inset 0 0 0 1px #ffffff88}</style><div></div>`;
             this.edgeWindow.setMenu(null);
             const loadingWindow = this.edgeWindow;
-            void loadingWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`).then(()=>this.prepareEdgeWindow(loadingWindow)).catch(error=>{if(!loadingWindow.isDestroyed())this.host.reportError(error);});
+            void loadingWindow.loadFile(path.join(this.directory,'renderer','edge.html')).then(()=>this.prepareEdgeWindow(loadingWindow)).catch(error=>{if(!loadingWindow.isDestroyed())this.host.reportError(error);});
             this.edgeWindow.setAlwaysOnTop(true,'floating');
         }
         const key = JSON.stringify(frame);

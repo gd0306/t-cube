@@ -1,0 +1,70 @@
+:root {
+    color-scheme: light dark;
+    --edge-theme: light;
+    --edge-glass: linear-gradient(105deg, rgba(255, 255, 255, .96), rgba(225, 235, 244, .86) 58%, rgba(255, 255, 255, .78));
+    --edge-border: rgba(151, 169, 185, .70);
+    --edge-inner: rgba(255, 255, 255, .92);
+    --edge-shade: rgba(78, 101, 122, .13);
+    --edge-solid: #f1f5f8;
+    --edge-light: rgba(255, 255, 255, .95);
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --edge-theme: dark;
+        --edge-glass: linear-gradient(105deg, rgba(39, 52, 73, .96), rgba(7, 14, 26, .96) 58%, rgba(22, 33, 52, .94));
+        --edge-border: rgba(107, 132, 163, .64);
+        --edge-inner: rgba(188, 211, 238, .18);
+        --edge-shade: rgba(0, 3, 10, .34);
+        --edge-solid: #111b2b;
+        --edge-light: rgba(170, 199, 231, .70);
+    }
+}
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+    user-select: none;
+}
+/* Frosted styling only: no desktop backdrop blur is claimed for shaped transparent HWNDs. */
+.edge-capsule {
+    position: relative;
+    box-sizing: border-box;
+    width: 8px;
+    height: 52px;
+    margin: 2px 1px;
+    overflow: hidden;
+    border: 1px solid var(--edge-border);
+    border-radius: 5px;
+    background: var(--edge-glass);
+    box-shadow: inset 1px 0 0 var(--edge-inner), inset -1px 0 0 var(--edge-shade), 0 0 1px var(--edge-shade);
+}
+.edge-shimmer {
+    position: absolute;
+    inset: -40px -2px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-48px);
+    background: linear-gradient(180deg, transparent 24%, var(--edge-light) 50%, transparent 76%);
+}
+:root[data-visible="true"][data-animate="true"] .edge-shimmer {
+    animation: edge-shimmer 8.4s ease-in-out infinite;
+    will-change: transform, opacity;
+}
+@keyframes edge-shimmer {
+    0%, 12% { transform: translateY(-48px); opacity: 0; }
+    38% { opacity: .12; }
+    62% { opacity: .18; }
+    88%, 100% { transform: translateY(48px); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce), (forced-colors: active) {
+    :root[data-visible="true"][data-animate="true"] .edge-shimmer { animation: none; will-change: auto; }
+    .edge-shimmer { display: none; }
+}
+@media (prefers-reduced-transparency: reduce) {
+    .edge-capsule { background: var(--edge-solid); box-shadow: none; }
+}
+@media (forced-colors: active) {
+    .edge-capsule { background: Canvas; border-color: CanvasText; box-shadow: none; }
+}

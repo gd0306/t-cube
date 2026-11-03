@@ -108,6 +108,7 @@ final class DesktopAutoHideCoordinator {
         case .hidden:
             panel.orderOut(nil); handle.orderOut(nil)
         }
+        (handle.contentView as? EdgeRevealView)?.setPresented(desired == .edge)
         didChangePresentation?()
     }
 
@@ -119,6 +120,7 @@ final class DesktopAutoHideCoordinator {
         settings.onChange = nil
         observers.forEach { NSWorkspace.shared.notificationCenter.removeObserver($0) }
         observers.removeAll(); handle.orderOut(nil)
+        (handle.contentView as? EdgeRevealView)?.shutdown()
     }
 }
 
@@ -150,28 +152,4 @@ enum DesktopFullscreenDetector {
         }
         return false
     }
-}
-
-private final class EdgeRevealView: NSView {
-    private let reveal: () -> Void
-    init(reveal: @escaping () -> Void) {
-        self.reveal = reveal
-        super.init(frame: CGRect(x: 0, y: 0, width: 10, height: 56))
-        wantsLayer = true
-        layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.8).cgColor
-        layer?.cornerRadius = 5
-        setAccessibilityElement(true)
-        setAccessibilityRole(.button)
-        setAccessibilityLabel("展开立方体")
-        toolTip = "展开 T-Cube"
-    }
-    required init?(coder: NSCoder) { nil }
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas()
-        trackingAreas.forEach(removeTrackingArea)
-        addTrackingArea(NSTrackingArea(rect: bounds, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self))
-    }
-    override func mouseEntered(with event: NSEvent) { reveal() }
-    override func mouseDown(with event: NSEvent) { reveal() }
-    override func accessibilityPerformPress() -> Bool { reveal(); return true }
 }
