@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import {writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import type {ElectronApplication} from 'playwright';
-export interface EdgeGlassSample {scheme:string;animations:number;active:string|undefined;hidden:boolean;willChange:string}
+export interface EdgeGlassSample {scheme:string;animations:number;active:string|undefined;hidden:boolean;nativeVisible:string|undefined;windowVisible:boolean;dataVisible:string|undefined;willChange:string}
 export async function edgeGlassSample(app:ElectronApplication,id:number):Promise<EdgeGlassSample>{
-    return app.evaluate(async({BrowserWindow},id)=>BrowserWindow.fromId(id)!.webContents.executeJavaScript("({scheme:getComputedStyle(document.documentElement).getPropertyValue('--edge-theme').trim(),animations:document.getAnimations().length,active:document.documentElement.dataset.animate,hidden:document.hidden,willChange:getComputedStyle(document.querySelector('.edge-shimmer')).willChange})"),id);
+    return app.evaluate(async({BrowserWindow},id)=>{const window=BrowserWindow.fromId(id)!;const renderer=await window.webContents.executeJavaScript("({scheme:getComputedStyle(document.documentElement).getPropertyValue('--edge-theme').trim(),animations:document.getAnimations().length,active:document.documentElement.dataset.animate,hidden:document.hidden,nativeVisible:document.documentElement.dataset.nativeVisible,dataVisible:document.documentElement.dataset.visible,willChange:getComputedStyle(document.querySelector('.edge-shimmer')).willChange})");return {...renderer,windowVisible:window.isVisible()};},id);
 }
 async function until(check:()=>Promise<boolean>,label:string):Promise<void>{const deadline=Date.now()+8000;while(Date.now()<deadline){if(await check())return;await new Promise(resolve=>setTimeout(resolve,50));}throw new Error(label);}
 /** CDP emulation is scoped to this owned handle page; the user's native theme/settings are untouched. */

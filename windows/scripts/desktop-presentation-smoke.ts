@@ -96,7 +96,9 @@ export async function verifyDesktopPresentationSmoke(app:ElectronApplication,wid
             assert.equal(await widget.evaluate(async()=>{const {controller}=await import(new URL('widget.js',location.href).href);return controller.metrics.frames;}),frames,'Collapsed renderer must stop');
             await move(expected.x+5,expected.y+28);
             await until(async()=>(await read()).state.visible,'Edge hover did not reveal');
-            await until(async()=>{const glass=await edgeGlassSample(app,edges[0].id);return glass.hidden && glass.animations===0 && glass.active==='false' && glass.willChange==='auto';},'Hidden native edge must cancel its animation/compositor hint');
+            diagnostics.push({hiddenGlassBeforeAssertion:cycle,...await edgeGlassSample(app,edges[0].id)});await saveDiagnostics();
+            try{await until(async()=>{const glass=await edgeGlassSample(app,edges[0].id);return !glass.windowVisible && glass.nativeVisible==='false' && glass.dataVisible==='false' && glass.animations===0 && glass.active==='false' && glass.willChange==='auto';},'Hidden native edge must cancel its animation/compositor hint');}
+            catch(error){diagnostics.push({hiddenGlassFailure:cycle,...await edgeGlassSample(app,edges[0].id)});await saveDiagnostics();throw error;}
             diagnostics.push({hiddenGlassCycle:cycle,...await edgeGlassSample(app,edges[0].id)});await saveDiagnostics();
             await move(display.work.x+display.work.width/2,display.work.y+display.work.height/2);
         }

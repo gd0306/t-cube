@@ -1,3 +1,4 @@
+import {bindEdgeVisibility} from './edge-visibility';
 import { DesktopPresentation, isFullscreenOnDisplay, edgeHandleWindowLayout, presentationProtection } from '../core/desktop-presentation';
 import { fullscreenFrameOnDisplay } from '../native/fullscreen';
 import {OfficeServices} from './office-services';
@@ -241,7 +242,8 @@ export class DesktopApplication {
     private showEdgeHandle(frame: Rect): boolean {
         if (!this.edgeWindow) {
             this.edgeWindow = new BrowserWindow({title:'T-Cube Edge',width:10,height:56,minWidth:10,maxWidth:10,minHeight:56,maxHeight:56,show:false,paintWhenInitiallyHidden:false,frame:false,transparent:true,hasShadow:false,resizable:false,focusable:false,
-                skipTaskbar:true,alwaysOnTop:true,thickFrame:false,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}});
+                skipTaskbar:true,alwaysOnTop:true,thickFrame:false,webPreferences:{preload:path.join(this.directory,'edge-preload.cjs'),sandbox:true,contextIsolation:true,nodeIntegration:false}});
+            bindEdgeVisibility(this.edgeWindow);
             this.edgeWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));
             this.edgeWindow.setMenu(null);
             const loadingWindow = this.edgeWindow;
