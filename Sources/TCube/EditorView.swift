@@ -6,13 +6,14 @@ struct EditorView: View {
     @ObservedObject var model: AppModel
     var lifecycle: LifecycleController? = nil
     var performance: PerformanceSettings? = nil
+    var desktop: DesktopAutoHideSettings? = nil
 
     var body: some View {
         VStack(spacing: 0) {
             TabView {
                 FaceSettingsView(model: model)
                     .tabItem { Label("立方体入口", systemImage: "cube") }
-                AppearanceSettingsView(model: model)
+                AppearanceSettingsView(model: model, desktop: desktop)
                     .tabItem { Label("外观", systemImage: "paintpalette") }
                 if let performance {
                     PerformanceSettingsView(settings: performance)
@@ -182,6 +183,7 @@ private struct FaceSettingsView: View {
 
 private struct AppearanceSettingsView: View {
     @ObservedObject var model: AppModel
+    var desktop: DesktopAutoHideSettings? = nil
     @State private var primary = Color.cyan
     @State private var secondary = Color.purple
     @State private var glowIntensity = 0.55
@@ -330,6 +332,7 @@ private struct AppearanceSettingsView: View {
                     Text("移出立即收起；拖动与 Ctrl 操作保持即时响应。")
                         .font(.caption).foregroundStyle(.secondary)
                 }
+                if let desktop { DesktopAutoHideSettingsView(settings: desktop) }
                 Section {
                     HStack(spacing: 8) {
                         ForEach(CubePlacement.allCases) { placement in

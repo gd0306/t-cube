@@ -8,7 +8,7 @@ A transparent glass launcher that floats on your desktop. Keep favorite apps, fi
 
 ## Download installers
 
-macOS **0.19.0** · Windows **0.19.0**: [macOS Apple Silicon (.dmg)](https://github.com/gd0306/t-cube/releases/download/v0.19.0/T-Cube-0.19.0-macos-arm64.dmg) · [Windows x64 installer (.exe)](https://github.com/gd0306/t-cube/releases/download/v0.19.0/T-Cube-0.19.0-windows-x64-setup.exe) · [Release notes and SHA-256 checksums](https://github.com/gd0306/t-cube/releases/tag/v0.19.0).
+macOS **0.20.0** · Windows **0.20.0**: [macOS Apple Silicon (.dmg)](https://github.com/gd0306/t-cube/releases/download/v0.20.0/T-Cube-0.20.0-macos-arm64.dmg) · [Windows x64 installer (.exe)](https://github.com/gd0306/t-cube/releases/download/v0.20.0/T-Cube-0.20.0-windows-x64-setup.exe) · [Release notes and SHA-256 checksums](https://github.com/gd0306/t-cube/releases/tag/v0.20.0).
 
 The Windows installer includes its runtime and needs no Node.js installation. Quit an existing T-Cube before updating; shortcut configuration is preserved. These builds are unsigned/ad-hoc signed, not notarized or Developer ID/Authenticode signed.
 
@@ -55,11 +55,13 @@ Unchanged launcher textures are reused, empty faces allocate no atlas, and theme
 
 Add apps, folders, individual files, HTTP/HTTPS websites and selected system-settings pages from the shortcut editor. Files use their default application, websites use the default browser, and settings pages are chosen from a built-in list. Existing shortcuts and configuration are retained.
 
-## Clipboard history prototype (0.18.0)
+## Desktop auto-hide and clipboard tools (0.20.0)
 
-Open **剪贴板历史** from the menu bar/tray or the content-library tab, then choose **启用记录**. New plain-text copies appear newest first, with exact-text deduplication, search, deletion, copy, focus-checked paste, and an explicit “save as common content” draft. Recording starts paused on every launch; enabling or resuming does not import the existing clipboard.
+Appearance settings offer independent, default-off edge collapse and fullscreen hiding. Near an outer left/right display edge, leaving the cube for about 0.8 seconds shows a narrow reveal handle. Hovering restores the cube without changing its saved resting position. Active dragging, expanded entries and settings are protected. Fullscreen hiding is display-local; manually hidden cubes stay hidden. Collapsed/hidden cubes pause 3D rendering.
 
-History stays in memory, is cleared on exit, and is excluded from backups/export. Limits: 100 items, 64 KiB UTF-8 per item, 2 MiB total text. File copies and supported sensitive/temporary/exclusion markers are skipped on a best-effort basis; unmarked sensitive text can still be recorded. Pause or clear from the history view. Images, persistence and cloud sync are outside this prototype.
+Clipboard history has separate text/image categories, defaults to paused each launch and records only new clipboard changes after explicit enable/resume. History is session-only, cleared on exit, excluded from backups and never uploaded. Text retains100 entries,64 KiB per entry and2 MiB total. Select multiple items, preview newline-joined output, optionally trim each line and collapse repeated blank lines, then copy/paste or explicitly save a snippet. Merged output also caps at64 KiB; original entries stay unchanged.
+
+Image history retains at most10 recent images,8 MiB encoded PNG each,32 MiB total and16 megapixels each, evicting oldest images as needed. It supports thumbnails, bounded selected previews, deduplication, copy and focus-checked paste. macOS PNG/TIFF source input also caps at8 MiB, so larger TIFF screenshots are skipped with a status. Processing is serial; full decoded images are not retained in the list. Limits bound admitted/retained data, not total application RSS or unavoidable transient native clipboard materialization. Privacy/file exclusions remain best-effort. No persistence or cloud sync is included.
 
 ## Release reminders (0.19.0)
 
@@ -93,7 +95,7 @@ Install https://github.com/gd0306/t-cube (master) on Windows. Follow windows/REA
 
 ## macOS install and run
 
-Current source version: **0.19.0** on **master**. Published installer versions are listed above.
+Current source version: **0.20.0** on **master**. Published installer versions are listed above.
 
 Running requires macOS 15+. Building requires full Xcode with Swift 6 and the **macOS 27 SDK**. Current local packages target Apple Silicon and use ad-hoc signing; they are not notarized.
 
@@ -104,7 +106,7 @@ bash scripts/build-app.sh
 open build/T-Cube.app
 ```
 
-For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.19.0.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are distributed through Releases; macOS security approvals remain with the user.
+For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.20.0.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are distributed through Releases; macOS security approvals remain with the user.
 
 ### Let an agent install it
 

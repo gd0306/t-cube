@@ -1,12 +1,15 @@
 # T-Cube for Windows
 
-Version **0.19.0** targets Windows 10 22H2 / Windows 11, x64. This client uses Electron and Three.js; the repository's macOS client remains native Swift.
+Version **0.20.0** targets Windows 10 22H2 / Windows 11, x64. This client uses Electron and Three.js; the repository's macOS client remains native Swift.
 
 ## Installer
 
-Download [T-Cube 0.19.0 for Windows x64](https://github.com/gd0306/t-cube/releases/download/v0.19.0/T-Cube-0.19.0-windows-x64-setup.exe) from [Releases](https://github.com/gd0306/t-cube/releases/tag/v0.19.0). It installs per user, includes Electron/native dependencies, creates shortcuts and an uninstall entry, and requires neither Node.js nor administrator privileges. Quit the previous version before updating. Existing `%APPDATA%\\T-Cube` configuration is retained. The installer is not Authenticode signed.
+Download [T-Cube 0.20.0 for Windows x64](https://github.com/gd0306/t-cube/releases/download/v0.20.0/T-Cube-0.20.0-windows-x64-setup.exe) from [Releases](https://github.com/gd0306/t-cube/releases/tag/v0.20.0). It installs per user, includes Electron/native dependencies, creates shortcuts and an uninstall entry, and requires neither Node.js nor administrator privileges. Quit the previous version before updating. Existing `%APPDATA%\\T-Cube` configuration is retained. The installer is not Authenticode signed.
 
 Under **外观与主题 → 材质**, choose **玻璃** or **史莱姆**. All nine themes, custom colors and automatic cycling work with either material. Glass is the default. Slime follows the mouse with lag and elastic rebound while launcher icons remain rigid; Windows animation preferences disable its motion.
+
+Under **交互与位置**, **靠边自动收起** and **全屏应用时隐藏** are independent and default off. A cube within 32 logical pixels of an outer left/right usable screen edge becomes a slim handle after the pointer leaves for about 0.8 seconds; hovering the handle restores it. Shared monitor seams and interior positions stay unchanged. Dragging, face expansion and open settings protect it from collapse. Fullscreen hiding uses public public window metadata on the cube's display, requires no screen capture permission, and preserves manual tray hiding. Collapsed geometry is never saved.
+
 
 ## Office tools and idle performance
 
@@ -15,6 +18,10 @@ Website entries show their saved title below the icon on the cube and expanded f
 Clipboard history is available from the tray or the **剪贴板历史** tab. It starts paused on every launch; choose **启用记录**, then make a new plain-text copy. Search, delete, clear, copy, focus-checked paste and explicitly save a common-content draft. Records stay in memory and disappear on exit; they are excluded from backup/export. Limits are 100 items, 64 KiB UTF-8 per item and 2 MiB text total. File drops and supported exclusion markers are skipped, but unmarked sensitive text may still be recorded. No image history or cloud sync.
 
 Open **常用内容** from the tray or `Ctrl+Shift+Space`. Store reusable text and structured fields, group/favorite/search them, and copy or paste whole entries or individual fields. Clipboard capture and dropped text open a draft for review. Paste restores the original input window only while its process identity/focus still match; otherwise text remains copied for manual paste.
+
+**剪贴板历史** is session-only and defaults off. Enabling or resuming starts with the next copy. Text and image tabs are separate: text retains up to 100 entries (64 KiB each, 2 MiB total), while images retain up to 10 (8 MiB normalized PNG each, 32 MiB total, 16 megapixels). PNG/JPEG clipboard representations normalize to PNG in main; file drops and supported private/history exclusion markers are skipped. Only compressed bytes and small thumbnails are retained; selected previews are bounded. A single sandboxed canvas processor performs codecs away from the Electron main thread, keeps at most one active job plus the newest pending recording and preview, and exits after 10 seconds idle or immediately on pause/clear/quit. Native DIB headers are checked before Electron materializes image bytes (16 megapixels, 65 MiB raw bound); native conversion and one active decoder can still hold a temporary uncompressed bitmap. Clear and quit release all history; it is excluded from configuration and backups.
+
+Select text checkboxes to preview a merge in current list order, optionally trim each line and collapse repeated blank lines. Copy, paste or explicitly save the preview as ordinary content; original entries are unchanged. Merges are limited to 64 KiB UTF-8. Images support preview, copy, focus-checked paste and delete, with no OCR or automatic content conversion. Paste restores only the captured input target; unsupported or unavailable targets leave the copy available for manual paste.
 
 **配置与备份** offers validated import/export previews, automatic pre-import backups, manual restore and broken-launcher relinking. Hover delay is configurable and display positions are remembered independently across connection changes. **启动与更新** shows actual login-item state; unsigned installers offer manual checks and opt-in six-hour release reminders, defaulting to off. These anonymously read GitHub metadata, remember notified versions and open the release page for manual installation. No signing credentials or token are required. Authenticated in-app installation requires the publisher's signing setup described in [Windows signing and updates](../docs/windows-signing-updates.md).
 

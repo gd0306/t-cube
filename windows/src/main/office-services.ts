@@ -1,7 +1,9 @@
+import { ClipboardImageProcessor } from './clipboard-image';
+import type { HistoryImage } from '../core/clipboard-history';
 import { ClipboardHistoryRecorder, clipboardHistoryOperations } from './clipboard-history';
-import { readHistoryClipboardItems } from './history-clipboard-reader';
-import { clipboardHistoryFormatsAllowed } from '../native/clipboard-history';
-import {app,BrowserWindow,clipboard,dialog,globalShortcut,ipcMain,screen} from 'electron';
+import { readHistoryClipboardContent } from './history-clipboard-reader';
+import { clipboardHistoryFormatsAllowed, clipboardHistoryImageFormatsAllowed } from '../native/clipboard-history';
+import {app,BrowserWindow,clipboard,dialog,globalShortcut,ipcMain,screen,ClipboardItem} from 'electron';
 import path from 'node:path';
 import type {LauncherHost} from './application';
 import type {WindowRole} from './ipc';
@@ -23,6 +25,7 @@ export interface OfficeOptions {whenLauncherOperationsIdle:()=>Promise<void>;hos
 export class OfficeServices {
     libraryWindow:BrowserWindow|null=null;
     readonly clipboardHistory: ClipboardHistoryRecorder;
+    private readonly imageProcessor: ClipboardImageProcessor;
     readonly library:ContentLibraryService;
     readonly maintenance:MaintenanceService;
     readonly performance:PerformanceStore;
@@ -38,16 +41,20 @@ export class OfficeServices {
     async whenIdle():Promise<void>{while(this.pending.size)await Promise.allSettled([...this.pending]);}
     get isRestoring(){return this.quitting||this.restoreGate||this.maintenance.isRestoring;}
     constructor(private readonly options:OfficeOptions){
+        this.imageProcessor = new ClipboardImageProcessor(path.dirname(options.rendererPath));
         this.clipboardHistory = new ClipboardHistoryRecorder({
             sequence: clipboardSequenceNumber,
             read: async isCurrent => {
                 const allowed = () => isCurrent() && clipboardHistoryFormatsAllowed();
                 if (!allowed()) return null;
+                if (!clipboardHistoryImageFormatsAllowed()) return {skippedImage:'已跳过图片：原生图片源超过尺寸或内存上限。'};
+                if (!allowed()) return null;
                 const items = await clipboard.read();
                 if (!allowed()) return null;
-                return readHistoryClipboardItems(items, allowed);
+                return readHistoryClipboardContent(items, allowed, bytes => this.imageProcessor.normalize(bytes, allowed));
             },
         }, state => {
+            if (!state.isEnabled || (!state.entries.length && !state.images?.length)) this.imageProcessor.cancel();
             this.libraryWindow?.webContents.send(C.clipboardHistoryChanged, state);
             this.options.historyChanged?.();
         });
@@ -94,16 +101,24 @@ export class OfficeServices {
         const request=record(value),text=string(request.text,262144),paste=boolean(request.paste);validateSnippetText(text);
         const generation=++this.pasteGeneration;
         await this.clipboardHistory.performOwnWrite(() => clipboard.writeText(text));
+        return this.finishPaste(paste, generation);
+    }
+    private async useImage(image: HistoryImage, paste: boolean) {
+        const generation = ++this.pasteGeneration;
+        await this.clipboardHistory.performOwnWrite(() => clipboard.write([new ClipboardItem({'image/png': new Blob([Uint8Array.from(image.png)], {type: 'image/png'})})]));
+        return this.finishPaste(paste, generation);
+    }
+    private async finishPaste(paste: boolean, generation: number) {
         const sequence = clipboardSequenceNumber();
-        if(!paste)return{status:'已复制。'};
+        if (!paste) return {status: '已复制。'};
         this.libraryWindow?.hide();
-        const completed=await pasteToTarget(this.target,()=>generation===this.pasteGeneration&&sequence!==null&&clipboardSequenceNumber()===sequence);
-        if(!completed){this.libraryWindow?.show();this.libraryWindow?.focus();}
-        return{status:completed?'已粘贴到原输入位置。':'已复制。原输入位置不可用，请手动粘贴；可先点中目标输入框，再用快捷键呼出。'};
+        const completed = await pasteToTarget(this.target, () => generation === this.pasteGeneration && sequence !== null && clipboardSequenceNumber() === sequence);
+        if (!completed) { this.libraryWindow?.show(); this.libraryWindow?.focus(); }
+        return {status: completed ? '已粘贴到原输入位置。' : '已复制。原输入位置不可用，请手动粘贴；可先点中目标输入框，再用快捷键呼出。'};
     }
     private registerIPC(){
         const operations:Record<string,(value:unknown)=>unknown>={
-            ...clipboardHistoryOperations(this.clipboardHistory, request => this.use(request)),
+            ...clipboardHistoryOperations(this.clipboardHistory, request => this.use(request), (image, paste) => this.useImage(image, paste), (image, current) => this.imageProcessor.preview(image, current)),
             showClipboardHistory: value => { if (value !== undefined) throw new Error('Invalid history request'); return this.showClipboardHistory(); },
             showLibrary:value=>this.showLibrary(value===undefined?undefined:string(value,262144)),getLibrary:()=>this.library.get(),
             saveSnippet:value=>this.library.save(value as TextSnippet),deleteSnippet:value=>this.library.delete(string(value)),
@@ -127,5 +142,5 @@ export class OfficeServices {
         }]));
         registerFeatureIPC(ipcMain,this.options.role,tracked,()=>this.isRestoring,error=>this.options.host.reportError(error));
     }
-    dispose(){this.clipboardHistory.dispose();this.pasteGeneration++;if(this.shortcutRegistered)globalShortcut.unregister('CommandOrControl+Shift+Space');this.lifecycle?.dispose();}
+    dispose(){this.imageProcessor.dispose();this.clipboardHistory.dispose();this.pasteGeneration++;if(this.shortcutRegistered)globalShortcut.unregister('CommandOrControl+Shift+Space');this.lifecycle?.dispose();}
 }

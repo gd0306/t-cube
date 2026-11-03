@@ -1,10 +1,25 @@
-import { randomUUID } from 'node:crypto';
-import { CLIPBOARD_HISTORY_LIMITS as LIMITS, type ClipboardHistoryEntry } from '../shared/clipboard-history';
+import { createHash, randomUUID } from 'node:crypto';
+import { CLIPBOARD_HISTORY_LIMITS as LIMITS, CLIPBOARD_IMAGE_LIMITS as IMAGES, type ClipboardImageEntry, type ClipboardHistoryEntry } from '../shared/clipboard-history';
 
-/** Session-only text ownership. No persistence or clipboard access belongs in this model. */
+/** Session-only clipboard ownership. No persistence or clipboard access belongs in this model. */
 export class ClipboardHistory {
     private entries: Array<ClipboardHistoryEntry & { bytes: number }> = [];
     private bytes = 0;
+    private images: Array<ClipboardImageEntry & {png: Buffer; digest: string}> = [];
+    get totalImageBytes(): number { return this.images.reduce((total, image) => total + image.png.length, 0); }
+    imageSnapshot(): ClipboardImageEntry[] { return this.images.map(({id, copiedAt, width, height, thumbnail}) => ({id, copiedAt, width, height, thumbnail})); }
+    hasImage(id: string): boolean { return this.images.some(image => image.id === id); }
+    image(id: string): HistoryImage | undefined { const image = this.images.find(entry => entry.id === id); return image ? {...image, png: Buffer.from(image.png)} : undefined; }
+    addImage(image: HistoryImage): boolean {
+        if (!image.png.length || image.png.length > IMAGES.itemBytes || !Number.isInteger(image.width) || !Number.isInteger(image.height)
+            || image.width < 1 || image.height < 1 || image.width * image.height > IMAGES.pixels || image.thumbnail.length > 128 * 1024) return false;
+        const digest = createHash('sha256').update(image.png).digest('hex');
+        const existing = this.images.find(entry => entry.digest === digest);
+        if (existing) this.delete(existing.id);
+        this.images.unshift({...image, png: Buffer.from(image.png), digest, id: existing?.id ?? randomUUID(), copiedAt: Date.now()});
+        while (this.images.length > IMAGES.entries || this.totalImageBytes > IMAGES.totalBytes) this.images.pop();
+        return true;
+    }
     get totalBytes(): number { return this.bytes; }
     snapshot(): ClipboardHistoryEntry[] { return this.entries.map(({ id, text, copiedAt }) => ({ id, text, copiedAt })); }
     add(text: string): boolean {
@@ -19,8 +34,11 @@ export class ClipboardHistory {
         return true;
     }
     delete(id: string): void {
+        this.images = this.images.filter(image => image.id !== id);
         const index = this.entries.findIndex(entry => entry.id === id);
         if (index >= 0) this.bytes -= this.entries.splice(index, 1)[0].bytes;
     }
-    clear(): void { this.entries = []; this.bytes = 0; }
+    clear(): void { this.entries = []; this.bytes = 0; this.images = []; }
 }
+
+export interface HistoryImage {png: Buffer; width: number; height: number; thumbnail: string}

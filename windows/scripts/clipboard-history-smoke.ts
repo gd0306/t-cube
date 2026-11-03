@@ -11,7 +11,7 @@ async function waitFor(check: () => Promise<boolean>, label: string): Promise<vo
 }
 /** Called only inside the owned office smoke, while its isolated clipboard snapshot is held. */
 export async function verifyClipboardHistorySmoke(app: ElectronApplication, widget: Page, library: Page,
-    readReceiver: () => string): Promise<string[]> {
+    readReceiver: () => string, ownedReceiver: bigint): Promise<string[]> {
     if (process.platform !== 'win32') return [];
     const isolated = await app.evaluate(({ app }) => ({ actual: app.getPath('userData'), expected: process.env.TCUBE_USER_DATA_DIR }));
     assert.ok(isolated.expected); assert.equal(path.resolve(isolated.actual), path.resolve(isolated.expected));
@@ -19,6 +19,7 @@ export async function verifyClipboardHistorySmoke(app: ElectronApplication, widg
     const initial = await state(); assert.equal(initial.isEnabled, false); assert.equal(initial.entries.length, 0);
     const marker = `T-Cube owned history ${randomUUID()}`, text = ` ${marker}\nsecond line `, other = `${marker} other`;
     const user = koffi.load('user32.dll');
+    const foreground = user.func('uintptr_t __stdcall GetForegroundWindow()');
     const register = user.func('uint32_t __stdcall RegisterClipboardFormatW(str16 name)');
     const hasFormat = user.func('int __stdcall IsClipboardFormatAvailable(uint32_t format)');
     let savedId: string | undefined;
@@ -85,6 +86,44 @@ export async function verifyClipboardHistorySmoke(app: ElectronApplication, widg
         await waitFor(async () => (await library.evaluate(() => window.tcube.getLibrary())).items.some(item => item.title === 'Owned saved history smoke'), 'History draft did not save as an ordinary snippet');
         savedId = (await library.evaluate(() => window.tcube.getLibrary())).items.find(item => item.title === 'Owned saved history smoke')?.id;
         await library.getByRole('button', { name: '剪贴板历史', exact: true }).click();
+        await library.getByRole('searchbox', { name: '搜索剪贴板历史', exact: true }).fill('');
+        await library.getByRole('checkbox', { name: '选择文字 2', exact: true }).check();
+        await library.getByRole('checkbox', { name: '选择文字 1', exact: true }).check();
+        await library.getByRole('checkbox', { name: '去除每行首尾空白', exact: true }).check();
+        const beforeMerge = (await state()).entries.map(entry => entry.text);
+        const mergeExpected = beforeMerge.join('\n').replace(/\r\n?/g, '\n').split('\n').map(line => line.trim()).join('\n');
+        assert.equal(await library.locator('.history-detail pre').textContent(), mergeExpected);
+        await library.getByRole('button', { name: '复制合并文字', exact: true }).click();
+        assert.equal(await app.evaluate(async ({ clipboard }) => clipboard.readText()), mergeExpected);
+        assert.deepEqual((await state()).entries.map(entry => entry.text), beforeMerge);
+        await library.getByRole('button', { name: '取消多选', exact: true }).click();
+        // A generated, owned fixture exercises real PNG/native clipboard conversion without reading user content.
+        await app.evaluate(async ({clipboard,ClipboardItem,nativeImage}) => {
+            const pixels = Buffer.from([0x40,0x80,0xff,0xff,0xff,0x60,0x20,0xff,0x20,0xe0,0x80,0xff,0xc0,0x40,0xe0,0xff]);
+            const png = nativeImage.createFromBitmap(pixels,{width:2,height:2}).toPNG();
+            await clipboard.write([new ClipboardItem({'image/png':new Blob([new Uint8Array(png)],{type:'image/png'})})]);
+        });
+        await waitFor(async () => (await state()).images?.length === 1, 'Owned image was not recorded');
+        await library.getByRole('button',{name:'图片',exact:true}).click();
+        await library.getByRole('button',{name:'复制历史图片',exact:true}).click();
+        const image = (await state()).images![0];
+        assert.equal(image.width,2);assert.equal(image.height,2);
+        assert.equal('png' in image,false,'Full image bytes must remain main-owned');
+        assert.ok(await app.evaluate(async ({clipboard,nativeImage}) => {
+            const item=(await clipboard.read()).find(item=>item.types.includes('image/png'));
+            if(!item)return false;
+            const png=Buffer.from(await (await item.getType('image/png')).arrayBuffer());
+            const size=nativeImage.createFromBuffer(png).getSize();return size.width===2 && size.height===2;
+        }), 'Image copy must produce native PNG');
+        await new Promise(resolve=>setTimeout(resolve,700));assert.equal((await state()).images?.length,1,'Image self-write must not record');
+        const receiverBeforeImagePaste = readReceiver();
+        await library.getByRole('button',{name:'粘贴历史图片',exact:true}).click();
+        await waitFor(async()=>BigInt(foreground())===ownedReceiver,'Image paste must restore only the captured owned receiver');
+        assert.equal(readReceiver(),receiverBeforeImagePaste,'Plain edit receiver must ignore unsupported image data without text injection');
+        await widget.evaluate(()=>window.tcube.showClipboardHistory());
+        await library.getByRole('button',{name:'删除历史',exact:true}).click();
+        await waitFor(async()=>(await state()).images?.length===0,'Image delete must release entry');
+        await library.getByRole('button',{name:'文字',exact:true}).click();
         await library.getByRole('button', { name: '暂停记录', exact: true }).click();
         await app.evaluate(async ({ clipboard }, text) => { await clipboard.writeText(text); }, `${marker} paused fixture`);
         await new Promise(resolve => setTimeout(resolve, 700)); assert.equal((await state()).entries.length, 2);
@@ -96,7 +135,7 @@ export async function verifyClipboardHistorySmoke(app: ElectronApplication, widg
         await waitFor(async () => (await state()).entries.length === 0, 'History clear did not empty session state');
         const confirmations = await library.evaluate(key => ((window as unknown as Record<string, { seen: string[] }>)[key]).seen, confirmationKey);
         assert.deepEqual(confirmations, expectedConfirmations, 'History must request both explicit confirmation choices');
-        return ['Opt-in sequence baselines, owned clipboard recording/dedupe, real native privacy/file exclusions, pause/resume, history copy/paste into owned receiver, draft retention and explicit snippet save passed.'];
+        return ['Text visible-order merge and owned native PNG record/copy/delete passed. Opt-in sequence baselines, owned clipboard recording/dedupe, real native privacy/file exclusions, pause/resume, history copy/paste into owned receiver, draft retention and explicit snippet save passed.'];
     } finally {
         if (!library.isClosed()) await library.evaluate(key => {
             const globals = window as unknown as Record<string, { original: typeof window.confirm }>;

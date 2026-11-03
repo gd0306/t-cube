@@ -388,6 +388,9 @@ function renderBehavior(data: Snapshot) {
             }),
         ),
     );
+    row('靠边自动收起', checkbox(config.edgeCollapseEnabled, value => save(c => { c.edgeCollapseEnabled = value; })));
+    row('全屏应用时隐藏', checkbox(config.hideWhenFullscreen, value => save(c => { c.hideWhenFullscreen = value; })));
+    content.append(element('p', '靠近屏幕左右外侧边缘，移开鼠标后收起；悬停窄边条恢复。全屏隐藏只影响立方体所在屏幕。', 'hint'));
     content.append(element('h3', '快速放置'));
     const placements = element('div', undefined, 'placements');
     for (const [id, title] of [

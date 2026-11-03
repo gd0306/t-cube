@@ -1,3 +1,5 @@
+import { DesktopPresentation, isFullscreenOnDisplay } from '../core/desktop-presentation';
+import { fullscreenFrameOnDisplay } from '../native/fullscreen';
 import {OfficeServices} from './office-services';
 import {DisplayPositionStore} from './display-position-store';
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, screen, shell, Tray } from 'electron';
@@ -37,6 +39,13 @@ export class DesktopApplication {
     private whenLauncherOperationsIdle: () => Promise<void> = async () => {};
     private reducedMotion = false;
     private preferenceSample = 0;
+    private readonly presentation = new DesktopPresentation();
+    private edgeWindow: BrowserWindow | null = null;
+    private fullscreenSample = 0;
+    private fullscreenFrame: Rect | null = null;
+    private fullscreenDisplay = '';
+    private handleFrame = '';
+    private wasCollapsed = false;
     constructor(readonly directory = __dirname) {}
     async start(): Promise<void> {
         const file = path.join(app.getPath('userData'), 'configuration.json');
@@ -103,7 +112,7 @@ export class DesktopApplication {
         this.tray.on('click', () => this.toggleWidget());
         this.timer = setTimeout(() => this.tick(), 16);
         void this.host.refreshIcons().catch(error => this.host.reportError(error));
-        const refreshDisplays = () => { void this.host.refreshDisplays().catch(error => this.host.reportError(error)); };
+        const refreshDisplays = () => { this.presentation.reset(); this.fullscreenSample = 0; this.edgeWindow?.hide(); void this.host.refreshDisplays().catch(error => this.host.reportError(error)); };
         screen.on('display-added', refreshDisplays);
         screen.on('display-removed', refreshDisplays);
         screen.on('display-metrics-changed', refreshDisplays);
@@ -128,7 +137,7 @@ export class DesktopApplication {
             });
         });
         app.on('will-quit', () => this.dispose());
-        app.on('activate', () => { this.host.setVisible(true); this.widget.show(); });
+        app.on('activate', () => { this.revealManually(); });
         app.on('second-instance', () => this.showSettings());
         if (firstLaunch) this.showSettings();
     }
@@ -192,16 +201,55 @@ export class DesktopApplication {
             this.previousButtons = buttons;
             const now = Date.now();
             if (now - this.preferenceSample > 1000) { this.reducedMotion = readReducedMotion(); this.preferenceSample = now; }
+            this.updatePresentation(now);
             this.host.poll((now - this.started) / 1000, this.reducedMotion);
         } catch (error) { this.host.reportError(error); }
         finally {
             this.pollActive = false;
             if (!this.quitting) {
                 const state = this.host.snapshot.state;
-                const interval = state.interactionActive || state.hovered || this.expanded?.isVisible() ? 16 : state.visible ? 80 : 250;
+                const interval = state.interactionActive || state.hovered || this.expanded?.isVisible() ? 16 : state.visible ? 80 : this.wasCollapsed ? 80 : 250;
                 this.timer = setTimeout(() => this.tick(), interval);
             }
         }
+    }
+    private updatePresentation(now: number): void {
+        const state = this.host.snapshot.state, config = state.configuration;
+        if (!config.edgeCollapseEnabled && !config.hideWhenFullscreen) {
+            this.presentation.reset(); this.wasCollapsed = false; this.host.setPresentationHidden(false);
+            if (this.edgeWindow) { this.edgeWindow.destroy(); this.edgeWindow = null; this.handleFrame = ''; }
+            this.fullscreenFrame = null; this.fullscreenSample = 0; return;
+        }
+        const frame = this.host.geometry.restingFrame;
+        const display = screen.getDisplayMatching(frame), displayKey = JSON.stringify([display.id, display.bounds, display.scaleFactor]);
+        if (displayKey !== this.fullscreenDisplay) { this.fullscreenDisplay = displayKey; this.fullscreenSample = 0; this.fullscreenFrame = null; }
+        if (config.hideWhenFullscreen && this.host.manualVisible && now - this.fullscreenSample >= 1000) {
+            const physical = fullscreenFrameOnDisplay(screen.dipToScreenRect(null,display.bounds));
+            this.fullscreenFrame = physical ? screen.screenToDipRect(null, physical) : null; this.fullscreenSample = now;
+        } else if (!config.hideWhenFullscreen) { this.fullscreenFrame = null; this.fullscreenSample = 0; }
+        const result = this.presentation.update({frame,displays:screen.getAllDisplays().map(display=>display.workArea),physicalDisplays:screen.getAllDisplays().map(display=>display.bounds),cursor:screen.getCursorScreenPoint(),
+            enabled:config.edgeCollapseEnabled,fullscreen:config.hideWhenFullscreen && isFullscreenOnDisplay(this.fullscreenFrame,display.bounds),
+            manualVisible:this.host.manualVisible,protected:state.interactionActive || state.expandedFace !== null || Boolean(this.settings?.isVisible()) || state.hovered,now});
+        this.wasCollapsed = result.collapsed;
+        this.host.setPresentationHidden(!result.visible && this.host.manualVisible);
+        if (result.handle) this.showEdgeHandle(result.handle); else this.edgeWindow?.hide();
+    }
+    private showEdgeHandle(frame: Rect): void {
+        if (!this.edgeWindow) {
+            this.edgeWindow = new BrowserWindow({title:'T-Cube Edge',width:10,height:56,show:false,frame:false,transparent:true,hasShadow:false,resizable:false,focusable:false,
+                skipTaskbar:true,alwaysOnTop:true,thickFrame:false,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}});
+            this.edgeWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));
+            const html = `<!doctype html><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>T-Cube Edge</title><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}div{width:6px;height:48px;margin:4px 2px;border-radius:4px;background:#8fbacbdd;box-shadow:inset 0 0 0 1px #ffffff88}</style><div></div>`;
+            const loadingWindow = this.edgeWindow;
+            void loadingWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`).then(()=>{if(this.wasCollapsed && this.edgeWindow===loadingWindow && !loadingWindow.isDestroyed())loadingWindow.showInactive();}).catch(error=>{if(!loadingWindow.isDestroyed())this.host.reportError(error);});
+            this.edgeWindow.setAlwaysOnTop(true,'floating');
+        }
+        const key = JSON.stringify(frame);
+        if (key !== this.handleFrame) { this.edgeWindow.setBounds(this.roundFrame(frame)); this.handleFrame = key; }
+        if (!this.edgeWindow.isVisible() && !this.edgeWindow.webContents.isLoading()) this.edgeWindow.showInactive();
+    }
+    private revealManually(): void {
+        this.presentation.reveal(); this.wasCollapsed = false; this.edgeWindow?.hide(); this.host.setPresentationHidden(false); this.host.setVisible(true);
     }
     showSettings(): void {
         if (!this.settings) {
@@ -211,6 +259,7 @@ export class DesktopApplication {
                 .catch(error => this.host.reportError(error));
         } else { this.settings.show(); this.settings.focus(); }
         this.host?.closeExpanded();
+        if (this.host) { this.presentation.reset(); this.wasCollapsed = false; this.edgeWindow?.hide(); this.host.setPresentationHidden(false); }
     }
     private showExpanded(_face: Face): void {
         const frame = this.widget.getBounds(), work = screen.getDisplayMatching(frame).workArea;
@@ -226,14 +275,13 @@ export class DesktopApplication {
         } else { this.expanded.setBounds(bounds); this.expanded.show(); this.expanded.focus(); }
     }
     private toggleWidget(): void {
-        const visible = !this.widget.isVisible();
-        this.host.setVisible(visible);
+        if (this.host.snapshot.state.visible) { this.host.setVisible(false); this.edgeWindow?.hide(); } else this.revealManually();
     }
     private updateTray(): void {
         const run = (operation: () => unknown) => () => { Promise.resolve().then(operation).catch(error => this.host.reportError(error)); };
         const placements: [string, Placement][] = [['Top left', 'topLeft'], ['Top right', 'topRight'], ['Bottom left', 'bottomLeft'], ['Bottom right', 'bottomRight'], ['Center', 'center']];
         this.tray?.setContextMenu(Menu.buildFromTemplate([
-            { label: this.widget.isVisible() ? 'Hide cube' : 'Show cube', click: () => this.toggleWidget() },
+            { label: this.host.snapshot.state.visible ? 'Hide cube' : 'Show cube', click: () => this.toggleWidget() },
             { label: 'Settings…', click: () => this.showSettings() },
             {label:'常用内容…    Ctrl+Shift+Space',click:run(()=>this.office?.showLibrary())},
             {label:`剪贴板历史…（${this.office?.clipboardHistory.state.isEnabled ? '正在记录' : '已暂停'}）`,click:run(()=>this.office?.showClipboardHistory())},
@@ -243,5 +291,5 @@ export class DesktopApplication {
             { type: 'separator' }, { label: 'Quit T-Cube', click: () => app.quit() }
         ]));
     }
-    dispose(): void { this.office?.dispose(); if (this.timer) clearTimeout(this.timer); this.timer = null; this.tray?.destroy(); this.tray = null; }
+    dispose(): void { this.presentation.reset(); this.edgeWindow?.destroy(); this.edgeWindow = null; this.office?.dispose(); if (this.timer) clearTimeout(this.timer); this.timer = null; this.tray?.destroy(); this.tray = null; }
 }

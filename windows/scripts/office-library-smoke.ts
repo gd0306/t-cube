@@ -1,3 +1,4 @@
+import { verifyDesktopPresentationSmoke } from './desktop-presentation-smoke';
 import { verifyClipboardHistorySmoke } from './clipboard-history-smoke';
 import assert from 'node:assert/strict';
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -180,7 +181,8 @@ $form.Dispose()
         await library.getByRole('button', { name: '粘贴', exact: true }).click();
         await until(async () => receiverText(), text => text === `${fullText}${snippet.fields[0].value}Hello Alice, Alice!`, 'Native template paste did not reach owned receiver');
         results.push('Template preview and native paste replace repeated variables in the original receiver.');
-        results.push(...await verifyClipboardHistorySmoke(app, widget, library, receiverText));
+        results.push(...await verifyClipboardHistorySmoke(app, widget, library, receiverText, receiverWindow));
+        results.push(...await verifyDesktopPresentationSmoke(app, widget, receiverWindow));
         return results;
     } catch (error) {
         failed = true;

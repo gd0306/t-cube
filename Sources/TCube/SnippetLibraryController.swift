@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import CubeCore
 import ApplicationServices
 import Carbon
 
@@ -120,7 +121,9 @@ final class SnippetLibraryController {
             window.level = .floating
             window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
             window.contentView = NSHostingView(rootView: VStack(spacing: 0) {
-                ClipboardPanelView(navigation: navigation, library: model, history: history) { [weak self] text, paste in self?.use(text, paste: paste) }
+                ClipboardPanelView(navigation: navigation, library: model, history: history,
+                    useText: { [weak self] text, paste in self?.use(text, paste: paste) },
+                    useImage: { [weak self] image, paste in self?.useImage(image, paste: paste) })
                 Divider()
                 HStack {
                     Text("⌘⇧Space 呼出 · Esc 收起 · 内容仅保存在本机")
@@ -168,10 +171,20 @@ final class SnippetLibraryController {
 
     func use(_ text: String, paste: Bool) {
         guard !text.isEmpty else { return }
+        use(paste: paste) { pasteboard.setString(text, forType: .string) }
+    }
+
+    func useImage(_ image: ClipboardHistoryImage, paste: Bool) {
+        use(paste: paste) { pasteboard.setData(image.pngData, forType: .png) }
+    }
+
+    /// Text and image writes use exactly the same focus, permission and change-count gates.
+    private func use(paste: Bool, write: () -> Bool) {
         pasteTask?.cancel()
         pasteboard.clearContents()
-        guard pasteboard.setString(text, forType: .string) else { model.status = "无法写入剪贴板，请重试。"; return }
+        let written = write()
         history.markSelfWrite()
+        guard written else { model.status = "无法写入剪贴板，请重试。"; return }
         model.status = "已复制"
         guard paste else { return }
         guard AXIsProcessTrusted() else { requestPasteAccess(); return }

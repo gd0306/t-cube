@@ -7,6 +7,11 @@ protocol ClipboardHistoryReading: AnyObject {
     var changeCount: Int { get }
     var advertisedTypes: [NSPasteboard.PasteboardType] { get }
     func readText() -> String?
+    func readImageData(for type: NSPasteboard.PasteboardType) -> Data?
+}
+
+extension ClipboardHistoryReading {
+    func readImageData(for type: NSPasteboard.PasteboardType) -> Data? { nil }
 }
 
 @MainActor
@@ -16,6 +21,7 @@ final class PasteboardHistoryReader: ClipboardHistoryReading {
     var changeCount: Int { pasteboard.changeCount }
     var advertisedTypes: [NSPasteboard.PasteboardType] { pasteboard.types ?? [] }
     func readText() -> String? { pasteboard.string(forType: .string) }
+    func readImageData(for type: NSPasteboard.PasteboardType) -> Data? { pasteboard.data(forType: type) }
 }
 
 @MainActor
@@ -28,17 +34,27 @@ final class ClipboardHistoryRecorder {
     ]
     private let reader: any ClipboardHistoryReading
     private let schedule: Schedule?
+    private let receivedImage: @MainActor (ClipboardHistoryImagePayload) -> Void
+    private let receivedImageIssue: @MainActor (String) -> Void
     private let receivedText: @MainActor (String) -> Void
     private var polling: AnyCancellable?
     private var lastSequence: Int?
     private var generation: UInt64 = 0
+    private var clearedTextSequence: Int?
+    private var clearedImageSequence: Int?
+    private var imageWorker: Task<ClipboardHistoryImagePayload?, Never>?
+    private var pendingImage: (data: Data, generation: UInt64, sequence: Int)?
     private(set) var isRunning = false
 
     init(reader: any ClipboardHistoryReading, schedule: Schedule? = ClipboardHistoryRecorder.schedulePolling,
+         receivedImage: @escaping @MainActor (ClipboardHistoryImagePayload) -> Void = { _ in },
+         receivedImageIssue: @escaping @MainActor (String) -> Void = { _ in },
          receivedText: @escaping @MainActor (String) -> Void) {
         self.reader = reader
         self.schedule = schedule
         self.receivedText = receivedText
+        self.receivedImage = receivedImage
+        self.receivedImageIssue = receivedImageIssue
     }
 
     func start() {
@@ -59,6 +75,8 @@ final class ClipboardHistoryRecorder {
 
     func stop() {
         generation &+= 1
+        pendingImage = nil
+        imageWorker?.cancel()
         isRunning = false
         let previous = polling
         polling = nil
@@ -66,14 +84,34 @@ final class ClipboardHistoryRecorder {
         previous?.cancel()
     }
 
-    /// Called immediately after the app writes its own clipboard text, or clears history.
+    /// Called immediately after the app writes its own clipboard content, or clears history.
     func markSelfWrite() {
         generation &+= 1
+        pendingImage = nil
+        imageWorker?.cancel()
         guard isRunning else { return }
         let markingGeneration = generation
         let sequence = reader.changeCount
         guard isRunning, generation == markingGeneration else { return }
         lastSequence = sequence
+    }
+
+    /// Category clears consume only matching payloads present at the clear,
+    /// preserving another category's in-flight or not-yet-polled capture.
+    func clearTextCapture() {
+        let clearingGeneration = generation
+        let sequence = reader.changeCount
+        guard isRunning, generation == clearingGeneration else { return }
+        clearedTextSequence = sequence
+    }
+
+    func clearImageCapture() {
+        pendingImage = nil
+        imageWorker?.cancel()
+        let clearingGeneration = generation
+        let sequence = reader.changeCount
+        guard isRunning, generation == clearingGeneration else { return }
+        clearedImageSequence = sequence
     }
 
     func poll() {
@@ -82,13 +120,56 @@ final class ClipboardHistoryRecorder {
         let sequence = reader.changeCount
         guard isRunning, generation == readingGeneration, sequence != lastSequence else { return }
         self.lastSequence = sequence
+        pendingImage = nil
+        imageWorker?.cancel()
         let types = reader.advertisedTypes
-        guard isCurrent(generation: readingGeneration, sequence: sequence), types.contains(.string),
+        guard isCurrent(generation: readingGeneration, sequence: sequence),
               !types.contains(where: Self.excludedTypes.contains) else { return }
-        let text = reader.readText()
-        guard isCurrent(generation: readingGeneration, sequence: sequence), let text,
-              ClipboardHistory.accepts(text) else { return }
-        receivedText(text)
+        if let imageType = [NSPasteboard.PasteboardType.png, .tiff].first(where: types.contains) {
+            guard sequence != clearedImageSequence else { return }
+            let data = reader.readImageData(for: imageType)
+            guard isCurrent(generation: readingGeneration, sequence: sequence), sequence != clearedImageSequence else { return }
+            guard let data else {
+                receivedImageIssue("已跳过图片：无法读取图片数据。")
+                return
+            }
+            guard data.count <= ClipboardHistory.maximumImageBytes else {
+                receivedImageIssue("已跳过图片：源数据超过 8 MiB（包括 TIFF）。请尝试复制 PNG 图片。")
+                return
+            }
+            // Keep one decoder in flight and only the newest waiting payload.
+            pendingImage = (data, readingGeneration, sequence)
+            if imageWorker != nil { imageWorker?.cancel() }
+            startPendingImage()
+        } else if types.contains(.string) {
+            guard sequence != clearedTextSequence else { return }
+            let text = reader.readText()
+            guard isCurrent(generation: readingGeneration, sequence: sequence), sequence != clearedTextSequence, let text,
+                  ClipboardHistory.accepts(text) else { return }
+            receivedText(text)
+        }
+    }
+
+    private func startPendingImage() {
+        guard imageWorker == nil, let pending = pendingImage else { return }
+        pendingImage = nil
+        guard isCurrent(generation: pending.generation, sequence: pending.sequence), pending.sequence != clearedImageSequence else { return }
+        let worker = Task.detached(priority: .utility) { [data = pending.data] in
+            guard !Task.isCancelled else { return nil as ClipboardHistoryImagePayload? }
+            let image = await ClipboardHistoryImageProcessor.shared.normalize(data)
+            return Task.isCancelled ? nil : image
+        }
+        imageWorker = worker
+        Task { [weak self] in
+            let image = await worker.value
+            guard let self else { return }
+            self.imageWorker = nil
+            if self.isCurrent(generation: pending.generation, sequence: pending.sequence), pending.sequence != self.clearedImageSequence {
+                if let image { self.receivedImage(image) }
+                else { self.receivedImageIssue("已跳过图片：需要有效的单张 PNG/TIFF，源数据及 PNG 各不超过 8 MiB、1600 万像素。") }
+            }
+            self.startPendingImage()
+        }
     }
 
     private func isCurrent(generation: UInt64, sequence: Int) -> Bool {

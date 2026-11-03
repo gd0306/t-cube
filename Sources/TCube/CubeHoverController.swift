@@ -19,6 +19,7 @@ final class CubeHoverController {
     private var localMotion: Any?
     private var globalMotion: Any?
     private(set) var isHovered = false
+    var isInteracting: Bool { interactionActive }
     var onHoverChange: ((Bool) -> Void)?
     var onRestingPositionChange: ((NSPoint) -> Void)?
     var onRestingFrameCommitted: (() -> Void)?

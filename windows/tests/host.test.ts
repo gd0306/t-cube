@@ -785,3 +785,18 @@ test('file selection opens its default application and repair preserves its titl
         assert.equal(f.store.snapshot.groups.front.slots[3]?.kind, 'file');
     } finally { await f.dispose(); }
 });
+
+test('transient desktop hiding stops hover and preserves manual visibility and stored position across repeated cycles', async () => {
+    const f=await fixture();
+    try {
+        const before=f.store.snapshot,resting=f.host.geometry.restingFrame;
+        for(let cycle=0;cycle<20;cycle++){
+            f.host.setPresentationHidden(true);f.pointer(130,130);f.host.poll(cycle);
+            assert.equal(f.host.snapshot.state.visible,false);assert.equal(f.host.manualVisible,true);assert.equal(f.host.geometry.hovered,false);
+            f.host.setPresentationHidden(false);assert.equal(f.host.snapshot.state.visible,true);
+        }
+        f.host.setPresentationHidden(true);f.host.setVisible(false);f.host.setPresentationHidden(false);
+        assert.equal(f.host.snapshot.state.visible,false);assert.equal(f.host.manualVisible,false);
+        assert.deepEqual(f.host.geometry.restingFrame,resting);assert.deepEqual(f.store.snapshot,before);
+    }finally{await f.dispose();}
+});

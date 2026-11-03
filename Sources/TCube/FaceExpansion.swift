@@ -8,6 +8,7 @@ final class FaceExpansionController {
     private var panel: ExpandedFacePanel?
     private var localClicks: Any?
     private var globalClicks: Any?
+    var isVisible: Bool { panel?.isVisible == true }
 
     init(model: AppModel) {
         self.model = model

@@ -23,6 +23,8 @@ export interface Configuration {
     hover: HoverSettings;
     expandsFacesOnClick: boolean;
     autoRotatesWhenIdle: boolean;
+    edgeCollapseEnabled: boolean;
+    hideWhenFullscreen: boolean;
     scale: number;
     windowPosition: Point | null;
 }

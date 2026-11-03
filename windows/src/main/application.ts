@@ -44,6 +44,15 @@ export class LauncherHost {
     private rotationDrag: RotationDrag | null = null;
     private sequence = 0;
     private visible = true;
+    private presentationHidden = false;
+    get manualVisible(): boolean { return this.visible; }
+    /** Transient desktop hiding must never change tray intent or saved geometry. */
+    setPresentationHidden(hidden: boolean): void {
+        if (this.presentationHidden === hidden) return;
+        this.presentationHidden = hidden;
+        if (hidden) this.geometry.resetHover();
+        this.services.setVisible(this.visible && !hidden); this.publish();
+    }
     private idlePowerSaving = false;
     setIdlePowerSaving(enabled: boolean): void { this.idlePowerSaving = enabled; this.publish(); }
     private reducedMotion = false;
@@ -87,7 +96,7 @@ export class LauncherHost {
         return { state: { idlePowerSaving: this.idlePowerSaving, configuration: structuredClone(this.configuration), displayedAppearance: resolved.appearance,
             activeTheme: resolved.theme, hovered: this.geometry.hovered, pointer, hoverPointer, controlHeld: this.controlHeld,
             interactionActive, rotationDrag: this.rotationDrag, reducedMotion: this.reducedMotion,
-            visible: this.visible, expandedFace: this.expandedFace, platform: this.services.platform }, icons: { ...this.icons } };
+            visible: this.visible && !this.presentationHidden, expandedFace: this.expandedFace, platform: this.services.platform }, icons: { ...this.icons } };
     }
     reportError(error: unknown): void { this.services.error(error instanceof Error ? error.message : String(error)); }
     async refreshIcons(): Promise<void> {
@@ -153,7 +162,7 @@ export class LauncherHost {
         this.pointer = { ...pointer };
         // macOS preview updates Control using before-input-event instead of unavailable Win32 polling.
         if (input.available) this.controlHeld = input.controlHeld;
-        if (this.visible) { this.geometry.pointerChanged(pointer); this.geometry.setControlHeld(this.controlHeld); this.geometry.tick(); }
+        if (this.visible && !this.presentationHidden) { this.geometry.pointerChanged(pointer); this.geometry.setControlHeld(this.controlHeld); this.geometry.tick(); }
         const gesture = this.gesture;
         if (gesture && !gesture.released) {
             gesture.moveOnly ||= this.controlHeld;
@@ -359,7 +368,7 @@ export class LauncherHost {
     setVisible(visible: boolean): void {
         this.visible = visible;
         if (!visible) { this.gesture = null; this.geometry.resetHover(); this.closeExpanded(); }
-        this.services.setVisible(visible);
+        this.services.setVisible(visible && !this.presentationHidden);
         this.publish();
     }
     quit(): void { this.services.quit(); }

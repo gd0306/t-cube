@@ -33,6 +33,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let snippetLibrary = SnippetLibraryController()
     private let lifecycle = LifecycleController()
     private let performanceSettings = PerformanceSettings()
+    private let desktopSettings = DesktopAutoHideSettings()
+    private var autoHide: DesktopAutoHideCoordinator?
     private var desktopPlacement: DesktopPlacementCoordinator?
     private var accessibilityObserver: NSObjectProtocol?
 
@@ -87,6 +89,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         hover.onRestingFrameCommitted = { [weak self] in
             do { try self?.desktopPlacement?.recordRestingPosition() }
             catch { self?.model.report(error) }
+            self?.autoHide?.refreshFullscreen()
         }
         do { desktopPlacement = try DesktopPlacementCoordinator(hoverController: hover, panel: panel) }
         catch { model.report(error) }
@@ -104,6 +107,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         panel.orderFrontRegardless()
         surface.synchronizeRenderingVisibility()
         hover.startTrackingPointer()
+        let autoHide = DesktopAutoHideCoordinator(panel: panel, hover: hover, settings: desktopSettings,
+            physicalScreens: { NSScreen.screens.map(\.frame) },
+            busy: { [weak self, weak hover] in
+                hover?.isInteracting == true || self?.faceExpansion.isVisible == true || self?.editor?.isVisible == true
+            })
+        autoHide.willHide = { [weak self] in
+            self?.faceExpansion.close()
+            self?.cubeView.setHovered(false)
+        }
+        autoHide.didChangePresentation = { [weak self] in self?.surface.synchronizeRenderingVisibility() }
+        self.autoHide = autoHide
+        autoHide.start()
         createMenu()
         snippetLibrary.start()
         lifecycle.start()
@@ -114,6 +129,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             MainActor.assumeIsolated {
                 self?.applySize()
                 self?.desktopPlacement?.screenTopologyChanged()
+                self?.autoHide?.refreshFullscreen()
                 self?.surface.synchronizeRenderingVisibility()
             }
         }
@@ -217,7 +233,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
-        menu.items.first(where: { $0.action == #selector(toggleCube) })?.title = panel.isVisible ? "隐藏立方体" : "显示立方体"
+        menu.items.first(where: { $0.action == #selector(toggleCube) })?.title = autoHide?.presentation == .cube ? "隐藏立方体" : "显示立方体"
         menu.items.first(where: { $0.action == #selector(openClipboardHistory) })?.title =
             snippetLibrary.history.isEnabled ? "剪贴板历史…（记录中）" : "剪贴板历史…"
         menu.items.first(where: { $0.action == #selector(pauseClipboardHistory) })?.isHidden = !snippetLibrary.history.isEnabled
@@ -227,8 +243,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     @objc private func toggleCube() {
         faceExpansion.close()
-        if panel.isVisible { hoverController?.resetHover(); cubeView.setHovered(false); panel.orderOut(nil) }
-        else { panel.ignoresMouseEvents = false; panel.orderFrontRegardless(); hoverController?.checkPointer() }
+        if let autoHide {
+            if autoHide.presentation == .cube { autoHide.setUserVisible(false) }
+            else { autoHide.reveal() }
+        }
         surface.synchronizeRenderingVisibility()
     }
     @objc private func changeSize(_ sender: NSMenuItem) {
@@ -243,16 +261,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func placeCube(at placement: CubePlacement) {
         faceExpansion.close()
+        autoHide?.reveal()
         panel.ignoresMouseEvents = false
         panel.orderFrontRegardless()
         hoverController?.place(at: placement)
         hoverController?.checkPointer()
+        autoHide?.refreshFullscreen()
     }
 
     @objc private func quit() { NSApp.terminate(nil) }
 
     func applicationWillTerminate(_ notification: Notification) {
         lifecycle.stop()
+        autoHide?.stop()
         snippetLibrary.stop()
         model.stopThemeCycle()
         cubeView.suspendAnimationUpdates()
@@ -268,7 +289,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 580), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
             window.title = "T-Cube · 设置"
             window.minSize = NSSize(width: 760, height: 540)
-            window.contentView = NSHostingView(rootView: EditorView(model: model, lifecycle: lifecycle, performance: performanceSettings))
+            window.contentView = NSHostingView(rootView: EditorView(model: model, lifecycle: lifecycle, performance: performanceSettings, desktop: desktopSettings))
             window.isReleasedWhenClosed = false
             window.center()
             editor = window

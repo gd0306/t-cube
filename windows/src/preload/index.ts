@@ -9,6 +9,7 @@ function subscribe<T>(channel: string, callback: (value: T) => void): () => void
     return () => ipcRenderer.removeListener(channel, listener);
 }
 const bridge: DesktopBridge = {
+    getClipboardHistoryImage:id=>ipcRenderer.invoke(F.getClipboardHistoryImage,id),previewClipboardHistoryMerge:request=>ipcRenderer.invoke(F.previewClipboardHistoryMerge,request),useClipboardHistoryMerge:request=>ipcRenderer.invoke(F.useClipboardHistoryMerge,request),
     showClipboardHistory:()=>ipcRenderer.invoke(F.showClipboardHistory),getClipboardHistory:()=>ipcRenderer.invoke(F.getClipboardHistory),setClipboardHistoryEnabled:enabled=>ipcRenderer.invoke(F.setClipboardHistoryEnabled,enabled),deleteClipboardHistoryEntry:id=>ipcRenderer.invoke(F.deleteClipboardHistoryEntry,id),clearClipboardHistory:()=>ipcRenderer.invoke(F.clearClipboardHistory),useClipboardHistoryEntry:request=>ipcRenderer.invoke(F.useClipboardHistoryEntry,request),
     onClipboardHistoryChanged:callback=>subscribe(F.clipboardHistoryChanged,callback),onShowClipboardHistory:callback=>subscribe(F.showClipboardHistoryMode,callback),
     showLibrary: text => ipcRenderer.invoke(F.showLibrary,text), getLibrary:()=>ipcRenderer.invoke(F.getLibrary),

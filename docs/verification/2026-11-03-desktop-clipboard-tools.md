@@ -1,0 +1,35 @@
+# Desktop auto-hide and clipboard tools / 0.20.0 (35)
+
+The user approved edge collapse/fullscreen hiding and text merge/cleanup, then requested separate text/image history with at most ten images, explicitly emphasizing CPU and memory consumption.
+
+## Behavior and resource policy
+
+- Independent desktop toggles default off. The outer left/right usable edge has a32-point proximity threshold, an approximately0.8-second departure delay and a10x56 reveal handle. Physical display frames distinguish shared seams from exposed edges; usable frames keep the handle outside Dock/taskbar space. The saved resting position never becomes handle geometry.
+- Dragging, expanded faces and settings protect current interaction. Fullscreen detection uses public window metadata and the cube's display, with a cached low-frequency query; no titles, screen pixels or new screen-recording permission are requested. A normal foreground window on that display takes precedence over a fullscreen window behind it. Manual hiding is preserved; explicit Show reveals with one action.
+- Collapsed/hidden cubes stop3D rendering. Default-off desktop settings add no polling. macOS manual hiding also removes its presentation timer; Windows reuses its existing host loop and skips additional fullscreen queries while manually hidden. Native/fullscreen information unavailability leaves the cube visible rather than hiding blindly.
+- Text history retains100 entries,64KiB each,2MiB total. Multi-selection merges in visible newest-first order; optional per-line whitespace cleanup and repeated blank-line collapse affect only the preview/output. Copy, focus-checked paste and explicit snippet save use the same bounded64KiB output. Query changes and deletions clear stale selection.
+- Images are session-only/default-paused with at most10 entries,8MiB encoded PNG each,32MiB encoded total and16MP each; oldest-first eviction can retain fewer than10 when the byte budget fills. Only compressed payloads and small thumbnails are retained. macOS thumbnails are160px and selected previews1024px; Windows uses128px/960px. Dedupe promotes a matching payload; image copy/paste uses authoritative stored PNG.
+- macOS normalizes PNG/TIFF on one serial background actor. Input is capped at8MiB after native materialization; larger TIFF screenshots report a skip. Native pasteboard reads can allocate an oversized source before its byte count is available, so retained-data limits are not a guarantee of total RSS or peak native-read memory.
+- Windows heavy codecs run in one lazy sandbox renderer, with a15-second active deadline and10-second idle release; pause/clear/dispose release it immediately. Native format/privacy checks and bounded DIB/PNG header inspection run before Electron materializes image data. Full PNG payloads do not enter recurring history state; metadata/thumbnails and bounded selected previews cross IPC.
+- All history remains local, in-memory and excluded from backups/export. Enable/resume establishes a sequence baseline without ingesting old clipboard data. Existing sensitive/transient/file-copy exclusions, self-write suppression, sequence/generation checks, focus/permission paste guards and unsaved snippet drafts remain intact. Privacy exclusions remain best-effort.
+
+## Automated and visual verification
+
+- Mac test-first regressions covered missing image admission/merge APIs, skipped-image status, Unicode line cleanup and independent category clears. Desktop regressions cover delayed collapse, stationary-handle keepalive, display-local fullscreen ordering, physical seams with a side Dock, explicit Show/manual Hide and stopping polling.
+- `swift test --no-parallel --scratch-path .build/tests` passed:6XCTest,142native Swift Testing and126core registered;266actual executed/passed, eight opt-in diagnostic/live/render cases skipped. Separate owned-fixture native clipboard rendering and attached-sheet draft preservation checks passed. Inspected [text tools](../images/clipboard-text-tools.png) and [image tools](../images/clipboard-image-tools.png). Fixtures use named pasteboards, never the user's real clipboard.
+- A real `CubeSurfaceView`/RealityKit integration test performed30reveal/collapse cycles, confirming rendering detaches/stops each collapse, resting coordinates remain unchanged, and native window count does not grow. Other tests check compressed-byte eviction, clear/shutdown release, idle reads and cancel/clear races. These checks demonstrate bounded behavior; they do not claim a universal application RSS/CPU percentage or a comparison between unrelated process lifetimes.
+- Release app and mounted DMG checksum/files/signature/Applications-link verification passed. `git diff --check` passed.
+- Independent review found and verified fixes for display-global fullscreen detection, handle oscillation, display-cache invalidation, physical seam geometry and single-action menu reveal. Clipboard review found no important remaining Mac issue; category-specific clear cancellation was subsequently covered and fixed. Windows review required off-main codecs,64KiB merge parity and protecting fullscreen interactions, plus bounded private processor output and capture/preview queue isolation.
+
+- Node22 typecheck, build and full224-case suite passed:223executed/passed, one Win32-only test skipped on macOS. Headless Chrome exercised the actual clipboard renderer using owned text/image fixtures. A separate actual Electron16MP processor smoke passed with854main-loop samples, serial jobs, capture-priority preview isolation, cancellation, recreation and idle window release. The capture/preview collision first failed with a missing capture, then passed after separate bounded pending slots were added. These are owned-fixture responsiveness checks, not a universal CPU/RSS benchmark.
+- Final independent Windows review found no remaining important issues after checking private sender/mainframe/UUID validation, pre-copy output size/header bounds, authoritative IDs, native bitmap preflight, queue priority, shutdown and packaged paths.
+
+## Local acceptance
+
+Installed `/Applications/T-Cube.app` version0.20.0 build35 after the maintainer normally quit0.19.0. Both old app copies and all four recursive user JSON files were backed up before and after quit under ignored `build/install-backups/0.20.0/20261103-123258/`. All JSON bytes matched the post-quit backup after replacement. Installed executable SHA-256 equals the built executable: `96043715e5194356022a314d82b7025c6ef01534622cfc23fa66634a3427cc8b`. Deep/strict signature verification passed and the installed app was launched.
+
+The native computer-use service still failed to connect. Installed desktop clicking/fullscreen interaction was therefore not manually exercised; native window/renderer transitions and category UI were verified with isolated automated fixtures. The real clipboard recorder and new desktop toggles remain default off, without user data replaced by fixtures.
+
+## Remote acceptance
+
+Windows source-matrix and actual NSIS installation checks, source/artifact hashes and publication will be recorded after those checks complete.

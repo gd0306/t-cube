@@ -67,3 +67,11 @@ body.dragging #detail { outline: 3px solid #4288cf; outline-offset: -6px; }
 .history-detail h2 { font-size: 21px; }
 .history-detail .actions { flex-wrap: wrap; margin-bottom: 22px; }
 .history-status { margin: 0; padding: 5px 22px; color: #596879; font-size: 12px; }
+.history-row { display:flex; gap:8px; align-items:center; }
+.history-row > label { flex:none; font-size:0; padding:4px; }
+.history-row > .item { flex:1; min-width:0; }
+.history-row img { width:56px; height:48px; object-fit:contain; vertical-align:middle; margin-right:12px; }
+.history-image-preview { display:block; max-width:100%; max-height:390px; object-fit:contain; margin:18px auto; }
+.history-cleanup { display:flex; flex-wrap:wrap; gap:16px; margin:12px 0; }
+.history-cleanup label { display:flex; align-items:center; gap:6px; }
+.history-row input, .history-cleanup input { width:auto; }
