@@ -29,6 +29,17 @@ Neither implementation wakes the cube renderer, adds a window, fetches images, c
 
 ## Local and remote acceptance
 
-Old app and all four recursive user JSON files were backed up under ignored `build/install-backups/0.20.1/20261103-181027/`. The running app must quit normally before replacement, per AGENTS.md. Installation, native Windows CI, artifact hashes and publication will be recorded after those checks complete. The computer-use native service was unavailable; automated checks and manual desktop verification remain explicitly separate.
+Old app and all four recursive user JSON files were backed up under ignored `build/install-backups/0.20.1/20261103-181027/`. The running app must quit normally before replacement, per AGENTS.md. Local installation and publication remain pending normal exit of the running old application. The remote source and installer checks below are complete; the release remains a draft until local acceptance. The computer-use native service was unavailable; automated checks and manual desktop verification remain explicitly separate.
 
 The initial Windows native run at `760fe084da5b30e02e69c64e918e500fb1f4085f` passed visible appearance/media checks but failed the hidden cancellation check. A controlled actual Electron fixture then reproduced native hide leaving one animation when the DOM visibility getter stayed visible. A dedicated one-way Boolean preload now carries coalesced native show/hide and reload baselines; hidden assertions check native window state, native/page gate flags, zero animations and released compositor hints, retaining DOM visibility only as a diagnostic. Missing visibility authority defaults to static, covered by a separate observed red/green renderer case. Listener cleanup, stale DOM state and real helper/preload packaging were reverified without adding polling.
+
+## Final remote candidate
+
+Source commit: `839d82de7e7e28a91fa25c3573a119ee8ad53a67` (the macOS source and bundle resources are unchanged from the fully tested `760fe08` tree).
+
+- [Windows 2022/2025 source verification](https://github.com/gd0306/t-cube/actions/runs/41620176546): completed successfully at the candidate commit.
+- [Windows x64 NSIS and actual installed application verification](https://github.com/gd0306/t-cube/actions/runs/41620280456): completed successfully at the same commit. Both downloaded source and installer diagnostics contain 25 native checks and four hidden cycles with zero animations, false native visibility and released compositor hints. DOM visibility stayed visible in these samples, confirming that native authority cancels flow independently.
+- Installer artifact `SOURCE_COMMIT.txt` matches the full candidate commit; the installer SHA-256 matches the CI checksum.
+- macOS DMG SHA-256: `2363cf372e767ef4fb5f0eedeff372a7f6b8b6165d4099d16a8a543902e49d9f`.
+- Windows installer SHA-256: `22c025751a7e843630bca2682d88e96b6e94b15d0b56a29189548c13b40b1f28`.
+- Release app executable SHA-256 (0.20.1, build 36): `77114ba27b1c9966f86fac604391aa2cf42492170082a848165e622ee5869d5e`; installation has not yet replaced 0.20.0.
