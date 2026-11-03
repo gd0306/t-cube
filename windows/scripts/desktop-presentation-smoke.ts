@@ -12,6 +12,8 @@ export async function verifyDesktopPresentationSmoke(app:ElectronApplication,wid
     const settings=(await app.windows()).find(page=>page.url().endsWith('/settings.html'))!;
     assert.ok(settings,'Owned settings window missing');
     const original=await widget.evaluate(()=>window.tcube.getSnapshot());
+    const visiblePanels=await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()
+        .filter(window=>window.isVisible() && !window.webContents.getURL().endsWith('/widget.html')).map(window=>window.id));
     assert.equal(original.state.configuration.edgeCollapseEnabled,false);assert.equal(original.state.configuration.hideWhenFullscreen,false);
     const cursor=await app.evaluate(({screen})=>screen.getCursorScreenPoint());
     const native=nativeInput(),user=koffi.load('user32.dll');
@@ -120,5 +122,14 @@ export async function verifyDesktopPresentationSmoke(app:ElectronApplication,wid
         await settings.evaluate(()=>window.tcube.place('center'));
         await move(cursor.x,cursor.y);
         await until(async()=>(await handles()).length===0,'Disabled edge handling must release its window');
+        // Restore the caller's app windows after the fullscreen/edge fixture.
+        // Later native settings checks must not inherit our hidden panels.
+        const restored=await app.evaluate(({BrowserWindow},ids)=>ids.map(id=>{
+            const window=BrowserWindow.fromId(id);
+            if(!window || window.isDestroyed())return true;
+            window.showInactive();
+            return window.isVisible();
+        }),visiblePanels);
+        assert.ok(restored.every(Boolean),'Desktop fixture must restore previously visible app panels');
     }
 }

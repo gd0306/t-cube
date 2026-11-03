@@ -36,3 +36,5 @@ Initial Windows source/installer runs at `58b5edcbcd2b03bc90298333491e0f027ca38f
 
 
 The next native run at `2aebc2c3210451d3972ff53c869daf08eb8b1c15` passed the corrected left/right10x56 region, alignment, pointer pass-through and hidden-rendering checks, then exposed passive hover being treated as fullscreen-protected interaction. Production now separates edge-hover protection from actual drag/expanded/settings protection; the regression uses the actual mapping and the native fixture deliberately keeps the pointer centered. Native geometry diagnostics confirmed Windows reports32-pixel transparent containers even at96DPI; clipping preserves the logical10x56 target.
+
+The native run at `249239a2f56e4d3ec6fe23a045fc2466245239b6` passed the new desktop/fullscreen/image flow but its later existing lifecycle-settings click timed out because the desktop fixture had left the caller's settings window hidden. The fixture now restores and asserts previously visible app panels in cleanup. This correction changes tests only; macOS and Windows product code remain unchanged.
