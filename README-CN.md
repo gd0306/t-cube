@@ -8,7 +8,7 @@
 
 ## 下载安装包
 
-macOS **0.20.1** · Windows **0.20.1**：[macOS Apple Silicon（.dmg）](https://github.com/gd0306/t-cube/releases/download/v0.20.1/T-Cube-0.20.1-macos-arm64.dmg) · [Windows x64 安装程序（.exe）](https://github.com/gd0306/t-cube/releases/download/v0.20.1/T-Cube-0.20.1-windows-x64-setup.exe) · [发布说明与 SHA-256 校验](https://github.com/gd0306/t-cube/releases/tag/v0.20.1)。
+macOS **0.20.2** · Windows **0.20.2**：[macOS Apple Silicon（.dmg）](https://github.com/gd0306/t-cube/releases/download/v0.20.2/T-Cube-0.20.2-macos-arm64.dmg) · [Windows x64 安装程序（.exe）](https://github.com/gd0306/t-cube/releases/download/v0.20.2/T-Cube-0.20.2-windows-x64-setup.exe) · [发布说明与 SHA-256 校验](https://github.com/gd0306/t-cube/releases/tag/v0.20.2)。
 
 Windows 安装包自带运行时，无需安装 Node.js。更新前先退出旧版，原有入口配置会保留。当前 macOS 使用本地签名、未公证，Windows 安装程序未做 Authenticode 签名。
 
@@ -55,9 +55,9 @@ Windows 安装包自带运行时，无需安装 Node.js。更新前先退出旧�
 
 在入口编辑中选择应用、文件夹、单个文件、HTTP/HTTPS 网页或预设的系统设置页面。文件用默认应用打开，网页用默认浏览器打开；系统设置从列表选择。旧入口与配置继续保留。
 
-## 贴边玻璃收起条（0.20.1）
+## 贴边玻璃收起条（0.20.2）
 
-收起条跟随系统浅／深色外观：浅色为白色磨砂玻璃，深色为深空黑玻璃，内部有缓慢、低亮度流光。系统采用自动外观时随系统切换，不按应用内自定义钟点切换。命中范围仍为 10×56，外侧窄条保持原位置及展开手势，立方体本体主题不变。
+收起条跟随系统浅／深色外观：浅色为白色磨砂玻璃，深色为深空黑玻璃，内部有缓慢、低亮度流光。反光贯穿整条，亮部缓慢游走，上下两端始终保留柔和过渡，避免中间亮、两端黑。系统采用自动外观时随系统切换，不按应用内自定义钟点切换。命中范围仍为 10×56，外侧窄条保持原位置及展开手势，立方体本体主题不变。
 
 流光仅在收起条可见时运行，隐藏后停止；系统减少动态效果、减少透明度时使用静态效果，macOS 低电量模式同样暂停流光。macOS 使用原生背景材质；Windows 使用磨砂玻璃视觉样式，不声称对桌面背景做原生模糊。动画使用小面积合成层，不恢复立方体 3D 绘制，也不增加逐帧脚本或计时器。
 
@@ -109,7 +109,7 @@ Windows 10 22H2 / Windows 11（x64）使用独立客户端，支持同样的六�
 
 ## macOS 安装与运行
 
-当前源码版本为 **0.20.1**，使用 **master** 分支；安装包版本见上方下载链接。
+当前源码版本为 **0.20.2**，使用 **master** 分支；安装包版本见上方下载链接。
 
 运行需要 macOS 15+；源码构建需要完整 Xcode、Swift 6 和 **macOS 27 SDK**。当前本地打包产物面向 Apple Silicon，使用 ad-hoc 签名，尚未公证。
 
@@ -120,7 +120,7 @@ bash scripts/build-app.sh
 open build/T-Cube.app
 ```
 
-需要自行构建拖拽安装包时，运行 `bash scripts/build-dmg.sh`，打开 `build/T-Cube-0.20.1.dmg`，将应用拖入 **Applications**。更新前先退出旧版，保留原配置。构建产物通过 Releases 分发；系统安全授权由用户确认。
+需要自行构建拖拽安装包时，运行 `bash scripts/build-dmg.sh`，打开 `build/T-Cube-0.20.2.dmg`，将应用拖入 **Applications**。更新前先退出旧版，保留原配置。构建产物通过 Releases 分发；系统安全授权由用户确认。
 
 ### 让 agent 帮忙安装
 

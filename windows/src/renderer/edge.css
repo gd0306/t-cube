@@ -6,17 +6,19 @@
     --edge-inner: rgba(255, 255, 255, .92);
     --edge-shade: rgba(78, 101, 122, .13);
     --edge-solid: #f1f5f8;
-    --edge-light: rgba(255, 255, 255, .95);
+    --edge-light: rgba(255, 255, 255, .85);
+    --edge-reflection: rgba(255, 255, 255, .30);
 }
 @media (prefers-color-scheme: dark) {
     :root {
         --edge-theme: dark;
-        --edge-glass: linear-gradient(105deg, rgba(39, 52, 73, .96), rgba(7, 14, 26, .96) 58%, rgba(22, 33, 52, .94));
+        --edge-glass: linear-gradient(105deg, rgba(35, 47, 66, .94), rgba(15, 25, 42, .92) 58%, rgba(28, 41, 62, .94));
         --edge-border: rgba(107, 132, 163, .64);
         --edge-inner: rgba(188, 211, 238, .18);
         --edge-shade: rgba(0, 3, 10, .34);
         --edge-solid: #111b2b;
-        --edge-light: rgba(170, 199, 231, .70);
+        --edge-light: rgba(202, 225, 250, .55);
+        --edge-reflection: rgba(128, 171, 220, .26);
     }
 }
 html, body {
@@ -42,29 +44,28 @@ html, body {
 }
 .edge-shimmer {
     position: absolute;
-    inset: -40px -2px;
+    inset: -100% -2px;
     pointer-events: none;
-    opacity: 0;
-    transform: translateY(-48px);
-    background: linear-gradient(180deg, transparent 24%, var(--edge-light) 50%, transparent 76%);
+    opacity: .65;
+    transform: translateY(0);
+    background: linear-gradient(170deg, var(--edge-reflection), var(--edge-light) 50%, var(--edge-reflection));
 }
 :root[data-visible="true"][data-animate="true"] .edge-shimmer {
     animation: edge-shimmer 8.4s ease-in-out infinite;
-    will-change: transform, opacity;
+    will-change: transform;
 }
 @keyframes edge-shimmer {
-    0%, 12% { transform: translateY(-48px); opacity: 0; }
-    38% { opacity: .12; }
-    62% { opacity: .18; }
-    88%, 100% { transform: translateY(48px); opacity: 0; }
+    0%, 100% { transform: translateY(-24px); }
+    50% { transform: translateY(24px); }
 }
 @media (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce), (forced-colors: active) {
     :root[data-visible="true"][data-animate="true"] .edge-shimmer { animation: none; will-change: auto; }
-    .edge-shimmer { display: none; }
+    .edge-shimmer { transform: none; }
 }
 @media (prefers-reduced-transparency: reduce) {
     .edge-capsule { background: var(--edge-solid); box-shadow: none; }
 }
 @media (forced-colors: active) {
     .edge-capsule { background: Canvas; border-color: CanvasText; box-shadow: none; }
+    .edge-shimmer { display: none; }
 }

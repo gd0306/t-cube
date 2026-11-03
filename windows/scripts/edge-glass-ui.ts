@@ -19,9 +19,38 @@ try{
     const sample=()=>page.evaluate(()=>{const root=getComputedStyle(document.documentElement),capsule=document.querySelector<HTMLElement>('.edge-capsule')!,style=getComputedStyle(capsule),rect=capsule.getBoundingClientRect();return {scheme:root.getPropertyValue('--edge-theme').trim(),background:style.backgroundImage,rect:{x:rect.x,y:rect.y,width:rect.width,height:rect.height},animations:document.getAnimations().length,active:document.documentElement.dataset.animate,visible:document.documentElement.dataset.visible,fixture:(window as any).edgeFixture};});
     await media('light');await page.goto(`http://127.0.0.1:${address.port}/edge.html`);await page.waitForFunction(()=>document.documentElement.dataset.animate==='true');
     const light=await sample();assert.equal(light.scheme,'light');assert.deepEqual(light.rect,{x:1,y:2,width:8,height:52});assert.equal(light.animations,1);
+    const verifyWholeReflection = async (scheme: 'light' | 'dark') => {
+        for (const phase of [0, .25, .5, .75, 1]) {
+            const coverage = await page.evaluate(phase => {
+                const animation = document.getAnimations()[0]; animation.pause();
+                animation.currentTime = Number(animation.effect!.getTiming().duration) * phase;
+                const shimmer = document.querySelector<HTMLElement>('.edge-shimmer')!, capsule = document.querySelector('.edge-capsule')!;
+                const a = shimmer.getBoundingClientRect(), b = capsule.getBoundingClientRect();
+                return {coversEnds: a.top <= b.top && a.bottom >= b.bottom, opacity: Number(getComputedStyle(shimmer).opacity)};
+            }, phase);
+            assert.ok(coverage.coversEnds && coverage.opacity >= .1, `Whole-length reflection must remain visible at ${scheme} phase ${phase}: ${JSON.stringify(coverage)}`);
+            // Inspect the actual browser screenshot; transparent gradient stops must fail too.
+            const png = (await page.screenshot({omitBackground:true})).toString('base64');
+            const brightness = await page.evaluate(async png => {
+                const bytes = Uint8Array.from(atob(png), c => c.charCodeAt(0));
+                const bitmap = await createImageBitmap(new Blob([bytes], {type:'image/png'}));
+                const canvas = document.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height;
+                const context = canvas.getContext('2d')!; context.drawImage(bitmap,0,0); bitmap.close();
+                const rect = document.querySelector('.edge-capsule')!.getBoundingClientRect(), scale = canvas.width / innerWidth;
+                return [.12,.5,.88].map(fraction => {
+                    const pixel = context.getImageData(Math.floor((rect.x+rect.width/2)*scale), Math.floor((rect.y+rect.height*fraction)*scale),1,1).data;
+                    return (pixel[0]+pixel[1]+pixel[2])/765;
+                });
+            }, png);
+            for (const end of [brightness[0],brightness[2]]) assert.ok(end > (scheme==='dark'?.16:.7) && end > brightness[1]*.45,
+                `Both ${scheme} ends must retain reflection at phase ${phase}: ${brightness}`);
+        }
+        await page.evaluate(() => document.getAnimations()[0].play());
+    };
+    await verifyWholeReflection('light');
     await mkdir('.cache/smoke',{recursive:true});await page.screenshot({path:'.cache/smoke/edge-glass-light.png',omitBackground:true});
     await media('dark');await page.waitForFunction(()=>getComputedStyle(document.documentElement).getPropertyValue('--edge-theme').trim()==='dark');
-    const dark=await sample();assert.notEqual(dark.background,light.background);assert.equal(dark.animations,1);await page.screenshot({path:'.cache/smoke/edge-glass-dark.png',omitBackground:true});
+    const dark=await sample();assert.notEqual(dark.background,light.background);assert.equal(dark.animations,1);await verifyWholeReflection('dark');await page.screenshot({path:'.cache/smoke/edge-glass-dark.png',omitBackground:true});
     await media('dark','reduce');await page.waitForFunction(()=>document.getAnimations().length===0 && document.documentElement.dataset.animate==='false');assert.equal((await sample()).active,'false');
     await media('dark','no-preference','reduce');await page.waitForFunction(()=>document.getAnimations().length===0 && document.documentElement.dataset.animate==='false');assert.equal((await sample()).active,'false');
     await media('light','no-preference','no-preference','active');await page.waitForFunction(()=>document.getAnimations().length===0);

@@ -29,6 +29,65 @@ struct EdgeGlassViewTests {
         }
     }
 
+    @Test func darkGlassKeepsBothEndsReflectiveInsteadOfAnIsolatedBrightMiddle() throws {
+        _ = NSApplication.shared
+        let view = EdgeRevealView(motionAllowed: { false }, transparencyAllowed: { true },
+            windowVisible: { $0.isVisible }, reveal: {})
+        let window = NSPanel(contentRect: CGRect(x: 180, y: 180, width: 10, height: 56),
+            styleMask: [.borderless], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.contentView = view
+        window.appearance = NSAppearance(named: .darkAqua)
+        window.orderFrontRegardless()
+        defer { view.shutdown(); window.orderOut(nil); window.contentView = nil }
+        view.setPresented(true); view.refreshSystemStyle(); view.layoutSubtreeIfNeeded()
+        let bitmap = try #require(view.bitmapImageRepForCachingDisplay(in: view.bounds))
+        view.cacheDisplay(in: view.bounds, to: bitmap)
+        func brightness(at fraction: CGFloat) throws -> CGFloat {
+            let color = try #require(bitmap.colorAt(x: bitmap.pixelsWide / 2,
+                y: Int(CGFloat(bitmap.pixelsHigh - 1) * fraction))?.usingColorSpace(.deviceRGB))
+            return (color.redComponent + color.greenComponent + color.blueComponent) / 3
+        }
+        let middle = try brightness(at: 0.5)
+        for end in [CGFloat(0.12), CGFloat(0.88)] {
+            let light = try brightness(at: end)
+            #expect(light > 0.12 && light > middle * 0.45,
+                "Both ends must retain glass reflection instead of a black cap around the center highlight")
+        }
+    }
+
+    @Test func movingReflectionKeepsBothEndsLitAtEveryAnimationExtremum() throws {
+        _ = NSApplication.shared
+        let view = EdgeRevealView(motionAllowed: { true }, transparencyAllowed: { true },
+            windowVisible: { $0.isVisible }, reveal: {})
+        let window = NSPanel(contentRect: CGRect(x: 180, y: 180, width: 10, height: 56),
+            styleMask: [.borderless], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false; window.contentView = view
+        window.appearance = NSAppearance(named: .darkAqua); window.orderFrontRegardless()
+        defer { view.shutdown(); window.orderOut(nil); window.contentView = nil }
+        view.setPresented(true); view.refreshSystemStyle(); view.layoutSubtreeIfNeeded()
+        let fill = try #require(view.subviews.compactMap { $0.layer as? CAGradientLayer }.first)
+        let reflection = try #require(fill.sublayers?.first)
+        let key = try #require(reflection.animationKeys()?.first)
+        let animation = try #require(reflection.animation(forKey: key) as? CAKeyframeAnimation)
+        let offsets = try #require(animation.values as? [NSNumber])
+        reflection.removeAllAnimations()
+        // Freeze actual production keyframes; inspect native pixels rather than expected geometry.
+        for offset in offsets {
+            CATransaction.begin(); CATransaction.setDisableActions(true)
+            reflection.transform = CATransform3DMakeTranslation(0, CGFloat(offset.doubleValue), 0)
+            CATransaction.commit()
+            let bitmap = try #require(view.bitmapImageRepForCachingDisplay(in: view.bounds))
+            view.cacheDisplay(in: view.bounds, to: bitmap)
+            for end in [CGFloat(0.12), CGFloat(0.88)] {
+                let color = try #require(bitmap.colorAt(x: bitmap.pixelsWide / 2,
+                    y: Int(CGFloat(bitmap.pixelsHigh - 1) * end))?.usingColorSpace(.deviceRGB))
+                #expect((color.redComponent + color.greenComponent + color.blueComponent) / 3 > 0.12,
+                    "Moving reflection must never leave a black end at an animation extremum")
+            }
+        }
+    }
+
     @Test func systemAppearanceChangesTheGlassUsingTheSameLayers() async throws {
         _ = NSApplication.shared
         let view = EdgeRevealView(motionAllowed: { true }, transparencyAllowed: { true }, windowVisible: { $0.isVisible }, reveal: {})

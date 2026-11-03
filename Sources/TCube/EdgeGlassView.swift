@@ -52,7 +52,7 @@ final class EdgeRevealView: NSView {
         gleam.name = "Edge glass shimmer"
         gleam.startPoint = CGPoint(x: 0.25, y: 0)
         gleam.endPoint = CGPoint(x: 0.75, y: 1)
-        gleam.locations = [0, 0.45, 0.55, 1]
+        gleam.locations = [0, 0.18, 0.36, 0.5, 0.64, 0.82, 1]
         gleam.shouldRasterize = true
         tint.addSublayer(gleam)
         addSubview(overlay)
@@ -90,8 +90,8 @@ final class EdgeRevealView: NSView {
         overlay.frame = body
         layer?.shadowPath = CGPath(roundedRect: body, cornerWidth: 4, cornerHeight: 4, transform: nil)
         // Keep layout independent of the static/animated translation transform.
-        gleam.bounds = CGRect(x: 0, y: 0, width: body.width, height: 20)
-        gleam.position = CGPoint(x: body.width / 2, y: -10)
+        gleam.bounds = CGRect(x: 0, y: 0, width: body.width, height: body.height * 3)
+        gleam.position = CGPoint(x: body.width / 2, y: body.height / 2)
         gleam.rasterizationScale = window?.backingScaleFactor ?? 2
         CATransaction.commit()
     }
@@ -121,13 +121,16 @@ final class EdgeRevealView: NSView {
         CATransaction.begin(); CATransaction.setDisableActions(true)
         material.isHidden = !translucent
         if dark {
-            tint.colors = [color(0.045, 0.060, 0.090, translucent ? 0.80 : 1), color(0.010, 0.015, 0.030, translucent ? 0.88 : 1)]
+            tint.colors = [color(0.09, 0.12, 0.18, translucent ? 0.72 : 1), color(0.035, 0.055, 0.09, translucent ? 0.80 : 1)]
             tint.borderColor = color(0.66, 0.75, 0.88, 0.40)
-            gleam.colors = [color(0.7, 0.85, 1, 0), color(0.72, 0.86, 1, 0.25), color(0.94, 0.98, 1, 0.55), color(0.7, 0.85, 1, 0)]
+            gleam.colors = [color(0.52, 0.70, 0.92, 0.16), color(0.62, 0.78, 0.96, 0.22),
+                color(0.76, 0.86, 1, 0.32), color(0.90, 0.95, 1, 0.40),
+                color(0.68, 0.81, 0.98, 0.28), color(0.55, 0.72, 0.94, 0.20), color(0.52, 0.70, 0.92, 0.16)]
         } else {
             tint.colors = [color(1, 1, 1, translucent ? 0.60 : 1), color(0.87, 0.91, 0.96, translucent ? 0.68 : 1)]
             tint.borderColor = color(1, 1, 1, 0.90)
-            gleam.colors = [color(1, 1, 1, 0), color(1, 1, 1, 0.45), color(1, 1, 1, 0.95), color(1, 1, 1, 0)]
+            gleam.colors = [color(1, 1, 1, 0.20), color(1, 1, 1, 0.28), color(1, 1, 1, 0.40),
+                color(1, 1, 1, 0.64), color(1, 1, 1, 0.40), color(1, 1, 1, 0.28), color(1, 1, 1, 0.20)]
         }
         CATransaction.commit()
         needsLayout = true
@@ -148,17 +151,19 @@ final class EdgeRevealView: NSView {
             gleam.transform = CATransform3DIdentity
             if gleam.animation(forKey: Self.flowKey) == nil {
                 let flow = CAKeyframeAnimation(keyPath: "transform.translation.y")
-                flow.values = [0, 0, 74, 74]
-                flow.keyTimes = [0, 0.12, 0.88, 1]
+                // Overscan keeps both ends reflective throughout the entire cycle.
+                let travel = max(0, bounds.height - 4) * 0.45
+                flow.values = [-travel, travel, -travel]
+                flow.keyTimes = [0, 0.5, 1]
                 flow.duration = 8
                 flow.preferredFrameRateRange = CAFrameRateRange(minimum: 12, maximum: 30, preferred: 24)
                 flow.repeatCount = .infinity
-                flow.timingFunctions = [.init(name: .linear), .init(name: .easeInEaseOut), .init(name: .linear)]
+                flow.timingFunctions = [.init(name: .easeInEaseOut), .init(name: .easeInEaseOut)]
                 gleam.add(flow, forKey: Self.flowKey)
             }
         } else {
             gleam.removeAnimation(forKey: Self.flowKey)
-            gleam.transform = CATransform3DMakeTranslation(0, 36, 0)
+            gleam.transform = CATransform3DIdentity
         }
         CATransaction.commit()
     }
