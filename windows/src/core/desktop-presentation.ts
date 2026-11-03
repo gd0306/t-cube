@@ -40,3 +40,11 @@ export class DesktopPresentation {
         return {visible: input.manualVisible && !fullscreenHidden && !this.collapsed, collapsed: this.collapsed, handle: this.collapsed ? handle : null};
     }
 }
+/** Windows can enlarge translucent HWNDs at some DPIs; clip that container to the unchanged logical handle. */
+export function edgeHandleWindowLayout(handle:Rect,nativeSize:{width:number;height:number},work:Rect):{frame:Rect;shape:Rect}{
+    const width=Math.max(handle.width,nativeSize.width),height=Math.max(handle.height,nativeSize.height);
+    const left=Math.abs(handle.x-work.x)<=1;
+    const x=left?handle.x:handle.x+handle.width-width;
+    const y=Math.max(work.y,Math.min(handle.y,work.y+work.height-height));
+    return {frame:{x,y,width,height},shape:{x:handle.x-x,y:handle.y-y,width:handle.width,height:handle.height}};
+}

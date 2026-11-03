@@ -199,3 +199,11 @@ test('private processor data URL replies enforce PNG dimensions without decoding
     header.writeUInt32BE(961,16);assert.equal(boundedPNGDataURL(url(),960,6*1024*1024),false);
     assert.equal(boundedPNGDataURL('data:image/png;base64,eA==',128,128*1024),false);
 });
+test('native minimum-width edge containers preserve exact logical handle region on both screen edges',async()=>{
+    const {edgeHandleWindowLayout}=await import('../src/core/desktop-presentation');
+    const work={x:-1000,y:0,width:1000,height:800};
+    const left={x:-1000,y:100,width:10,height:56},right={x:-10,y:100,width:10,height:56};
+    assert.deepEqual(edgeHandleWindowLayout(left,{width:32,height:56},work),{frame:{x:-1000,y:100,width:32,height:56},shape:{x:0,y:0,width:10,height:56}});
+    assert.deepEqual(edgeHandleWindowLayout(right,{width:32,height:56},work),{frame:{x:-32,y:100,width:32,height:56},shape:{x:22,y:0,width:10,height:56}});
+    assert.deepEqual(edgeHandleWindowLayout(right,{width:10,height:56},work),{frame:right,shape:{x:0,y:0,width:10,height:56}});
+});

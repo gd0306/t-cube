@@ -1,4 +1,4 @@
-import { DesktopPresentation, isFullscreenOnDisplay } from '../core/desktop-presentation';
+import { DesktopPresentation, isFullscreenOnDisplay, edgeHandleWindowLayout } from '../core/desktop-presentation';
 import { fullscreenFrameOnDisplay } from '../native/fullscreen';
 import {OfficeServices} from './office-services';
 import {DisplayPositionStore} from './display-position-store';
@@ -46,6 +46,8 @@ export class DesktopApplication {
     private fullscreenDisplay = '';
     private handleFrame = '';
     private wasCollapsed = false;
+    private edgeReady = false;
+    private edgeShape: Rect | null = null;
     constructor(readonly directory = __dirname) {}
     async start(): Promise<void> {
         const file = path.join(app.getPath('userData'), 'configuration.json');
@@ -112,7 +114,7 @@ export class DesktopApplication {
         this.tray.on('click', () => this.toggleWidget());
         this.timer = setTimeout(() => this.tick(), 16);
         void this.host.refreshIcons().catch(error => this.host.reportError(error));
-        const refreshDisplays = () => { this.presentation.reset(); this.fullscreenSample = 0; this.edgeWindow?.hide(); void this.host.refreshDisplays().catch(error => this.host.reportError(error)); };
+        const refreshDisplays = () => { this.presentation.reset(); this.fullscreenSample = 0; this.handleFrame = ''; this.edgeReady = false; this.edgeShape = null; this.edgeWindow?.hide(); void this.host.refreshDisplays().catch(error => this.host.reportError(error)); };
         screen.on('display-added', refreshDisplays);
         screen.on('display-removed', refreshDisplays);
         screen.on('display-metrics-changed', refreshDisplays);
@@ -217,7 +219,7 @@ export class DesktopApplication {
         const state = this.host.snapshot.state, config = state.configuration;
         if (!config.edgeCollapseEnabled && !config.hideWhenFullscreen) {
             this.presentation.reset(); this.wasCollapsed = false; this.host.setPresentationHidden(false);
-            if (this.edgeWindow) { this.edgeWindow.destroy(); this.edgeWindow = null; this.handleFrame = ''; }
+            if (this.edgeWindow) { this.edgeWindow.destroy(); this.edgeWindow = null; this.handleFrame = ''; this.edgeReady = false; this.edgeShape = null; }
             this.fullscreenFrame = null; this.fullscreenSample = 0; return;
         }
         const frame = this.host.geometry.restingFrame;
@@ -231,22 +233,47 @@ export class DesktopApplication {
             enabled:config.edgeCollapseEnabled,fullscreen:config.hideWhenFullscreen && isFullscreenOnDisplay(this.fullscreenFrame,display.bounds),
             manualVisible:this.host.manualVisible,protected:state.interactionActive || state.expandedFace !== null || Boolean(this.settings?.isVisible()) || state.hovered,now});
         this.wasCollapsed = result.collapsed;
-        this.host.setPresentationHidden(!result.visible && this.host.manualVisible);
-        if (result.handle) this.showEdgeHandle(result.handle); else this.edgeWindow?.hide();
+        if (result.handle) {
+            const ready = this.showEdgeHandle(result.handle);
+            this.host.setPresentationHidden(ready && this.host.manualVisible);
+        } else { this.edgeWindow?.hide(); this.host.setPresentationHidden(!result.visible && this.host.manualVisible); }
     }
-    private showEdgeHandle(frame: Rect): void {
+    private showEdgeHandle(frame: Rect): boolean {
         if (!this.edgeWindow) {
-            this.edgeWindow = new BrowserWindow({title:'T-Cube Edge',width:10,height:56,show:false,frame:false,transparent:true,hasShadow:false,resizable:false,focusable:false,
+            this.edgeWindow = new BrowserWindow({title:'T-Cube Edge',width:10,height:56,minWidth:10,maxWidth:10,minHeight:56,maxHeight:56,show:false,frame:false,transparent:true,hasShadow:false,resizable:false,focusable:false,
                 skipTaskbar:true,alwaysOnTop:true,thickFrame:false,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}});
             this.edgeWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));
             const html = `<!doctype html><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>T-Cube Edge</title><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}div{width:6px;height:48px;margin:4px 2px;border-radius:4px;background:#8fbacbdd;box-shadow:inset 0 0 0 1px #ffffff88}</style><div></div>`;
+            this.edgeWindow.setMenu(null);
             const loadingWindow = this.edgeWindow;
-            void loadingWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`).then(()=>{if(this.wasCollapsed && this.edgeWindow===loadingWindow && !loadingWindow.isDestroyed())loadingWindow.showInactive();}).catch(error=>{if(!loadingWindow.isDestroyed())this.host.reportError(error);});
+            void loadingWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`).then(()=>this.prepareEdgeWindow(loadingWindow)).catch(error=>{if(!loadingWindow.isDestroyed())this.host.reportError(error);});
             this.edgeWindow.setAlwaysOnTop(true,'floating');
         }
         const key = JSON.stringify(frame);
-        if (key !== this.handleFrame) { this.edgeWindow.setBounds(this.roundFrame(frame)); this.handleFrame = key; }
-        if (!this.edgeWindow.isVisible() && !this.edgeWindow.webContents.isLoading()) this.edgeWindow.showInactive();
+        if (key !== this.handleFrame) {
+            const window = this.edgeWindow;
+            this.edgeReady = false; window.hide();
+            window.setBounds(this.roundFrame(frame));
+            const layout = edgeHandleWindowLayout(frame,window.getBounds(),screen.getDisplayMatching(frame).workArea);
+            window.setBounds(this.roundFrame(layout.frame));
+            const actual = window.getBounds();
+            this.edgeShape = {x:Math.round(frame.x-actual.x),y:Math.round(frame.y-actual.y),width:Math.round(frame.width),height:Math.round(frame.height)};
+            if (process.platform === 'win32') window.setShape([this.edgeShape]);
+            this.handleFrame = key;
+            if (!window.webContents.isLoading()) void this.prepareEdgeWindow(window);
+        }
+        if (this.edgeReady && this.host.manualVisible && !this.edgeWindow.isVisible()) this.edgeWindow.showInactive();
+        return this.edgeReady && this.edgeWindow.isVisible();
+    }
+    private async prepareEdgeWindow(window: BrowserWindow): Promise<void> {
+        if (window.isDestroyed() || this.edgeWindow !== window || !this.edgeShape) return;
+        const key = this.handleFrame,shape=this.edgeShape;
+        try {
+            await window.webContents.executeJavaScript(`document.querySelector('div').style.transform='translate(${shape.x}px,${shape.y}px)'`);
+            if (window.isDestroyed() || this.edgeWindow !== window || key !== this.handleFrame) return;
+            this.edgeReady = true;
+            if (this.wasCollapsed && this.host.manualVisible) window.showInactive();
+        } catch (error) { if (!window.isDestroyed()) this.host.reportError(error); }
     }
     private revealManually(): void {
         this.presentation.reveal(); this.wasCollapsed = false; this.edgeWindow?.hide(); this.host.setPresentationHidden(false); this.host.setVisible(true);
@@ -275,7 +302,7 @@ export class DesktopApplication {
         } else { this.expanded.setBounds(bounds); this.expanded.show(); this.expanded.focus(); }
     }
     private toggleWidget(): void {
-        if (this.host.snapshot.state.visible) { this.host.setVisible(false); this.edgeWindow?.hide(); } else this.revealManually();
+        if (this.host.snapshot.state.visible) { this.wasCollapsed = false; this.host.setVisible(false); this.edgeWindow?.hide(); } else this.revealManually();
     }
     private updateTray(): void {
         const run = (operation: () => unknown) => () => { Promise.resolve().then(operation).catch(error => this.host.reportError(error)); };
