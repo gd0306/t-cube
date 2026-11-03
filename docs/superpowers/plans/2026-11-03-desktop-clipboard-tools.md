@@ -25,4 +25,4 @@
 - [x] Independently review desktop state/position safety and clipboard size/privacy/paste paths; resolve important findings.
 - [x] Run full Swift tests serially, Node22 typecheck/tests/build; inspect native/renderer screenshots. Distinguish automated evidence from manual desktop verification.
 - [x] Bump dual-platform version, build/verify DMG, normally quit previous installed app, preserve it and all recursive user JSON files, install `/Applications/T-Cube.app`, compare executable hashes and launch.
-- [ ] Push master after verified integration; run Windows source matrix and actual NSIS installation CI; validate source and artifact checksums; publish dual-platform Release and verification record.
+- [x] Push master after verified integration; run Windows source matrix and actual NSIS installation CI; validate source and artifact checksums; publish dual-platform Release and verification record.
