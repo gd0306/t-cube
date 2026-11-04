@@ -2,7 +2,7 @@
 target: T-Cube macOS 界面与辅助设置审查
 total_score: 27
 max_score: 40
-na_heuristics: 
+na_heuristics:
 p0_count: 0
 p1_count: 1
 target_identity: "file:/Users/gd/Git/t-cube/Sources/TCube/EditorView.swift"
