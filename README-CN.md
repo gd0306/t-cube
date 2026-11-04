@@ -8,7 +8,7 @@
 
 ## 下载安装包
 
-macOS **0.20.2** · Windows **0.20.2**：[macOS Apple Silicon（.dmg）](https://github.com/gd0306/t-cube/releases/download/v0.20.2/T-Cube-0.20.2-macos-arm64.dmg) · [Windows x64 安装程序（.exe）](https://github.com/gd0306/t-cube/releases/download/v0.20.2/T-Cube-0.20.2-windows-x64-setup.exe) · [发布说明与 SHA-256 校验](https://github.com/gd0306/t-cube/releases/tag/v0.20.2)。
+macOS **0.21.0** · Windows **0.21.0**：[macOS Apple Silicon（.dmg）](https://github.com/gd0306/t-cube/releases/download/v0.21.0/T-Cube-0.21.0-macos-arm64.dmg) · [Windows x64 安装程序（.exe）](https://github.com/gd0306/t-cube/releases/download/v0.21.0/T-Cube-0.21.0-windows-x64-setup.exe) · [发布说明与 SHA-256 校验](https://github.com/gd0306/t-cube/releases/tag/v0.21.0)。
 
 Windows 安装包自带运行时，无需安装 Node.js。更新前先退出旧版，原有入口配置会保留。当前 macOS 使用本地签名、未公证，Windows 安装程序未做 Authenticode 签名。
 
@@ -54,6 +54,12 @@ Windows 安装包自带运行时，无需安装 Node.js。更新前先退出旧�
 ## 快捷入口扩展
 
 在入口编辑中选择应用、文件夹、单个文件、HTTP/HTTPS 网页或预设的系统设置页面。文件用默认应用打开，网页用默认浏览器打开；系统设置从列表选择。旧入口与配置继续保留。
+
+## macOS 显示器亮度（0.21.0）
+
+点击菜单栏立方体图标，在「显示器亮度」中分别调节每块屏幕。打开菜单时读取实际亮度；内建／受支持的 Apple 显示器使用原生接口，受支持的 Apple Silicon 外接屏通过 DDC/CI 调节硬件背光。无法控制的屏幕显示原因并禁用滑杆；部分显示器需要先在自身菜单启用 DDC/CI，某些转接器、HDMI 通道和虚拟显示器不提供硬件控制。不使用软件遮罩模拟亮度。
+
+拖动时合并并限速发送指令，写入后读取硬件确认，关闭菜单后不后台轮询。再次打开会读取在别处改动后的值，插拔屏幕会使旧请求失效。不需要另装工具、管理员、辅助功能或屏幕录制权限；仅支持设备本身提供的控制通道。本次不包含音量控制，Windows 0.21.0 功能保持原样。
 
 ## 贴边玻璃收起条（0.20.2）
 
@@ -109,7 +115,7 @@ Windows 10 22H2 / Windows 11（x64）使用独立客户端，支持同样的六�
 
 ## macOS 安装与运行
 
-当前源码版本为 **0.20.2**，使用 **master** 分支；安装包版本见上方下载链接。
+当前源码版本为 **0.21.0**，使用 **master** 分支；安装包版本见上方下载链接。
 
 运行需要 macOS 15+；源码构建需要完整 Xcode、Swift 6 和 **macOS 27 SDK**。当前本地打包产物面向 Apple Silicon，使用 ad-hoc 签名，尚未公证。
 
@@ -120,7 +126,7 @@ bash scripts/build-app.sh
 open build/T-Cube.app
 ```
 
-需要自行构建拖拽安装包时，运行 `bash scripts/build-dmg.sh`，打开 `build/T-Cube-0.20.2.dmg`，将应用拖入 **Applications**。更新前先退出旧版，保留原配置。构建产物通过 Releases 分发；系统安全授权由用户确认。
+需要自行构建拖拽安装包时，运行 `bash scripts/build-dmg.sh`，打开 `build/T-Cube-0.21.0.dmg`，将应用拖入 **Applications**。更新前先退出旧版，保留原配置。构建产物通过 Releases 分发；系统安全授权由用户确认。
 
 ### 让 agent 帮忙安装
 

@@ -8,7 +8,7 @@ A transparent glass launcher that floats on your desktop. Keep favorite apps, fi
 
 ## Download installers
 
-macOS **0.20.2** · Windows **0.20.2**: [macOS Apple Silicon (.dmg)](https://github.com/gd0306/t-cube/releases/download/v0.20.2/T-Cube-0.20.2-macos-arm64.dmg) · [Windows x64 installer (.exe)](https://github.com/gd0306/t-cube/releases/download/v0.20.2/T-Cube-0.20.2-windows-x64-setup.exe) · [Release notes and SHA-256 checksums](https://github.com/gd0306/t-cube/releases/tag/v0.20.2).
+macOS **0.21.0** · Windows **0.21.0**: [macOS Apple Silicon (.dmg)](https://github.com/gd0306/t-cube/releases/download/v0.21.0/T-Cube-0.21.0-macos-arm64.dmg) · [Windows x64 installer (.exe)](https://github.com/gd0306/t-cube/releases/download/v0.21.0/T-Cube-0.21.0-windows-x64-setup.exe) · [Release notes and SHA-256 checksums](https://github.com/gd0306/t-cube/releases/tag/v0.21.0).
 
 The Windows installer includes its runtime and needs no Node.js installation. Quit an existing T-Cube before updating; shortcut configuration is preserved. These builds are unsigned/ad-hoc signed, not notarized or Developer ID/Authenticode signed.
 
@@ -55,6 +55,12 @@ Unchanged launcher textures are reused, empty faces allocate no atlas, and theme
 
 Add apps, folders, individual files, HTTP/HTTPS websites and selected system-settings pages from the shortcut editor. Files use their default application, websites use the default browser, and settings pages are chosen from a built-in list. Existing shortcuts and configuration are retained.
 
+## macOS display brightness (0.21.0)
+
+Click the menu-bar cube to adjust each connected display independently. The menu reads actual brightness when opened; sliders control native Apple brightness or external-display hardware backlight over DDC/CI on supported Apple Silicon connections. Unsupported screens show a disabled control and reason. External displays may require DDC/CI enabled in their own menu; some adapters, HDMI routes and virtual displays do not expose hardware control. There is no software dimming fallback.
+
+Updates are coalesced while dragging, verified against hardware, and do not poll in the background when the menu is closed. Reopening reads values changed elsewhere; connecting/disconnecting screens invalidates old requests. No extra app, administrator, Accessibility or screen-recording permission is required for the supported slider paths. Audio control is not part of this feature. Windows 0.21.0 retains its previous functionality.
+
 ## System appearance edge glass (0.20.2)
 
 The collapsed handle follows OS light/dark appearance: transparent glass with a light white or dark blue-black tint and a quiet internal shimmer. The desktop remains visible through the pane; tint and reflection do not fill it with a solid color. The reflection spans the whole capsule throughout its cycle, including both ends, instead of isolating a bright band in the middle. Its 10×56 hit region and reveal behavior stay unchanged; cube themes are unaffected. Shimmer runs only while visible, stops while hidden and becomes static for reduced motion/transparency (and macOS Low Power Mode). macOS uses native background material; Windows provides frosted styling rather than desktop backdrop blur. Small compositor layers animate without waking 3D rendering or adding a JavaScript/Swift frame loop.
@@ -99,7 +105,7 @@ Install https://github.com/gd0306/t-cube (master) on Windows. Follow windows/REA
 
 ## macOS install and run
 
-Current source version: **0.20.2** on **master**. Published installer versions are listed above.
+Current source version: **0.21.0** on **master**. Published installer versions are listed above.
 
 Running requires macOS 15+. Building requires full Xcode with Swift 6 and the **macOS 27 SDK**. Current local packages target Apple Silicon and use ad-hoc signing; they are not notarized.
 
@@ -110,7 +116,7 @@ bash scripts/build-app.sh
 open build/T-Cube.app
 ```
 
-For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.20.2.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are distributed through Releases; macOS security approvals remain with the user.
+For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.21.0.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are distributed through Releases; macOS security approvals remain with the user.
 
 ### Let an agent install it
 

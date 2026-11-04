@@ -10,9 +10,10 @@ let package = Package(
     ],
     targets: [
         .target(name: "CubeCore"),
+        .target(name: "DisplayBrightnessBridge", linkerSettings: [.linkedFramework("CoreGraphics"), .linkedFramework("IOKit"), .linkedFramework("CoreFoundation")]),
         .executableTarget(
             name: "TCube",
-            dependencies: ["CubeCore", .product(name: "Sparkle", package: "Sparkle")],
+            dependencies: ["CubeCore", "DisplayBrightnessBridge", .product(name: "Sparkle", package: "Sparkle")],
             linkerSettings: [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])]
         ),
         .testTarget(name: "CubeCoreTests", dependencies: ["CubeCore"]),

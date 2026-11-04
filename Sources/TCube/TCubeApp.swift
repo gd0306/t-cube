@@ -28,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var faceExpansion: FaceExpansionController!
     private var hoverController: CubeHoverController?
     private var statusItem: NSStatusItem!
+    private var brightnessMenu: DisplayBrightnessMenu?
     private var editor: NSWindow?
     private var screenObserver: NSObjectProtocol?
     private let snippetLibrary = SnippetLibraryController()
@@ -198,6 +199,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         _ = item("退出 T-Cube", #selector(quit), key: "q")
         statusItem.menu = menu
+        brightnessMenu = DisplayBrightnessMenu(menu: menu)
         let mainMenu = NSMenu()
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu(title: "T-Cube")
@@ -230,6 +232,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         editMenuItem.submenu = editMenu
         mainMenu.addItem(editMenuItem)
         NSApp.mainMenu = mainMenu
+    }
+
+    func menuWillOpen(_ menu: NSMenu) {
+        if menu === statusItem?.menu { brightnessMenu?.beginTracking() }
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        if menu === statusItem?.menu { brightnessMenu?.endTracking() }
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
@@ -272,6 +282,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func quit() { NSApp.terminate(nil) }
 
     func applicationWillTerminate(_ notification: Notification) {
+        brightnessMenu?.stop()
         lifecycle.stop()
         autoHide?.stop()
         snippetLibrary.stop()

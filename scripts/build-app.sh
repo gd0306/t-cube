@@ -22,6 +22,7 @@ TCUBE_APP="$TCUBE_STAGE/T-Cube.app"
 mkdir -p "$TCUBE_APP/Contents/MacOS" "$TCUBE_APP/Contents/Resources" "$TCUBE_APP/Contents/Frameworks"
 cp "$TCUBE_BIN/TCube" "$TCUBE_APP/Contents/MacOS/TCube"
 cp "$TCUBE_ROOT/Resources/Info.plist" "$TCUBE_APP/Contents/Info.plist"
+cp "$TCUBE_ROOT/Resources/ThirdPartyNotices.txt" "$TCUBE_APP/Contents/Resources/ThirdPartyNotices.txt"
 
 # SwiftPM links binary frameworks but this script creates the application bundle.
 # Preserve Sparkle's version symlinks, helpers, permissions, and resources.
