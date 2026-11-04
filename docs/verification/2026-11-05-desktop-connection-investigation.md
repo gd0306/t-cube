@@ -49,7 +49,7 @@ Search and category were restored, the original startup/update settings page was
 
 ## Permission and coverage limits
 
-The installed T-Cube content panel reported that **direct pasting requires T-Cube's own Accessibility permission**. That permission is separate from the computer-use helper's ability to inspect/control an app. No new permission was granted and direct pasting into another app was not tested in this follow-up. Copy/paste callbacks and error/fallback behavior remain covered by the existing automated tests; selecting a row and seeing an enabled button is not evidence of a successful cross-app paste.
+The installed T-Cube content panel reported that **direct pasting requires T-Cube's own Accessibility permission**. That permission is separate from the computer-use helper's ability to inspect/control an app. No new permission was granted and direct pasting into another app was not tested in this follow-up. Existing automated tests cover copy-to-pasteboard behavior, excluding the app's own writes from history, and paste eligibility gates such as trust, foreground app and original field. Those tests, or an enabled output button, do not establish a successful manual cross-app paste.
 
 Accessibility names, roles, selected states and control availability were inspected. An audible VoiceOver traversal, a live system-appearance switch, and a physical brightness adjustment were not performed. Light-mode and image-selection coverage remains in the earlier native fixture exports. These limits are retained explicitly rather than counted as manual passes.
 
