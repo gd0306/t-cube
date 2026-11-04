@@ -36,8 +36,8 @@ struct DesktopAutoHideSettingsView: View {
                 get: { settings.edgeCollapseEnabled }, set: settings.setEdgeCollapse))
             Toggle("全屏应用中自动隐藏", isOn: Binding(
                 get: { settings.hideInFullscreen }, set: settings.setHideInFullscreen))
-            Text("拖到所在屏幕的左右边缘，移出约 0.8 秒后收为窄条，靠近窄条即可展开。全屏隐藏仅影响立方体所在屏幕；手动隐藏后不会自动显示。设置立即生效。")
-                .font(.caption).foregroundStyle(.secondary)
+            Text("移出约 0.8 秒后收为窄条，靠近即可展开。全屏隐藏仅影响所在屏幕；手动隐藏后需手动显示。")
+                .font(InterfaceTypography.detail).foregroundStyle(.secondary)
         }
     }
 }

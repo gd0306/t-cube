@@ -69,6 +69,8 @@ struct ClipboardHistoryView: View {
     @State var selectedImageID: UUID?
     @State var trimLines = false
     @State var collapseBlankLines = false
+    @State private var showsRecordingDetails = false
+    @State private var showsTextCleanup = false
     @State private var clearScope: ClearScope = .text
     @State private var confirmingClear = false
     @FocusState private var searchFocused: Bool
@@ -91,17 +93,27 @@ struct ClipboardHistoryView: View {
         VStack(spacing: 0) {
             HStack(alignment: .top, spacing: 16) {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("剪贴板历史").font(.title2.weight(.semibold))
-                    Text("每次启动默认暂停；启用后仅在内存中保存新内容，退出即清除，不包含在备份中。")
-                        .font(.caption).foregroundStyle(.secondary)
-                    Text("文字最多 100 条 / 2 MiB；图片最多 10 张 / 32 MiB。会尽力跳过敏感、临时和文件拖放内容。")
-                        .font(.caption).foregroundStyle(.secondary)
+                    Text("剪贴板历史").font(InterfaceTypography.title)
+                    Label(model.isEnabled ? "正在记录 · 仅本次运行，退出清除" : "记录已暂停 · 本次内容退出清除",
+                          systemImage: model.isEnabled ? "record.circle" : "pause.circle")
+                        .font(.callout).foregroundStyle(.secondary)
+                    DisclosureGroup("记录说明", isExpanded: $showsRecordingDetails) {
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text("每次启动默认暂停；启用后仅在内存中保存新内容，不包含在备份中。")
+                            Text("文字最多 100 条 / 2 MiB；图片保留最近 10 张 / 32 MiB。")
+                            Text("会尽力跳过敏感、临时和文件拖放内容，无法保证识别所有敏感信息。")
+                            Text("单条文字及合并输出最多 64 KiB。")
+                        }
+                        .font(InterfaceTypography.detail).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .font(InterfaceTypography.detail)
                 }
                 Spacer()
                 Button(model.isEnabled ? "暂停记录" : "启用记录") {
                     if model.isEnabled { model.pause() } else { model.enable() }
-                }.buttonStyle(.borderedProminent)
-            }.padding(20)
+                }.buttonStyle(.bordered)
+            }.padding(.horizontal, 22).padding(.vertical, 16)
             Divider()
             HStack(spacing: 0) {
                 sidebar
@@ -113,7 +125,7 @@ struct ClipboardHistoryView: View {
             }
             Divider()
             Text("\(model.status) \(libraryStatus)")
-                .font(.caption).foregroundStyle(.secondary)
+                .font(InterfaceTypography.detail).foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 22).padding(.vertical, 11)
         }
         .background(Color(nsColor: .windowBackgroundColor))
@@ -144,22 +156,25 @@ struct ClipboardHistoryView: View {
             Picker("历史类别", selection: $category) {
                 ForEach(Category.allCases) { Text($0.rawValue).tag($0) }
             }.pickerStyle(.segmented).padding(.horizontal, 14).padding(.top, 14)
+            Text(category == .text ? "最多 100 条 · 2 MiB" : "最近 10 张 · 32 MiB")
+                .font(InterfaceTypography.detail).foregroundStyle(.secondary).padding(.horizontal, 14)
             if category == .text {
                 TextField("搜索文字历史", text: $model.query)
                     .textFieldStyle(.roundedBorder).focused($searchFocused).accessibilityLabel("搜索文字历史")
                     .padding(.horizontal, 14)
                 Text("按住 ⌘ 或 ⇧ 多选，按列表顺序合并。")
-                    .font(.caption).foregroundStyle(.secondary).padding(.horizontal, 14)
+                    .font(InterfaceTypography.detail).foregroundStyle(.secondary).padding(.horizontal, 14)
                 if model.visibleEntries.isEmpty {
                     emptyState(model.entries.isEmpty ? "还没有文字记录" : "没有匹配的内容")
                 } else {
                     List(selection: $selectedIDs) {
                         ForEach(model.visibleEntries) { entry in
                             Text(String(entry.text.prefix(160)).replacingOccurrences(of: "\n", with: " "))
-                                .lineLimit(2).foregroundStyle(selectedIDs.contains(entry.id) ? Color.white : Color.primary)
-                                .padding(.vertical, 5).tag(entry.id)
+                                .lineLimit(2).foregroundStyle(.primary)
+                                .padding(.vertical, 5)
+                                .tag(entry.id)
                         }
-                    }.listStyle(.sidebar).accessibilityLabel("文字历史列表，可多选")
+                    }.listStyle(.inset).accessibilityLabel("文字历史列表，可多选")
                 }
             } else if model.images.isEmpty {
                 emptyState("还没有图片记录")
@@ -172,13 +187,14 @@ struct ClipboardHistoryView: View {
                             }
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("\(image.width) × \(image.height)").font(.callout.monospacedDigit())
-                                Text(image.capturedAt, style: .time).font(.caption)
-                                    .foregroundStyle(selectedImageID == image.id ? Color.white.opacity(0.8) : Color.secondary)
+                                Text(image.capturedAt, style: .time).font(InterfaceTypography.detail)
+                                    .foregroundStyle(.secondary)
                             }
-                        }.foregroundStyle(selectedImageID == image.id ? Color.white : Color.primary)
-                            .padding(.vertical, 4).tag(image.id)
+                        }.foregroundStyle(.primary)
+                            .padding(.vertical, 4)
+                            .tag(image.id)
                     }
-                }.listStyle(.sidebar).accessibilityLabel("图片历史列表")
+                }.listStyle(.inset).accessibilityLabel("图片历史列表")
             }
             HStack {
                 Text(category == .text ? "\(model.visibleEntries.count) 条 · 已选 \(selectedIDs.count) 条" : "\(model.images.count) / 10 张")
@@ -190,7 +206,7 @@ struct ClipboardHistoryView: View {
                     Button("清空全部历史…", role: .destructive) { clearScope = .all; confirmingClear = true }
                         .disabled(model.entries.isEmpty && model.images.isEmpty)
                 }.menuStyle(.borderlessButton).fixedSize()
-            }.font(.caption).padding(.horizontal, 14).padding(.bottom, 12)
+            }.font(InterfaceTypography.detail).padding(.horizontal, 14).padding(.bottom, 12)
         }.frame(width: 290)
     }
 
@@ -205,22 +221,24 @@ struct ClipboardHistoryView: View {
                     selectedIDs.removeAll()
                 }.disabled(selectedIDs.isEmpty)
             }
-            HStack(spacing: 18) {
-                Toggle("逐行去除首尾空白", isOn: $trimLines)
-                Toggle("合并连续空行", isOn: $collapseBlankLines)
-            }.toggleStyle(.checkbox).font(.caption)
             HStack {
                 Button("粘贴", systemImage: "arrow.up.doc.on.clipboard") { if let output { useText(output, true) } }
                     .buttonStyle(.borderedProminent).disabled(output == nil)
                 Button("复制", systemImage: "doc.on.doc") { if let output { useText(output, false) } }.disabled(output == nil)
                 Button("存为常用内容", systemImage: "plus") { if let output { saveText(output) } }.disabled(!canSave || output == nil)
             }
-            Text("以下为实际输出；以换行连接，不改动原记录。单条及合并输出上限为 64 KiB。")
-                .font(.caption).foregroundStyle(.secondary)
+            DisclosureGroup("整理文字", isExpanded: $showsTextCleanup) {
+                HStack(spacing: 18) {
+                    Toggle("逐行去除首尾空白", isOn: $trimLines)
+                    Toggle("合并连续空行", isOn: $collapseBlankLines)
+                }.toggleStyle(.checkbox).font(InterfaceTypography.detail)
+                Text("多条记录以换行连接，原记录保持不变。输出最多 64 KiB。")
+                    .font(InterfaceTypography.detail).foregroundStyle(.secondary)
+            }
             Divider()
             if let output {
                 ScrollView {
-                    Text(output).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+                    Text(output).font(InterfaceTypography.body).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
                 }
             } else {
                 emptyState(selectedIDs.isEmpty ? "选择一条或多条文字记录查看预览" : "合并内容为空或超过 64 KiB，请减少选择或调整清理选项。")
@@ -241,9 +259,9 @@ struct ClipboardHistoryView: View {
                     Button("复制图片", systemImage: "doc.on.doc") { useImage(image, false) }
                 }
                 Text("\(image.width) × \(image.height) · \(ByteCountFormatter.string(fromByteCount: Int64(image.pngData.count), countStyle: .binary)) · PNG")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(InterfaceTypography.detail).foregroundStyle(.secondary)
                 Text("源数据与 PNG 各上限 8 MiB、1600 万像素；只保存本次运行内最近 10 张图片。")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(InterfaceTypography.detail).foregroundStyle(.secondary)
                 Divider()
                 ClipboardHistoryImagePreview(image: image).id(image.id)
             }.padding(24)

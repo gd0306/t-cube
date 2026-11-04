@@ -55,6 +55,10 @@ Unchanged launcher textures are reused, empty faces allocate no atlas, and theme
 
 Add apps, folders, individual files, HTTP/HTTPS websites and selected system-settings pages from the shortcut editor. Files use their default application, websites use the default browser, and settings pages are chosen from a built-in list. Existing shortcuts and configuration are retained.
 
+## macOS interface organization (0.21.1)
+
+Appearance changes are applied or reverted together on the Appearance tab. Edge collapse, quick placement, and power saving now live under Desktop & Performance and save immediately. Custom light/color settings, theme cycling, interaction tuning, clipboard recording details, and text cleanup remain available in expandable sections. The status menu groups layout controls and uses native shortcut labels; auxiliary text and list selection follow system styling. This update adds no preview renderer or background timer.
+
 ## macOS display brightness (0.21.0)
 
 Click the menu-bar cube to adjust each connected display independently. The menu reads actual brightness when opened; sliders control native Apple brightness or external-display hardware backlight over DDC/CI on supported Apple Silicon connections. Unsupported screens show a disabled control and reason. External displays may require DDC/CI enabled in their own menu; some adapters, HDMI routes and virtual displays do not expose hardware control. There is no software dimming fallback.
@@ -105,7 +109,7 @@ Install https://github.com/gd0306/t-cube (master) on Windows. Follow windows/REA
 
 ## macOS install and run
 
-Current source version: **0.21.0** on **master**. Published installer versions are listed above.
+Current source version: macOS **0.21.1**; Windows **0.21.0**. Published installer versions are listed above.
 
 Running requires macOS 15+. Building requires full Xcode with Swift 6 and the **macOS 27 SDK**. Current local packages target Apple Silicon and use ad-hoc signing; they are not notarized.
 
@@ -116,7 +120,7 @@ bash scripts/build-app.sh
 open build/T-Cube.app
 ```
 
-For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.21.0.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are distributed through Releases; macOS security approvals remain with the user.
+For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.21.1.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are distributed through Releases; macOS security approvals remain with the user.
 
 ### Let an agent install it
 

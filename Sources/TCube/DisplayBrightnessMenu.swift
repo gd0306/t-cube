@@ -19,7 +19,7 @@ final class DisplayBrightnessMenuRow: NSView {
         name.lineBreakMode = .byTruncatingTail
         percentage.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
         percentage.alignment = .right
-        detail.font = .systemFont(ofSize: 10)
+        detail.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         detail.lineBreakMode = .byTruncatingTail
         slider.controlSize = .small
         slider.isContinuous = true

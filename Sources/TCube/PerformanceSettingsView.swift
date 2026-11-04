@@ -26,15 +26,23 @@ struct PerformanceSettingsView: View {
 
     var body: some View {
         Form {
-            Section("桌面性能") {
-                Toggle("静置时省电（推荐）", isOn: Binding(
-                    get: { settings.idlePowerSavingEnabled }, set: { settings.setIdlePowerSaving($0) }
-                ))
-                Text("操作后保留静态画面并暂停实时绘制；鼠标移入立即恢复。开启时暂停持续的空闲旋转和流动光效。")
-                    .font(.callout).foregroundStyle(.secondary)
-                Text("需要持续动态展示时可关闭此项。隐藏或完全遮挡后仍会暂停，未交互时以较低频率更新动画。")
-                    .font(.callout).foregroundStyle(.secondary)
-            }
+            PerformanceSettingsSection(settings: settings)
         }.formStyle(.grouped)
+    }
+}
+
+struct PerformanceSettingsSection: View {
+    @ObservedObject var settings: PerformanceSettings
+
+    var body: some View {
+        Section("桌面性能") {
+            Toggle("静置时省电（推荐）", isOn: Binding(
+                get: { settings.idlePowerSavingEnabled }, set: { settings.setIdlePowerSaving($0) }
+            ))
+            Text("空闲时暂停绘制、旋转和流光，鼠标移入后恢复。")
+                .font(.callout).foregroundStyle(.secondary)
+            Text("关闭后保留空闲动态效果；隐藏或完全遮挡时仍会暂停。")
+                .font(.callout).foregroundStyle(.secondary)
+        }
     }
 }

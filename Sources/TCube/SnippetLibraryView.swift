@@ -87,9 +87,9 @@ struct SnippetLibraryView: View {
             Image(systemName: "text.bubble.fill")
                 .font(.system(size: 25)).foregroundStyle(Color.accentColor)
             VStack(alignment: .leading, spacing: 4) {
-                Text("常用内容").font(.title2.weight(.semibold))
+                Text("常用内容").font(InterfaceTypography.title)
                 Text("⌘ ⇧ 空格 随时唤出 · Esc 关闭")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(InterfaceTypography.detail).foregroundStyle(.secondary)
             }
             Spacer()
             Button("从剪贴板新建", systemImage: "clipboard") { captureClipboard() }
@@ -155,7 +155,7 @@ struct SnippetLibraryView: View {
                 Spacer()
                 Text("收藏优先")
             }
-            .font(.caption).foregroundStyle(.secondary)
+            .font(InterfaceTypography.detail).foregroundStyle(.secondary)
             .padding(.horizontal, 18).padding(.bottom, 12)
         }
         .frame(width: 290)
@@ -168,13 +168,13 @@ struct SnippetLibraryView: View {
                 Text(snippet.title).font(.system(size: 13, weight: .semibold)).lineLimit(1)
                 Spacer(minLength: 0)
                 if snippet.isFavorite {
-                    Image(systemName: "star.fill").font(.caption).foregroundStyle(.orange)
+                    Image(systemName: "star.fill").font(InterfaceTypography.detail).foregroundStyle(.orange)
                 }
             }
             Text(snippet.fullText.replacingOccurrences(of: "\n", with: " "))
-                .font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                .font(InterfaceTypography.detail).foregroundStyle(.secondary).lineLimit(2)
             if !snippet.group.isEmpty {
-                Text(snippet.group).font(.system(size: 10)).foregroundStyle(.secondary)
+                Text(snippet.group).font(InterfaceTypography.detail).foregroundStyle(.secondary)
             }
         }
         .padding(.vertical, 8)
@@ -262,7 +262,7 @@ struct SnippetLibraryView: View {
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(field.label.isEmpty ? "未命名字段" : field.label)
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(InterfaceTypography.detail).foregroundStyle(.secondary)
                 Text(field.value.isEmpty ? "（空）" : field.value)
                     .font(.system(size: 14)).textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -302,7 +302,7 @@ struct SnippetLibraryView: View {
             Text(model.status).foregroundStyle(.secondary).textSelection(.enabled)
                 .accessibilityLabel("内容库状态：\(model.status)")
         }
-        .font(.caption).frame(maxWidth: .infinity, alignment: .leading)
+        .font(InterfaceTypography.detail).frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 22).padding(.vertical, 11)
     }
 
@@ -353,7 +353,7 @@ private struct SnippetEditorSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             Text(model.items.contains(where: { $0.id == snippet.id }) ? "编辑内容" : "新建内容")
-                .font(.title2.weight(.semibold))
+                .font(InterfaceTypography.title)
             Text("检查文字后保存。字段可单独复制或粘贴。")
                 .font(.callout).foregroundStyle(.secondary)
             ScrollView {
@@ -404,17 +404,17 @@ private struct SnippetEditorSheet: View {
                     }
                     Toggle("作为模板使用", isOn: $snippet.isTemplate)
                     Text("启用后，可在正文和字段中用 {{变量名}} 设置填写项。")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(InterfaceTypography.detail).foregroundStyle(.secondary)
                     Toggle("加入收藏", isOn: $snippet.isFavorite)
                 }
                 .textFieldStyle(.roundedBorder).padding(2)
             }
             if let error = model.error {
                 Label(error, systemImage: "exclamationmark.triangle")
-                    .font(.caption).foregroundStyle(.red).textSelection(.enabled)
+                    .font(InterfaceTypography.detail).foregroundStyle(.red).textSelection(.enabled)
             }
             HStack {
-                Text("仅保存在这台 Mac 上").font(.caption).foregroundStyle(.secondary)
+                Text("仅保存在这台 Mac 上").font(InterfaceTypography.detail).foregroundStyle(.secondary)
                 Spacer()
                 Button("取消") { dismiss() }.keyboardShortcut(.cancelAction)
                 Button("保存内容") {
@@ -450,7 +450,7 @@ private struct TemplateFillSheet: View {
     var body: some View {
         let template = SnippetTemplate(request.text)
         VStack(alignment: .leading, spacing: 16) {
-            Text("填写模板").font(.title2.weight(.semibold))
+            Text("填写模板").font(InterfaceTypography.title)
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     ForEach(template.variables, id: \.self) { name in

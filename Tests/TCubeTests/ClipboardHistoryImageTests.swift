@@ -30,24 +30,29 @@ struct ClipboardHistoryImageTests {
         let outputDirectory = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
             .appendingPathComponent(".build/desktop-clipboard-verification")
         try FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
-        for category in ClipboardHistoryView.Category.allCases {
-            let view = ClipboardHistoryView(model: model, isActive: true, libraryStatus: "", canSave: true,
-                useText: { _, _ in }, useImage: { _, _ in }, saveText: { _ in },
-                category: category, selectedIDs: selectedIDs, selectedImageID: image.id,
-                trimLines: true, collapseBlankLines: true)
-            let hosting = NSHostingView(rootView: view.environment(\.colorScheme, .light))
-            let panel = NSPanel(contentRect: NSRect(x: 100, y: 100, width: 920, height: 680), styleMask: [.titled], backing: .buffered, defer: false)
-            panel.isReleasedWhenClosed = false
-            panel.contentView = hosting
-            panel.orderFrontRegardless()
-            defer { panel.orderOut(nil); panel.contentView = nil }
-            try await Task.sleep(for: .milliseconds(300))
-            hosting.layoutSubtreeIfNeeded()
-            let bitmap = try #require(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
-            hosting.cacheDisplay(in: hosting.bounds, to: bitmap)
-            let data = try #require(bitmap.representation(using: .png, properties: [:]))
-            let filename = category == .text ? "clipboard-text-preview.png" : "clipboard-image-preview.png"
-            try data.write(to: outputDirectory.appendingPathComponent(filename))
+        for (theme, scheme, appearance) in [("light", ColorScheme.light, NSAppearance.Name.aqua),
+                                             ("dark", ColorScheme.dark, NSAppearance.Name.darkAqua)] {
+            for category in ClipboardHistoryView.Category.allCases {
+                let view = ClipboardHistoryView(model: model, isActive: true, libraryStatus: "", canSave: true,
+                    useText: { _, _ in }, useImage: { _, _ in }, saveText: { _ in },
+                    category: category, selectedIDs: selectedIDs, selectedImageID: image.id,
+                    trimLines: true, collapseBlankLines: true)
+                let hosting = NSHostingView(rootView: view.environment(\.colorScheme, scheme))
+                let panel = NSPanel(contentRect: NSRect(x: 100, y: 100, width: 920, height: 680), styleMask: [.titled], backing: .buffered, defer: false)
+                panel.isReleasedWhenClosed = false
+                panel.appearance = NSAppearance(named: appearance)
+                panel.contentView = hosting
+                panel.orderFrontRegardless()
+                defer { panel.orderOut(nil); panel.contentView = nil }
+                try await Task.sleep(for: .milliseconds(300))
+                hosting.layoutSubtreeIfNeeded()
+                let bitmap = try #require(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
+                hosting.cacheDisplay(in: hosting.bounds, to: bitmap)
+                let data = try #require(bitmap.representation(using: .png, properties: [:]))
+                let categoryName = category == .text ? "text" : "image"
+                let filename = theme == "light" ? "clipboard-\(categoryName)-preview.png" : "clipboard-\(categoryName)-dark.png"
+                try data.write(to: outputDirectory.appendingPathComponent(filename))
+            }
         }
         #expect(model.entries.count == 2)
         #expect(model.images.count == 1)

@@ -169,35 +169,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.button?.image = icon
         statusItem.button?.setAccessibilityLabel("T-Cube 菜单")
         statusItem.button?.toolTip = "T-Cube · 桌面立方体启动器"
-        let menu = NSMenu()
+        let menu = StatusMenuLayout.make(target: self, actions: .init(
+            toggleCube: #selector(toggleCube), contentLibrary: #selector(openContentLibrary),
+            clipboardHistory: #selector(openClipboardHistory), pauseClipboard: #selector(pauseClipboardHistory),
+            settings: #selector(openEditor), checkUpdates: #selector(checkUpdates),
+            changeSize: #selector(changeSize(_:)), quit: #selector(quit)),
+            placementMenu: CubePlacementMenu { [weak self] in self?.placeCube(at: $0) })
         menu.delegate = self
-        func item(_ title: String, _ action: Selector, key: String = "") -> NSMenuItem {
-            let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
-            item.target = self; menu.addItem(item); return item
-        }
-        _ = item("隐藏立方体", #selector(toggleCube))
-        _ = item("常用内容…    ⌘⇧Space", #selector(openContentLibrary))
-        _ = item("剪贴板历史…", #selector(openClipboardHistory))
-        _ = item("暂停剪贴板记录", #selector(pauseClipboardHistory))
-        _ = item("设置…", #selector(openEditor), key: ",")
-        _ = item("检查更新…", #selector(checkUpdates))
-        let placement = NSMenuItem(title: "快捷位置", action: nil, keyEquivalent: "")
-        placement.submenu = CubePlacementMenu { [weak self] in self?.placeCube(at: $0) }
-        menu.addItem(placement)
-        menu.addItem(.separator())
-        let size = NSMenuItem(title: "尺寸", action: nil, keyEquivalent: "")
-        let submenu = NSMenu()
-        for (title, scale) in [("迷你", 0.8), ("小巧", 1.0), ("舒适", 1.2)] {
-            let option = NSMenuItem(title: title, action: #selector(changeSize(_:)), keyEquivalent: "")
-            option.target = self
-            option.representedObject = scale
-            submenu.addItem(option)
-        }
-        size.submenu = submenu; menu.addItem(size)
-        let help = NSMenuItem(title: "左键移动 · 右键旋转 · 滚动旋转 · 点击使用入口", action: nil, keyEquivalent: "")
-        menu.addItem(help)
-        menu.addItem(.separator())
-        _ = item("退出 T-Cube", #selector(quit), key: "q")
         statusItem.menu = menu
         brightnessMenu = DisplayBrightnessMenu(menu: menu)
         let mainMenu = NSMenu()
@@ -247,9 +225,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.items.first(where: { $0.action == #selector(openClipboardHistory) })?.title =
             snippetLibrary.history.isEnabled ? "剪贴板历史…（记录中）" : "剪贴板历史…"
         menu.items.first(where: { $0.action == #selector(pauseClipboardHistory) })?.isHidden = !snippetLibrary.history.isEnabled
-        if let options = menu.items.first(where: { $0.title == "尺寸" })?.submenu?.items {
-            for item in options { item.state = (item.representedObject as? Double) == model.configuration.scale ? .on : .off }
-        }
+        StatusMenuLayout.updateSizeSelection(in: menu, scale: model.configuration.scale)
     }
     @objc private func toggleCube() {
         faceExpansion.close()
