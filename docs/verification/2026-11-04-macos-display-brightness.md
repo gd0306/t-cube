@@ -33,4 +33,16 @@ Opening the menu reads current hardware values asynchronously. Closing cancels r
 
 Computer-use native access recovered. The old application was normally quit by selecting its native Quit menu item; subsequent process absence was verified. The previous app plus all four recursive user JSON files were preserved under ignored `build/install-backups/0.21.0/20261104-172804/`, with another data snapshot after quit. Build 39 was staged, signature verified, installed into /Applications/T-Cube.app and started. Built/staged/installed executable hashes match; all four JSON files matched the post-exit snapshot before launch. Installed executable SHA-256: `cecf08474447c320f2e6bf787b1a9d49175c509629a95355de40895a6a2cefb7`.
 
-The recovered desktop channel could inspect the app's edge window and native app menu but did not locate its extra status icon; real status-menu user confirmation is pending. This is separate from automated real NSMenu tracking and the live production hardware write/read/restore above. Exact-source Windows CI, artifact provenance and publication will be recorded after execution.
+The recovered desktop channel could inspect the app's edge window and native app menu but did not locate its extra status icon; an independent click on the installed extra status icon was not captured through this desktop channel. This is separate from automated real NSMenu tracking and the live production hardware write/read/restore above. Exact-source Windows CI, artifact provenance and publication are recorded below.
+
+
+## Remote acceptance and publication
+
+Application source commit: `646bbf13d19201dbeb3ede707c63605949ac9758`.
+
+- [Windows 2022/2025 source verification](https://github.com/gd0306/t-cube/actions/runs/41829136040) passed on both runners at this source.
+- [Windows NSIS build and actual installed application verification](https://github.com/gd0306/t-cube/actions/runs/41829261269) passed at the same source. Downloaded SOURCE_COMMIT.txt matches the full source; the installer hash matches its CI checksum. Source and installer diagnostics each contain 25 native checks and four hidden cycles with zero animations and released compositor hints.
+- A transient TLS failure interrupted the first git push. An installer dispatch made before that ref reached the remote failed checkout and was replaced by the successful exact-source run above; it was not used as a release artifact.
+- macOS DMG SHA-256: `c4d4bfe307c6ba7ade28337afe3b1fe9bef48586896df0045b4b1a30be54bcfc`.
+- Windows installer SHA-256: `b45fc736821746f3e0920ab16b3320b72430e57b960cf925ce42277a3c837602`.
+- [Release v0.21.0](https://github.com/gd0306/t-cube/releases/tag/v0.21.0) is public and latest. Both installers and SHA256SUMS.txt match local byte sizes and uploaded SHA-256 digests. The public checksum download was compared byte for byte. The tag remains on the validated application source; later master changes only record acceptance.
