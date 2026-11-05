@@ -31,11 +31,11 @@
 
 | 平台 | 版本 | 安装包文件 | 适配架构 | 说明与运行要求 |
 | :--- | :--- | :--- | :--- | :--- |
-| **macOS** | `0.22.1` | [T-Cube-0.22.1-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.1/T-Cube-0.22.1-macos-arm64.dmg) | Apple Silicon (arm64) | 需要 macOS 15+ · 采用本地 ad-hoc 签名 |
-| **Windows** | `0.22.1` | [T-Cube-0.22.1-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.1/T-Cube-0.22.1-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · 自带完整运行时 |
+| **macOS** | `0.22.2` | [T-Cube-0.22.2-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.2/T-Cube-0.22.2-macos-arm64.dmg) | Apple Silicon (arm64) | 需要 macOS 15+ · 采用本地 ad-hoc 签名 |
+| **Windows** | `0.22.2` | [T-Cube-0.22.2-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.2/T-Cube-0.22.2-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · 自带完整运行时 |
 
 > [!NOTE]
-> - 查看完整发布说明与 SHA-256 校验和：[GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.1)。
+> - 查看完整发布说明与 SHA-256 校验和：[GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.2)。
 > - Windows 安装包已整合所需环境，无需单独配置 Node.js。
 > - 更新版本前请先正常退出当前运行的应用，原快捷入口与外观配置会自动保留。
 
