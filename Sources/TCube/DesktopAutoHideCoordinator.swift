@@ -15,6 +15,14 @@ final class DesktopAutoHideCoordinator {
     private let clock: () -> TimeInterval
     private let schedulesPolling: Bool
     private let handle: NSPanel
+    private let motionAllowed: @MainActor () -> Bool
+    private var animator: EdgeDockAnimator?
+    private var dockingImage: NSImage?
+    private var transitionGeneration = 0
+    private var captureTimeout: Task<Void, Never>?
+    private var transitionFrame: CGRect?
+    private var transitionCubeFrame: CGRect?
+    private(set) var isTransitioning = false
     private var state = DesktopAutoHideState()
     private var timer: Timer?
     private var observers: [NSObjectProtocol] = []
@@ -35,13 +43,19 @@ final class DesktopAutoHideCoordinator {
          busy: @escaping () -> Bool = { false },
          fullscreen: @escaping @MainActor (CGRect) -> Bool = DesktopFullscreenDetector.isFullscreen,
          clock: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
-         schedulesPolling: Bool = true) {
+         schedulesPolling: Bool = true,
+         motionAllowed: @escaping @MainActor () -> Bool = {
+             !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+         }) {
         self.panel = panel; self.hover = hover; self.settings = settings
         self.screens = screens; self.pointer = pointer; self.busy = busy
         self.physicalScreens = physicalScreens
         self.fullscreen = fullscreen; self.clock = clock; self.schedulesPolling = schedulesPolling
+        self.motionAllowed = motionAllowed
+        panel.animationBehavior = .none
         handle = NSPanel(contentRect: CGRect(x: 0, y: 0, width: 10, height: 56), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         handle.title = "T-Cube · 展开立方体"
+        handle.animationBehavior = .none
         handle.isReleasedWhenClosed = false; handle.isOpaque = false; handle.backgroundColor = .clear
         handle.hasShadow = false; handle.level = .floating; handle.hidesOnDeactivate = false
         handle.collectionBehavior = [.canJoinAllSpaces, .canJoinAllApplications, .fullScreenAuxiliary, .ignoresCycle]
@@ -94,9 +108,93 @@ final class DesktopAutoHideCoordinator {
         let desired = state.update(edgeEnabled: settings.edgeCollapseEnabled, edgeAvailable: frame != nil,
             fullscreen: cachedFullscreen && !occupied, pointerInside: inside, busy: occupied, now: now)
         if desired == .edge, let frame, handle.frame != frame { handle.setFrame(frame, display: true) }
+        if isTransitioning && (!motionAllowed() || frame != transitionFrame || resting != transitionCubeFrame || occupied) {
+            finishImmediately(as: desired)
+            presentation = desired
+            return
+        }
         guard desired != presentation else { return }
+        let previous = presentation
         if desired != .cube { willHide?(); hover.resetHover() }
         presentation = desired
+        if motionAllowed(), let frame, desired != .hidden, previous != .hidden,
+           let surface = panel.contentView as? CubeSurfaceView {
+            transition(to: desired, frame: frame, surface: surface)
+            return
+        }
+        finishImmediately(as: desired)
+    }
+
+    private func transition(to desired: DesktopAutoHideState.Presentation, frame: CGRect, surface: CubeSurfaceView) {
+        guard let panel else { return }
+        transitionGeneration += 1
+        let token = transitionGeneration
+        captureTimeout?.cancel(); captureTimeout = nil
+        transitionFrame = frame
+        transitionCubeFrame = hover.restingFrame
+        isTransitioning = true
+        hover.setPresentationSuspended(true)
+        if desired == .edge, dockingImage == nil {
+            // A lost/failed GPU snapshot must never leave the UI waiting forever.
+            captureTimeout = Task { [weak self] in
+                do { try await Task.sleep(for: .milliseconds(180)) } catch { return }
+                guard let self, self.transitionGeneration == token else { return }
+                self.finishImmediately(as: self.presentation)
+            }
+            surface.captureDockingFrame { [weak self] image in
+                MainActor.assumeIsolated {
+                    guard let self, self.transitionGeneration == token, !self.stopped else { return }
+                    self.captureTimeout?.cancel(); self.captureTimeout = nil
+                    guard let image else { self.finishImmediately(as: desired); return }
+                    self.dockingImage = image
+                    self.animate(to: desired, frame: frame, surface: surface, token: token)
+                }
+            }
+        } else if dockingImage != nil {
+            animate(to: desired, frame: frame, surface: surface, token: token)
+        } else {
+            // A reveal while the initial capture is pending has no visible
+            // movement to reverse: the original cube is still in place.
+            finishImmediately(as: desired)
+        }
+        // Keep the original window alive until its image is available.
+        if desired == .edge && dockingImage == nil { panel.ignoresMouseEvents = false }
+    }
+
+    private func animate(to desired: DesktopAutoHideState.Presentation, frame: CGRect, surface: CubeSurfaceView, token: Int) {
+        guard let panel, let image = dockingImage else { finishImmediately(as: desired); return }
+        let toEdge = desired == .edge
+        if !toEdge {
+            surface.retainDockingFrame(image)
+            panel.alphaValue = 0.01
+            panel.ignoresMouseEvents = true
+            panel.orderFrontRegardless()
+        }
+        handle.alphaValue = 0.01
+        handle.orderFrontRegardless()
+        (handle.contentView as? EdgeRevealView)?.setPresented(false)
+        if animator == nil { animator = EdgeDockAnimator() }
+        animator?.animate(image: image, cube: hover.restingFrame, handle: frame, toEdge: toEdge) { [weak self] in
+            guard let self, self.transitionGeneration == token, !self.stopped else { return }
+            self.settle(as: desired)
+        }
+        if toEdge { panel.orderOut(nil) }
+        didChangePresentation?()
+    }
+
+    private func finishImmediately(as desired: DesktopAutoHideState.Presentation) {
+        transitionGeneration += 1
+        captureTimeout?.cancel(); captureTimeout = nil
+        // Settle the real windows before removing the transition's last frame.
+        settle(as: desired)
+        animator?.cancel()
+    }
+
+    private func settle(as desired: DesktopAutoHideState.Presentation) {
+        guard let panel else { return }
+        isTransitioning = false; transitionFrame = nil; transitionCubeFrame = nil
+        panel.alphaValue = 1; handle.alphaValue = 1
+        hover.setPresentationSuspended(false)
         switch desired {
         case .cube:
             handle.orderOut(nil)
@@ -108,6 +206,7 @@ final class DesktopAutoHideCoordinator {
         case .hidden:
             panel.orderOut(nil); handle.orderOut(nil)
         }
+        if desired != .edge { dockingImage = nil }
         (handle.contentView as? EdgeRevealView)?.setPresented(desired == .edge)
         didChangePresentation?()
     }
@@ -116,6 +215,12 @@ final class DesktopAutoHideCoordinator {
     func reveal() { state.reveal(); configure() }
 
     func stop() {
+        transitionGeneration += 1
+        captureTimeout?.cancel(); captureTimeout = nil
+        animator?.shutdown(); animator = nil
+        dockingImage = nil; isTransitioning = false
+        panel?.alphaValue = 1; panel?.ignoresMouseEvents = false
+        hover.setPresentationSuspended(false)
         stopped = true; timer?.invalidate(); timer = nil
         settings.onChange = nil
         observers.forEach { NSWorkspace.shared.notificationCenter.removeObserver($0) }

@@ -14,6 +14,7 @@ final class CubeHoverController {
     private var controlFrame: NSRect?
     private var lastPointer: NSPoint?
     private var trackingPointer = false
+    private var presentationSuspended = false
     private var modifierTimer: Timer?
     private var entryTimer: Timer?
     private var localMotion: Any?
@@ -43,6 +44,7 @@ final class CubeHoverController {
     }
 
     func pointerChanged(to point: NSPoint) {
+        guard !presentationSuspended else { return }
         guard let window else { return }
         lastPointer = point
         desiredHovered = window.isVisible && window.frame.contains(point)
@@ -50,6 +52,7 @@ final class CubeHoverController {
     }
 
     func modifierFlagsChanged(_ flags: NSEvent.ModifierFlags, at point: NSPoint? = nil) {
+        guard !presentationSuspended else { return }
         if let point { lastPointer = point }
         let held = flags.contains(.control)
         guard held != controlHeld else { return }
@@ -79,6 +82,11 @@ final class CubeHoverController {
         controlHeld = false
         controlFrame = nil
         applyHover()
+    }
+
+    func setPresentationSuspended(_ suspended: Bool) {
+        presentationSuspended = suspended
+        if suspended { cancelPendingEntry() }
     }
 
     func commitMovedFrame(_ frame: NSRect) {
@@ -189,7 +197,7 @@ final class CubeHoverController {
     }
 
     private func applyFrame() {
-        guard let window else { return }
+        guard !presentationSuspended, let window else { return }
         if controlHeld && isHovered {
             if controlFrame == nil {
                 // Preserve the pointer's relative position while shrinking, so

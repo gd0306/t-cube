@@ -144,6 +144,20 @@ final class CubeSurfaceView: NSView {
         else { cubeView.snapshot(saveToHDR: false, completion: completion) }
     }
 
+    /// Captures only this app's renderer, without reading the desktop or asking
+    /// for screen-recording permission. A frozen idle frame needs no GPU work.
+    func captureDockingFrame(_ completion: @escaping (NSImage?) -> Void) {
+        if hasFrozenFrame { completion(frozenImage.image) }
+        else { captureFrame(completion) }
+    }
+
+    func retainDockingFrame(_ image: NSImage) {
+        invalidatePresentation()
+        frozenImage.frame = bounds
+        frozenImage.image = image
+        frozenImage.isHidden = false
+    }
+
     private func freezeStaticFrame() {
         guard !preparingTheme, !snapshotPending, cubeView.superview === self, window?.isVisible == true else { return }
         snapshotGeneration += 1

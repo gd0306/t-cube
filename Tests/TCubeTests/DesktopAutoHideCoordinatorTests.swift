@@ -118,7 +118,8 @@ struct DesktopAutoHideCoordinatorTests {
         defer { UserDefaults(suiteName: folder.lastPathComponent)?.removePersistentDomain(forName: folder.lastPathComponent) }
         var now = 0.0
         let coordinator = DesktopAutoHideCoordinator(panel: panel, hover: hover, settings: settings, screens: { [area] },
-            pointer: { CGPoint(x: area.maxX - 100, y: area.minY + 100) }, fullscreen: { _ in false }, clock: { now }, schedulesPolling: false)
+            pointer: { CGPoint(x: area.maxX - 100, y: area.minY + 100) }, fullscreen: { _ in false }, clock: { now }, schedulesPolling: false,
+            motionAllowed: { false })
         defer { coordinator.stop() }
         coordinator.didChangePresentation = { surface.synchronizeRenderingVisibility() }
         coordinator.start(); settings.setEdgeCollapse(true)
