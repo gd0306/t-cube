@@ -15,3 +15,15 @@ test('native Windows enumeration runs read-only in Electron-as-Node process', { 
         assert.equal(result.status, 'listed');
     } finally { await rm(directory, { recursive: true, force: true }); }
 });
+
+// The installer check supplies its own executable; this never starts the desktop
+// application or sends Set, and resolves the worker/dependencies from the install.
+test('installed Windows display worker runs read-only from installed resources', {
+    skip: process.platform !== 'win32' || !process.env.TCUBE_SMOKE_EXECUTABLE,
+    timeout: 60000
+}, async () => {
+    const executable = process.env.TCUBE_SMOKE_EXECUTABLE!;
+    const worker = path.join(path.dirname(executable), 'resources', 'app', 'dist', 'display-input-worker.cjs');
+    const result = await runDisplayInputProcess(worker, { kind: 'list' }, 30000, executable).result;
+    assert.equal(result.status, 'listed');
+});

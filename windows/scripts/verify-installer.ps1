@@ -17,6 +17,8 @@ if (-not (Test-Path (Join-Path $destination 'resources/app/node_modules/koffi'))
 Push-Location $source
 try {
     $env:TCUBE_SMOKE_EXECUTABLE = $executable
+    & node.exe --import tsx --test --test-name-pattern 'installed Windows display worker' tests/display-input-native.test.ts
+    if ($LASTEXITCODE -ne 0) { throw 'Installed native display worker verification failed.' }
     & npm.cmd run smoke
     if ($LASTEXITCODE -ne 0) { throw 'Installed runtime smoke checks failed.' }
     $checksum = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant()

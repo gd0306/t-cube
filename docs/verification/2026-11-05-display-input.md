@@ -47,4 +47,8 @@ These native/renderer captures use isolated sample states, not the maintainer's 
 
 ## Remote verification
 
-Local implementation and review are complete. Windows native CI and installer execution are the remaining acceptance steps for the release candidate; their results will be recorded after the workflows finish.
+Final whole-branch review found no Critical or Important issues. Its minor Windows recovery-guidance finding is addressed in the platform guide: fully quit and restart T-Cube after repairing a latched corrupt-file error.
+
+[Windows native source CI](https://github.com/gd0306/t-cube/actions/runs/42013778292) passed on windows-2022 and windows-2025 at candidate `a8ac5d430d701452a5b664699488845c0b658b28`: typecheck,255 tests passed/1 skipped on Windows, build, isolated source installation and installed application smoke. The actual read-only native worker enumeration test ran successfully in Electron-as-Node on Windows. This exercises DLL/child startup and enumeration, not physical Set or compatibility with every monitor.
+
+[Windows installer workflow](https://github.com/gd0306/t-cube/actions/runs/42014023037) passed the NSIS build and actual installed application verification. Its workflow definition ran from master; the checked-out and packaged source is proven by artifact `SOURCE_COMMIT.txt`, which matches the candidate SHA above. The downloaded installer hash matches its workflow-generated SHA256 file. The final documentation-only changes do not alter the packaged executable code. Windows maintainer-PC installed-client hardware acceptance is still not claimed; user protocol probes and hosted native/installer checks are separate evidence.
