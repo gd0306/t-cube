@@ -1,20 +1,49 @@
-# T-Cube
+<p align="center">
+  <img src="docs/images/app-icon.png" width="96" height="96" alt="T-Cube Logo">
+</p>
 
-[English](README.md) | **简体中文**
+<h1 align="center">T-Cube</h1>
 
-把常用 App、文件和网页放进一个悬浮在桌面的通透玻璃体。滚动切换六组入口，悬停显示图标，点击打开。
+<p align="center">
+  <strong>悬浮在桌面上的通透 3D 玻璃启动器</strong><br>
+  将常用 App、文件夹、文件、网页链接与系统控制收纳进轻盈圆润的立方体中。<br>
+  滚动旋转、悬停探视、轻点即刻启动。
+</p>
 
-**macOS 15+（原生 Swift） · Windows 10/11（Electron + Three.js）**
+<p align="center">
+  <a href="https://github.com/gd0306/t-cube/releases/latest"><img src="https://img.shields.io/github/v/release/gd0306/t-cube?color=brightgreen&label=release" alt="最新版本"></a>
+  <a href="https://developer.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-15%2B%20%7C%20Swift%206-FF5722.svg?logo=apple&logoColor=white" alt="macOS 15+"></a>
+  <a href="https://www.microsoft.com/windows/"><img src="https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4.svg?logo=windows&logoColor=white" alt="Windows 10/11"></a>
+  <a href="https://developer.apple.com/augmented-reality/realitykit/"><img src="https://img.shields.io/badge/渲染引擎-RealityKit%20%2F%20Three.js-8A2BE2.svg" alt="RealityKit & Three.js"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/开源协议-MIT-blue.svg" alt="License"></a>
+  <a href="https://github.com/gd0306/t-cube/stargazers"><img src="https://img.shields.io/github/stars/gd0306/t-cube?style=flat&color=3388ff" alt="Stars"></a>
+</p>
+
+<p align="center">
+  <a href="README.md">English</a> · <strong>简体中文</strong>
+</p>
+
+---
 
 ## 下载安装包
 
-macOS **0.21.0** · Windows **0.21.0**：[macOS Apple Silicon（.dmg）](https://github.com/gd0306/t-cube/releases/download/v0.21.0/T-Cube-0.21.0-macos-arm64.dmg) · [Windows x64 安装程序（.exe）](https://github.com/gd0306/t-cube/releases/download/v0.21.0/T-Cube-0.21.0-windows-x64-setup.exe) · [发布说明与 SHA-256 校验](https://github.com/gd0306/t-cube/releases/tag/v0.21.0)。
+正式发布的稳定版本安装包如下：
 
-Windows 安装包自带运行时，无需安装 Node.js。更新前先退出旧版，原有入口配置会保留。当前 macOS 使用本地签名、未公证，Windows 安装程序未做 Authenticode 签名。
+| 平台 | 版本 | 安装包文件 | 适配架构 | 说明与运行要求 |
+| :--- | :--- | :--- | :--- | :--- |
+| **macOS** | `0.21.0` | [T-Cube-0.21.0-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.21.0/T-Cube-0.21.0-macos-arm64.dmg) | Apple Silicon (arm64) | 需要 macOS 15+ · 采用本地 ad-hoc 签名 |
+| **Windows** | `0.21.0` | [T-Cube-0.21.0-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.21.0/T-Cube-0.21.0-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · 自带完整运行时 |
+
+> [!NOTE]
+> - 查看完整发布说明与 SHA-256 校验和：[GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.21.0)。
+> - Windows 安装包已整合所需环境，无需单独配置 Node.js。
+> - master 主分支源码已包含 macOS `0.21.1` 的界面模块化整理。更新版本前请先正常退出当前运行的应用，原快捷入口与外观配置会自动保留。
+
+---
 
 ## 效果预览
 
-玻璃外壳、反光与光晕更轻，让桌面背景清晰透出。悬停后，图标沿曲面显示。
+通透轻盈的玻璃材质，让桌面背景自然透出；鼠标移入即刻唤醒，应用图标沿曲面优雅展示。
 
 <p align="center">
   <img src="docs/images/cube-hover.png" width="760" alt="深石墨色背景下的 T-Cube，圆润透明玻璃体周围展示应用图标">
@@ -22,164 +51,191 @@ Windows 安装包自带运行时，无需安装 Node.js。更新前先退出旧�
 
 <table>
   <tr>
-    <td align="center"><strong>安静的静置状态</strong><br><img src="docs/images/cube-idle.png" width="370" alt="静置时隐藏图标，保留连续弧面轮廓与轻微内部光丝"></td>
-    <td align="center"><strong>极光流体</strong><br><img src="docs/images/cube-aurora.png" width="370" alt="极光流体材质，背景、视角和比例与其他预览一致"></td>
+    <td align="center">
+      <strong>安静的静置状态</strong><br>
+      <img src="docs/images/cube-idle.png" width="370" alt="静置时隐藏图标，保留连续弧面轮廓与轻微内部光丝">
+    </td>
+    <td align="center">
+      <strong>极光流体材质</strong><br>
+      <img src="docs/images/cube-aurora.png" width="370" alt="极光流体材质，背景、视角和比例与其他预览一致">
+    </td>
   </tr>
 </table>
 
 <details>
-<summary>查看自动旋转与悬停暂停</summary>
-<p align="center"><img src="docs/images/cube-motion.gif" width="760" alt="静置时自动旋转，悬停暂停并显示图标，移出后继续旋转"></p>
+<summary><strong>查看空闲自转与悬停响应动画</strong></summary>
+<p align="center">
+  <img src="docs/images/cube-motion.gif" width="760" alt="静置时自动旋转，悬停暂停并显示图标，移出后继续旋转">
+</p>
 </details>
 
-以上为应用自身的原生渲染，使用系统示例图标并放大展示细节。所有预览统一使用深石墨色背景、相机角度和画面尺寸。
+*以上预览均来自应用的原生渲染并放大展示细节，采用统一的深石墨色背景、相机角度与画面尺寸。*
 
-## 主要功能
+---
 
-- **轻薄通透的玻璃外观**：圆角、平缓弧面和柔和反光，图标清晰地贴合表面。
-- **六组入口，每组四个快捷方式**：支持本地 App、文件夹、单个文件、网页与系统设置页面，空位留白，点击区域与曲面图标一致。
-- **自由旋转与移动**：双向滚动旋转，悬停时滚哪停哪；左键拖动位置，右键拖动旋转。
-- **快捷放置**：从状态栏菜单或「外观 → 快捷位置」一键移到所在屏幕四角或正中央，立即保存，避开菜单栏、Dock 或任务栏。
-- **空闲自动旋转**：缓慢、平滑地变换方向；移入立即停转，移出继续。在「外观 → 动态旋转」可关闭；系统开启「减少动态效果」时自动暂停。
-- **悬停放大**：移入自动放大、移出恢复，倍率可调为 1.1×～4×。
-- **两种打开方式**：先展开面板选择图标，或直接点击立方体面上的图标打开。
-- **个性化玻璃**：主题预设、自定义双色渐变、玻璃材质，以及 10 秒／20 秒主题轮换。
-- **双端玻璃／史莱姆材质**：所有主题都能搭配任一材质。史莱姆随鼠标牵引并弹性回弹，图标保持稳定；默认仍为玻璃。
-- **状态栏常驻**：设置、显示、隐藏与退出集中管理，不占 Dock；光效支持系统「减少动态效果」。
+## 核心功能
 
-## 内存与资源优化（0.17.1）
+### 🧊 3D 拟真质感与物理动效
+- **通透玻璃与史莱姆材质**：圆角曲面与柔和反光。在 macOS 26+ 上自动启用原生 Clear Liquid Glass（早期支持系统自动回退为磨砂玻璃）。也可随时切换为**史莱姆（Slime）**弹性果冻材质，随鼠标轻微形变牵引并弹润回弹，而表面图标始终稳定清晰。
+- **平滑自如的空闲漫游**：静置时以优美平缓的轨迹变换姿态；鼠标移入瞬间静止并显现图标，移出平滑恢复。支持在「外观 → 动态旋转」中关闭，系统开启「减少动态效果」时自动暂停。
+- **平滑悬停放大**：鼠标进入自动平滑放大（支持在 1.1×～4.0× 自由调节），移出即恢复静置尺寸。
+- **丰富的主题与流动光效**：提供 9 款精心调配的预设主题、自定义双色渐变玻璃，并支持 10 秒／20 秒自动主题轮换（轮换过渡时间约 0.4 秒，顺畅无闪烁）。
 
-减少重复刷新入口、切换主题时的图形资源分配；空面不再创建图标贴图，Windows 应用选择器限制图标缓存。受控压力测试和适用范围见 [内存优化验证](docs/verification/2026-10-30-memory-resources.md)。
+### ⚡ 六面多功能快捷启动器
+- **24 个快捷槽位**：6 个面，每面容纳 4 个独立入口。空位保持通透留白，点击感应区域与曲面图标精密对齐。
+- **多样化入口类型**：支持本地应用程序（App）、文件夹、独立文件（以系统默认应用打开）、HTTP/HTTPS 网页（以默认浏览器打开）以及 macOS 系统设置页面。
+- **网页标题实时绘制**：网页入口可直接在图标下方呈现自定义网页标题（长标题单行省略，悬停查看完整标题），完全本地绘制，无需额外请求网络 Favicon。
+- **双重打开模式**：支持“点击面展开 4 图标面板后再挑选”，或直接在立方体表面“点击图标直接启动”。
 
-## 快捷入口扩展
+<p align="center">
+  <img src="docs/images/website-titles-expanded.png" width="220" alt="网页图标下方展示标题：简短中文、长标题省略号及 Emoji">
+</p>
 
-在入口编辑中选择应用、文件夹、单个文件、HTTP/HTTPS 网页或预设的系统设置页面。文件用默认应用打开，网页用默认浏览器打开；系统设置从列表选择。旧入口与配置继续保留。
+### 🖥️ 桌面人机工程与硬件级显示控制
+- **贴边自动收起**：当立方体靠近屏幕左右外侧边缘（约 32 像素内），鼠标离开约 0.8 秒后自动收缩为 10×56 的高通透微光玻璃条；鼠标靠近悬停即刻恢复，不改变已保存的停靠坐标。
+- **全屏智能避让**：所在屏幕运行全屏应用程序时自动隐藏，并完全暂停 3D 渲染，消除背景能耗。
+- **屏幕快捷放置**：通过状态栏菜单或「外观 → 快捷位置」一键将立方体精准吸附到所在屏幕的四角或正中央，自动避让 Dock、菜单栏和任务栏区域。
+- **macOS 显示器独立亮度控制**：点击菜单栏立方体图标即可独立调节每块屏幕的实际亮度。原生支持 Apple 内建屏幕及通过 Apple Silicon DDC/CI 硬件协议控制外接显示器背光。不需要辅助功能、屏幕录制等额外高风险权限，杜绝软件遮罩蒙层。
 
-## macOS 显示器亮度（0.21.0）
+### 📋 高效生产力：本地剪贴板与常用模板
+- **纯内存会话级剪贴板**：文字与图片历史仅保存在当前运行内存中，退出应用立即彻底销毁，绝不落盘、不进备份、不联网上传。
+  - **文本历史**：上限 100 条（单条 64 KiB，总计 2 MiB 限制）。支持多选、按顺序合并、批量清理首尾空格、压缩连续空行，预览无误后复制或粘贴。
+  - **图片历史**：保留最近 10 张图片（单张 8 MiB PNG，总计 32 MiB，最高支持 1600 万像素），提供安全缩略图与自适应预览。
+- **常用内容库与动态模板**：通过菜单栏／托盘或全局快捷键（macOS `⌘⇧Space`，Windows `Ctrl+Shift+Space`）调出。支持分组管理与常用收藏。在内容中启用「作为模板使用」并嵌入 `{{客户姓名}}` 等动态占位符，一处填入即可自动完成全文变量替换与预览。
+- **焦点感知自动粘贴**：获得系统辅助功能授权后，可一键激活并自动粘贴至唤出前的工作窗口。
 
-点击菜单栏立方体图标，在「显示器亮度」中分别调节每块屏幕。打开菜单时读取实际亮度；内建／受支持的 Apple 显示器使用原生接口，受支持的 Apple Silicon 外接屏通过 DDC/CI 调节硬件背光。无法控制的屏幕显示原因并禁用滑杆；部分显示器需要先在自身菜单启用 DDC/CI，某些转接器、HDMI 通道和虚拟显示器不提供硬件控制。不使用软件遮罩模拟亮度。
+### ⚙️ 极佳性能与低功耗架构
+- **静置低功耗模式**：立方体静置时自动暂停 3D 渲染管线与光效循环（macOS 默认开启），大幅节省能耗。
+- **纹理按需复用**：未更改的图标纹理跨刷新复用，空白面不分配多余图集显存，Windows 应用选择器对图标缓存进行严格上限保护。
+- **模块化设置界面**：外观、桌面与性能、入口分组、配置备份与生命周期分区管理，操作即时保存生效。
+- **轻量版本更新提醒**：支持匿名每 6 小时检查 GitHub Releases 稳定版本（默认关闭，需用户主动开启），提供 1 分钟防刷冷却，一键跳转发布页。
 
-拖动时合并并限速发送指令，写入后读取硬件确认，关闭菜单后不后台轮询。再次打开会读取在别处改动后的值，插拔屏幕会使旧请求失效。不需要另装工具、管理员、辅助功能或屏幕录制权限；仅支持设备本身提供的控制通道。本次不包含音量控制，Windows 0.21.0 功能保持原样。
+---
 
-## 贴边玻璃收起条（0.20.2）
+## 快捷操作速查
 
-收起条跟随系统浅／深色外观：浅色是带轻微白色调的透明玻璃，深色是带轻微深空黑色调的透明玻璃；后方桌面能够透出，不用实心白色／灰黑色填满条体。内部有缓慢、低亮度流光。反光贯穿整条，亮部缓慢游走，上下两端始终保留柔和过渡，避免中间亮、两端黑。系统采用自动外观时随系统切换，不按应用内自定义钟点切换。命中范围仍为 10×56，外侧窄条保持原位置及展开手势，立方体本体主题不变。
+| 操作手势 | 触发交互与效果 |
+| :--- | :--- |
+| **鼠标悬停 / 移出** | 显示 / 隐藏表面图标；暂停 / 恢复空闲漫游旋转 |
+| **触控板双指滑动** | 水平 / 垂直旋转立方体（松手即停，不强制对齐角度） |
+| **鼠标滚轮 / Shift + 滚轮** | 垂直 / 水平旋转 |
+| **鼠标左键拖动** | 移动立方体在屏幕上的悬浮位置并即刻保存 |
+| **鼠标右键拖动** | 自由 3D 旋转视角；松开右键即保留当前角度 |
+| **在立方体上方按住 `Ctrl`** | 临时恢复为原始静置尺寸 |
+| **`Ctrl` + 鼠标左键拖动** | 以原始静置尺寸拖动移动（拖拽中途松开 `Ctrl` 也不会突变） |
+| **点击展开面板外部 / `Esc`** | 关闭已展开的 4 图标面板 |
+| **右键单击 / 状态栏图标** | 打开设置面板 |
 
-流光仅在收起条可见时运行，隐藏后停止；系统减少动态效果、减少透明度时使用静态效果，macOS 低电量模式同样暂停流光。macOS 使用原生背景材质；Windows 使用磨砂玻璃视觉样式，不声称对桌面背景做原生模糊。动画使用小面积合成层，不恢复立方体 3D 绘制，也不增加逐帧脚本或计时器。
+---
 
-## 桌面自动收起与剪贴板工具（0.20.0）
+## 快速配置上手
 
-「外观」中新增两个独立开关，默认关闭：贴近屏幕左右边缘时收起、全屏应用中自动隐藏。立方体靠近外侧边缘并移出鼠标约 0.8 秒后变成窄条，靠近即可展开；屏幕中间保持原样。拖动、使用展开面板或设置时保护当前操作。全屏隐藏只影响立方体所在屏幕，退出全屏后恢复；手动隐藏不会被自动恢复。收起不修改已保存的位置，并暂停 3D 绘制。
+首次启动应用时会自动打开设置窗口，后续也可通过右键单击立方体或点击状态栏图标进入：
 
-从菜单栏／托盘「剪贴板历史」或常用内容窗口顶部标签进入，启用记录后捕获新复制内容；每次启动默认暂停，启用／恢复不会读取已有剪贴板。文字和图片分类显示，均只保存在本次运行的内存中，退出即清除，不进入备份或导出。
+1. **配置快捷入口**：在「立方体入口」中为各个面分配应用、文件夹、文件、网页或系统设置。支持从 Finder / 资源管理器直接拖入。
+2. **个性化外观**：在「外观」中自由挑选材质（**玻璃**或**史莱姆**）、色彩主题、悬停放大倍率以及主题轮换间隔，点击「应用设置」保存。
+3. **选择启动行为**：在「打开方式」中根据偏好开启或关闭「点击面展开放大」（关闭后点击立方体图标将直接启动对应项目）。
+4. **桌面停靠与避让**：在「桌面与性能」中开启「贴边自动收起」与「全屏时自动隐藏」，或使用「快捷位置」将立方体一键停靠至屏幕四角或正中央。
 
-文字最多 100 条，每条 64 KiB，总计 2 MiB。支持搜索、多选、按列表顺序合并、逐行清理首尾空白、合并连续空行，先预览再复制／粘贴或存为常用内容；合并输出也限制为 64 KiB，原记录保持不变。
+---
 
-图片最多保留最近 10 张，支持缩略图、预览、去重、复制、检查原输入位置后的粘贴与分类清空。单张 PNG 最多 8 MiB，总计最多 32 MiB，最多 1600 万像素；容量先到上限时会淘汰旧图。macOS 原生 PNG/TIFF 输入也限制为 8 MiB，较大的 TIFF 截图会提示跳过。图片处理串行执行，列表使用小缩略图，选中时才生成有限尺寸预览。系统读取原始剪贴板数据时仍可能出现短暂内存峰值，这些上限针对接收、处理及保留的数据，不代表整个应用内存上限。
+## 源码构建指南
 
-会尽力跳过文件复制及带敏感、临时或排除标记的内容，但无法识别所有敏感信息；可随时暂停、删除或清空。本版不含历史持久化或云同步。
+### macOS（原生 Swift 6）
 
-## 版本提醒（0.19.0）
-
-在「设置 → 启动与更新」中可手动检查，或开启「自动检查新版本（仅提醒）」。自动检查默认关闭；开启后每 6 小时匿名读取 GitHub 最新稳定版，同一版本只自动提醒一次，重启后保留频率限制。手动检查至少间隔 1 分钟。无需配置证书、公钥或 Token，只需能够访问 GitHub API；网络异常或限流会显示状态并等待重试。提醒仅提供发布页，下载和安装由用户手动完成。
-
-## 网页标题（0.18.1）
-
-网页图标下方直接显示添加时填写的标题，立方体和展开面板均支持。长标题单行省略，悬停可查看完整标题；点击标题与点击图标使用相同的打开／展开设置。标题跟随图标旋转和缩放，直接在现有贴图中绘制，无需联网获取图标，也无需重新添加已有网页。
-
-<img src="docs/images/website-titles-expanded.png" width="220" alt="Website titles beneath the icons: short Chinese names, a truncated long title and Emoji">
-
-## 常用内容模板
-
-编辑内容时启用「作为模板使用」，在正文或字段中用 `{{客户姓名}}` 等占位符创建模板；复制或粘贴时填写变量并预览，同名变量只需填写一次。已有内容默认不启用模板，保持原样复制。
-
-## 办公与性能功能（0.17.1）
-
-双端均提供常用内容库（Windows 使用 `Ctrl+Shift+Space`）：通过菜单栏／托盘「常用内容」或快捷键打开（macOS `⌘⇧Space`，Windows `Ctrl+Shift+Space`），支持分组、收藏、搜索、整段与字段复制，以及授权后的原输入框粘贴。
-
-设置页新增「配置与备份」和「启动与更新」。可预览导入、自动保留导入前备份、手动备份或恢复，并重新关联失效入口。悬停延迟可调；多屏位置独立记忆，断开显示器时回到可见区域。macOS 默认开启静置省电，Windows 默认关闭；可在性能设置中选择。开启时暂停静置旋转和流动光效；鼠标交互后恢复。设置中关闭省电可保留持续动画。Windows 加深玻璃底色和轮廓，改善白底可见度；默认开启单击面展开。主题轮换采用约 0.4 秒柔和过渡，立方体上移除常用内容按钮，保留菜单栏／托盘与快捷键入口。
-
-开机启动通过系统登录项管理，默认不主动注册。已接入 Sparkle 签名更新和 Developer ID/公证构建流程；启用正式更新需要发布者配置 EdDSA 公钥、匹配的签名私钥与发布源。未配置公钥的构建停用应用内下载安装，但可使用轻量版本提醒。详见 [签名与更新发布指南](docs/updates/RELEASE-GUIDE.md)。Windows 同样支持开机启动设置，签名更新说明见 [Windows 指南](docs/windows-signing-updates.md)。
-
-<img src="docs/images/windows-office-library.png" width="760" alt="Windows 常用内容与独立字段复制粘贴">
-
-## Windows 源码安装
-
-Windows 10 22H2 / Windows 11（x64）使用独立客户端，支持同样的六组入口、曲面图标、玻璃／史莱姆材质与共享主题、悬停放大、拖动、旋转与托盘设置。添加应用时可直接搜索、选择已安装应用，便携程序可浏览文件添加。可使用上方安装包，也可按 [Windows 指南](windows/README.md) 从源码安装。上面的效果图来自 macOS 原生版。
-
-给本地 AI agent 的简短提示词：
-
-```text
-在 Windows 上安装 https://github.com/gd0306/t-cube 的 master 分支。按 windows/README.md 准备 Node.js 22 LTS，运行 windows/scripts/install.ps1。先退出旧版、保留配置，创建快捷方式并启动；报告自测结果。
-```
-
-## macOS 安装与运行
-
-当前源码版本为 **0.21.0**，使用 **master** 分支；安装包版本见上方下载链接。
-
-运行需要 macOS 15+；源码构建需要完整 Xcode、Swift 6 和 **macOS 27 SDK**。当前本地打包产物面向 Apple Silicon，使用 ad-hoc 签名，尚未公证。
+- **运行要求**：macOS 15+
+- **构建环境**：完整 Xcode、Swift 6 及 macOS 27 SDK。
+- **目标架构**：Apple Silicon (arm64)。
 
 ```bash
+# 克隆仓库源码
 git clone --branch master https://github.com/gd0306/t-cube.git
 cd t-cube
+
+# 编译并运行原生应用
 bash scripts/build-app.sh
 open build/T-Cube.app
+
+# （可选）打包拖拽式 DMG 安装镜像
+bash scripts/build-dmg.sh
+open build/T-Cube-0.21.1.dmg
 ```
 
-需要自行构建拖拽安装包时，运行 `bash scripts/build-dmg.sh`，打开 `build/T-Cube-0.21.0.dmg`，将应用拖入 **Applications**。更新前先退出旧版，保留原配置。构建产物通过 Releases 分发；系统安全授权由用户确认。
+### Windows（Electron + Three.js）
 
-### 让 agent 帮忙安装
+- **运行要求**：Windows 10 (22H2) 或 Windows 11，x64。
+- **构建环境**：Node.js 22 LTS 或更高版本、Git 与 PowerShell。
 
-复制这段提示词给支持终端操作的 agent：
+```powershell
+# 克隆仓库源码
+git clone --branch master https://github.com/gd0306/t-cube.git
+cd t-cube
+
+# 执行自动化安装脚本（自动构建并安装至 %LOCALAPPDATA%\T-Cube）
+powershell -NoProfile -ExecutionPolicy Bypass -File windows/scripts/install.ps1
+```
+
+更多关于 Windows 客户端开发调试与 NSIS 安装包打包细节，请查阅 [Windows 开发指南](windows/README.md)。
+
+### 让本地 AI Agent 协助安装
+
+若使用具备终端执行权限的本地 AI Agent，可直接复制以下指令完成部署：
+
+<details>
+<summary><strong>macOS Agent 安装提示词</strong></summary>
 
 ```text
 帮我安装 T-Cube：https://github.com/gd0306/t-cube，使用 master 分支。按 README 构建、安装到 /Applications 并打开。先退出旧版并保留配置；缺少 Xcode/SDK 或需要系统安全授权时告诉我。
 ```
+</details>
 
-## macOS 配置与操作
+<details>
+<summary><strong>Windows Agent 安装提示词</strong></summary>
 
-首次运行会打开设置，也可右键单击立方体或从状态栏进入。
+```text
+在这台 Windows 上安装 https://github.com/gd0306/t-cube 的 master 分支。按 windows/README.md 准备 Node.js 22 LTS，执行 windows/scripts/install.ps1。先退出旧版、保留配置，创建快捷方式并启动；检查失败时告诉我原因。
+```
+</details>
 
-1. 在「立方体入口」为六个面添加应用、文件夹、文件、网页或系统设置，也可从 Finder 拖入本地目标。
-2. 在「外观」选择主题、材质、轮换与悬停大小，点击「应用设置」保存。
-3. 想直接打开图标：在「打开方式」关闭「点击面展开放大」，再点击「应用设置」保存。空白和空槽不触发操作。
-4. 从状态栏菜单或「外观 → 快捷位置」选择四角或正中央，立即生效并保存。
+---
 
-体验果冻效果：在「外观 → 材质」选择「史莱姆」，再点击「应用设置」。主题、自定义配色与自动轮换同时适用于两种材质；切换主题不会改变所选材质。选择「玻璃」可恢复原来的刚性外壳。
+## 本地数据与隐私
 
-| 操作 | 效果 |
-| --- | --- |
-| 鼠标移入／移出 | 显示／隐藏图标；自动旋转开启时暂停／继续旋转 |
-| 触控板双指左右／上下滑动 | 沿对应方向旋转，停止后保持姿态 |
-| 鼠标滚轮／Shift＋滚轮 | 上下／左右旋转 |
-| 左键拖动 | 移动悬浮位置并保存 |
-| 右键拖动 | 自由旋转立方体，松手保留当前角度 |
-| 鼠标在立方体内时按住 Ctrl | 临时恢复静置大小 |
-| Ctrl＋左键拖动 | 按原大小移动，中途松开 Ctrl 也不跳变 |
-| 展开后点击外部区域／Esc | 收起图标面板 |
-| 右键单击 | 打开设置 |
+- **macOS 数据路径**：`~/Library/Application Support/T-Cube/configuration.json`
+- **Windows 数据路径**：`%APPDATA%\T-Cube\configuration.json` 与 `%APPDATA%\T-Cube\applications`
 
-展开面板只显示四个图标；macOS 26+ 使用 Clear Liquid Glass，旧系统使用毛玻璃。设置页底部或状态栏菜单均可彻底退出应用。
+配置文件保存快捷入口、外观材质偏好、交互调优参数及窗口屏幕坐标。删除启动入口绝不会删除目标原始文件或应用程序。若配置文件损坏，系统会保留损坏文件以便恢复，绝不会静默用默认配置覆盖你的宝贵数据。
 
-## macOS 本地数据
+T-Cube 恪守完全离线原则：零数据收集、零遥测埋点、无云端同步，剪贴板仅在内存中留存。
 
-配置保存在 `~/Library/Application Support/T-Cube/configuration.json`，包含入口、外观、交互偏好和窗口位置。移除快捷方式不会删除目标应用、文件或文件夹；配置损坏时会保留原文件，避免默认配置覆盖数据。
+---
 
 ## 开发与验证
 
+本地测试与验证命令：
+
 ```bash
+# 运行单元测试与核心行为验证
 swift test --scratch-path .build/tests
+
+# 编译 Debug 调试包
 bash scripts/build-app.sh --debug
-bash scripts/verify-dmg.sh  # 构建 DMG 后执行
+
+# 校验 DMG 签名、文件结构与安装链接
+bash scripts/verify-dmg.sh
+
+# 检查代码格式与空白符
 git diff --check
 ```
 
-重新生成原生效果图，包括统一风格的 `readme-*` 图集：
+重新生成原生高分辨率效果图：
 
 ```bash
 env TCUBE_RENDER_PREVIEWS=1 swift test --scratch-path .build/tests --filter 'GlassRenderPreviewTests|IconEdgeRenderingTests'
 ```
 
-输出位于 `.build/glass-previews/`，使用独立临时配置，不改动用户数据。多背景透明度验证、图标边缘检查与 README 展示图分别生成。
+- `Sources/CubeCore`：独立于 UI 框架的跨平台核心逻辑，负责几何计算、配置解析、命中测试、旋转状态与主题引擎。
+- `Sources/TCube`：macOS 原生宿主应用，包含 RealityKit 3D 渲染、浮动窗口、DDC/CI 显示器亮度控制与 SwiftUI 设置面板。
+- `windows/src/`：Windows 客户端，基于 Electron 主进程、Win32 原生桥接及 Three.js 渲染管线。
 
-`Sources/CubeCore` 管理配置、几何与命中逻辑；`Sources/TCube` 管理窗口、渲染与原生界面。贡献约定见 [AGENTS.md](AGENTS.md)，检查结果与限制见 [验证记录](docs/verification/)。
+开发规范详见 [AGENTS.md](AGENTS.md)，各项测试记录与硬件边界详见 [验证记录](docs/verification/)。

@@ -1,16 +1,45 @@
-# T-Cube
+<p align="center">
+  <img src="docs/images/app-icon.png" width="96" height="96" alt="T-Cube Logo">
+</p>
 
-**English** | [简体中文](README-CN.md)
+<h1 align="center">T-Cube</h1>
 
-A transparent glass launcher that floats on your desktop. Keep favorite apps, files and web links in one softly rounded shape. Scroll to turn it, hover to reveal your icons, and click to launch.
+<p align="center">
+  <strong>A transparent 3D glass launcher that floats on your desktop.</strong><br>
+  Keep your favorite apps, folders, files, websites, and system controls in one softly rounded shape.<br>
+  Scroll to turn, hover to reveal, and click to launch.
+</p>
 
-**macOS 15+ (native Swift) · Windows 10/11 (Electron + Three.js)**
+<p align="center">
+  <a href="https://github.com/gd0306/t-cube/releases/latest"><img src="https://img.shields.io/github/v/release/gd0306/t-cube?color=brightgreen&label=release" alt="Latest Release"></a>
+  <a href="https://developer.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-15%2B%20%7C%20Swift%206-FF5722.svg?logo=apple&logoColor=white" alt="macOS 15+"></a>
+  <a href="https://www.microsoft.com/windows/"><img src="https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4.svg?logo=windows&logoColor=white" alt="Windows 10/11"></a>
+  <a href="https://developer.apple.com/augmented-reality/realitykit/"><img src="https://img.shields.io/badge/Rendering-RealityKit%20%2F%20Three.js-8A2BE2.svg" alt="RealityKit & Three.js"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"></a>
+  <a href="https://github.com/gd0306/t-cube/stargazers"><img src="https://img.shields.io/github/stars/gd0306/t-cube?style=flat&color=3388ff" alt="Stars"></a>
+</p>
 
-## Download installers
+<p align="center">
+  <strong>English</strong> · <a href="README-CN.md">简体中文</a>
+</p>
 
-macOS **0.21.0** · Windows **0.21.0**: [macOS Apple Silicon (.dmg)](https://github.com/gd0306/t-cube/releases/download/v0.21.0/T-Cube-0.21.0-macos-arm64.dmg) · [Windows x64 installer (.exe)](https://github.com/gd0306/t-cube/releases/download/v0.21.0/T-Cube-0.21.0-windows-x64-setup.exe) · [Release notes and SHA-256 checksums](https://github.com/gd0306/t-cube/releases/tag/v0.21.0).
+---
 
-The Windows installer includes its runtime and needs no Node.js installation. Quit an existing T-Cube before updating; shortcut configuration is preserved. These builds are unsigned/ad-hoc signed, not notarized or Developer ID/Authenticode signed.
+## Download Installers
+
+Published releases provide ready-to-run installation packages:
+
+| Platform | Version | Installer Package | Target Architecture | Requirements & Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| **macOS** | `0.21.0` | [T-Cube-0.21.0-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.21.0/T-Cube-0.21.0-macos-arm64.dmg) | Apple Silicon (arm64) | macOS 15+ · Ad-hoc signed |
+| **Windows** | `0.21.0` | [T-Cube-0.21.0-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.21.0/T-Cube-0.21.0-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · Standalone runtime |
+
+> [!NOTE]
+> - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.21.0).
+> - The Windows installer bundles its runtime and requires no Node.js installation.
+> - Source code on `master` includes macOS `0.21.1` interface updates. Quit any running T-Cube instance before upgrading; your configuration is automatically preserved.
+
+---
 
 ## Preview
 
@@ -22,158 +51,191 @@ A lighter glass shell lets the desktop show through. Hover to reveal icons that 
 
 <table>
   <tr>
-    <td align="center"><strong>Quiet at rest</strong><br><img src="docs/images/cube-idle.png" width="370" alt="Idle glass body with hidden icons, a continuous curved silhouette, and a subtle inner glow"></td>
-    <td align="center"><strong>Aurora Flow</strong><br><img src="docs/images/cube-aurora.png" width="370" alt="Aurora Flow glass material with the same background, camera, and scale"></td>
+    <td align="center">
+      <strong>Quiet at Rest</strong><br>
+      <img src="docs/images/cube-idle.png" width="370" alt="Idle glass body with hidden icons, a continuous curved silhouette, and a subtle inner glow">
+    </td>
+    <td align="center">
+      <strong>Aurora Flow Material</strong><br>
+      <img src="docs/images/cube-aurora.png" width="370" alt="Aurora Flow glass material with the same background, camera, and scale">
+    </td>
   </tr>
 </table>
 
 <details>
-<summary>Watch idle rotation pause on hover</summary>
-<p align="center"><img src="docs/images/cube-motion.gif" width="760" alt="The cube rotates at rest, pauses and reveals icons on hover, then resumes when the pointer leaves"></p>
+<summary><strong>Watch idle rotation and hover response</strong></summary>
+<p align="center">
+  <img src="docs/images/cube-motion.gif" width="760" alt="The cube rotates at rest, pauses and reveals icons on hover, then resumes when the pointer leaves">
+</p>
 </details>
 
-Native app renders with sample system icons, enlarged for detail. All previews share the same graphite background, camera, and viewport.
+*Native app renders with sample system icons, enlarged for detail. All previews share the same graphite background, camera, and viewport.*
 
-## Features
+---
 
-- **Light, transparent glass.** Soft corners, shallow curved faces, subtle reflections, and crisp icons that wrap around the surface.
-- **Six groups, four shortcuts each.** Add apps, folders, files, websites or settings pages; empty slots stay blank. Click areas follow the curved icons.
-- **Free rotation and positioning.** Scroll in either direction; the cube stays where you stop while hovered. Left drag moves it; right drag rotates it.
-- **Quick placement.** Put the cube in any corner or the center of its screen from the menu bar or Appearance settings. Positions save immediately, with room for system bars.
-- **Wandering idle rotation.** Slowly drift through changing directions; hover to stop instantly and leave to resume. Disable it under **Appearance → Dynamic rotation (动态旋转)**. Reduce Motion pauses it automatically.
-- **Hover to enlarge.** Return to the resting size when the pointer leaves; zoom is adjustable from 1.1× to 4×.
-- **Two launch modes.** Expand a face before choosing an icon, or launch directly from icons on the cube.
-- **Personalized glass.** Color presets, custom two-color gradients, glass materials, and automatic theme cycling every 10 or 20 seconds.
-- **Glass or Slime material on both platforms.** Use any theme with either material. Slime follows the pointer and springs back while icons stay stable; glass remains the default.
-- **Menu-bar or tray access.** Configure, show, hide, or quit from system controls. Motion respects system animation preferences.
+## Core Features
 
-## Memory and resource improvements (0.17.1)
+### 🧊 3D Aesthetics & Material Physics
+- **Clear Liquid Glass & Slime Materials**: Soft corners, shallow curved faces, and subtle reflections. On macOS 26+, content utilizes native Clear Liquid Glass (with frosted glass fallback on earlier systems). Switch to **Slime** material for an elastic jelly body that trails cursor motion and springs back gracefully.
+- **Wandering Idle Rotation**: Slowly drifts through shifting 3D angles at rest. Hovering stops rotation instantly; leaving resumes it. Automatically paused when macOS "Reduce Motion" is enabled, or toggle it off under **Appearance → Dynamic Rotation**.
+- **Hover Zoom**: Smoothly expands when hovered (customizable from 1.1× to 4.0×) and snaps back to resting size when the pointer leaves.
+- **Theme Customization**: Nine theme presets, custom two-color gradients, and optional automatic theme cycling every 10 or 20 seconds with 0.4-second optical crossfades.
 
-Unchanged launcher textures are reused, empty faces allocate no atlas, and theme transitions reuse prepared image resources. Windows app-picker icon retention is bounded. See the [controlled memory workload and verification](docs/verification/2026-10-30-memory-resources.md) for measured results and limits.
+### ⚡ Six-Face Multi-Type Launcher
+- **24 Quick Slots**: 6 faces with 4 shortcuts each. Empty slots remain clean and transparent; click targets strictly match the curved icons.
+- **Versatile Entry Types**: Add local applications, folders, individual files (opens with default app), HTTP/HTTPS web links (opens in default browser), or system settings panes.
+- **Real-Time Website Titles**: Web entries display titles directly beneath their icon on both the cube and expanded panels with single-line ellipsis and hover tooltips. Drawn locally without external favicon network requests.
+- **Dual Launch Modes**: Choose between expanding a face into a 4-icon panel before opening, or launching immediately by clicking icons directly on the cube.
 
-## Extended shortcuts
+<p align="center">
+  <img src="docs/images/website-titles-expanded.png" width="220" alt="Website titles beneath the icons: short names, a truncated long title and Emoji">
+</p>
 
-Add apps, folders, individual files, HTTP/HTTPS websites and selected system-settings pages from the shortcut editor. Files use their default application, websites use the default browser, and settings pages are chosen from a built-in list. Existing shortcuts and configuration are retained.
+### 🖥️ Desktop Ergonomics & Display Control
+- **Edge Auto-Collapse**: When positioned within ~32 logical pixels of an outer left/right display edge, leaving the cube for ~0.8 seconds collapses it into a slim 10×56 translucent glass handle. Hovering restores the cube instantly without altering its saved resting position.
+- **Fullscreen Auto-Hide**: Automatically hides on the active display when a fullscreen application is focused, pausing 3D rendering to eliminate background GPU overhead.
+- **Quick Screen Placement**: Instantly snap the cube to any screen corner or display center from the menu bar or **Appearance → Quick Placement** (automatically accounts for Dock, menu bar, and taskbar insets).
+- **Independent Display Brightness (macOS)**: Adjust individual monitor brightness directly from the menu-bar cube. Supports native Apple displays and external monitor hardware backlight control over DDC/CI on Apple Silicon connections. Requires no extra utilities, administrator rights, Accessibility, or Screen Recording permissions.
 
-## macOS interface organization (0.21.1)
+### 📋 Productivity Suite: Clipboard & Reusable Content
+- **In-Memory Session Clipboard**: Text and image history kept strictly in volatile memory. Cleared immediately on exit; never written to disk, included in backups, or transmitted over the network.
+  - **Text History**: Retains up to 100 entries (64 KiB per entry, 2 MiB total). Supports search, multi-selection, ordered concatenation, line trimming, and repeated blank-line collapsing.
+  - **Image History**: Retains up to 10 recent images (8 MiB normalized PNG per image, 32 MiB total, 16 megapixels max) with thumbnail previews and bounded detail views.
+- **Snippet Library & Dynamic Templates**: Open the content library from the status menu or with `Command+Shift+Space` (`Ctrl+Shift+Space` on Windows). Organize reusable snippets with groups and favorites. Enable template mode to use dynamic placeholders like `{{customer_name}}`—fill variables once and preview the merged result before copying or pasting.
+- **Focus-Checked Direct Paste**: Restores previous window focus and pastes directly into the target input field when Accessibility permissions are granted.
 
-Appearance changes are applied or reverted together on the Appearance tab. Edge collapse, quick placement, and power saving now live under Desktop & Performance and save immediately. Custom light/color settings, theme cycling, interaction tuning, clipboard recording details, and text cleanup remain available in expandable sections. The status menu groups layout controls and uses native shortcut labels; auxiliary text and list selection follow system styling. This update adds no preview renderer or background timer.
+### ⚙️ Performance & Low-Power Architecture
+- **Idle Power Saving**: Pauses 3D rendering and flowing light while the cube is stationary (defaults to enabled on macOS).
+- **Resource Reuse**: Unchanged textures are cached across refreshes, empty faces allocate no texture atlases, and Windows application-picker icon retention is strictly bounded.
+- **Refined Modular Settings**: Appearance, Desktop & Performance, Shortcut Groups, Maintenance, and Lifecycle are organized into clear tabs with instant-save feedback.
+- **Lightweight Release Reminders**: Anonymous 6-hour check for GitHub Releases (opt-in, default off) with manual check cooldown, opening the release page for manual download.
 
-## macOS display brightness (0.21.0)
+---
 
-Click the menu-bar cube to adjust each connected display independently. The menu reads actual brightness when opened; sliders control native Apple brightness or external-display hardware backlight over DDC/CI on supported Apple Silicon connections. Unsupported screens show a disabled control and reason. External displays may require DDC/CI enabled in their own menu; some adapters, HDMI routes and virtual displays do not expose hardware control. There is no software dimming fallback.
+## Controls & Gestures
 
-Updates are coalesced while dragging, verified against hardware, and do not poll in the background when the menu is closed. Reopening reads values changed elsewhere; connecting/disconnecting screens invalidates old requests. No extra app, administrator, Accessibility or screen-recording permission is required for the supported slider paths. Audio control is not part of this feature. Windows 0.21.0 retains its previous functionality.
+| Input Action | Interaction Result |
+| :--- | :--- |
+| **Hover / Leave** | Reveal / hide surface icons; pause / resume idle rotation |
+| **Trackpad 2-finger scroll** | Rotate cube along horizontal / vertical axis (stops smoothly without snapping) |
+| **Mouse wheel / Shift + wheel** | Rotate vertically / horizontally |
+| **Left-button drag** | Move and save floating position |
+| **Right-button drag** | Free-form 3D rotation; release to keep current angle |
+| **Hold `Ctrl` over cube** | Temporarily restore cube to resting size |
+| **`Ctrl` + Left-button drag** | Move at resting size (persists even if `Ctrl` is released mid-drag) |
+| **Click outside / `Esc`** | Dismiss expanded 4-icon panel |
+| **Right-click / Menu Bar icon** | Open settings |
 
-## System appearance edge glass (0.20.2)
+---
 
-The collapsed handle follows OS light/dark appearance: transparent glass with a light white or dark blue-black tint and a quiet internal shimmer. The desktop remains visible through the pane; tint and reflection do not fill it with a solid color. The reflection spans the whole capsule throughout its cycle, including both ends, instead of isolating a bright band in the middle. Its 10×56 hit region and reveal behavior stay unchanged; cube themes are unaffected. Shimmer runs only while visible, stops while hidden and becomes static for reduced motion/transparency (and macOS Low Power Mode). macOS uses native background material; Windows provides frosted styling rather than desktop backdrop blur. Small compositor layers animate without waking 3D rendering or adding a JavaScript/Swift frame loop.
+## Getting Started & Configuration
 
-## Desktop auto-hide and clipboard tools (0.20.0)
+Settings open automatically on first launch, or reopen them anytime by right-clicking the cube or using the menu-bar icon.
 
-Appearance settings offer independent, default-off edge collapse and fullscreen hiding. Near an outer left/right display edge, leaving the cube for about 0.8 seconds shows a narrow reveal handle. Hovering restores the cube without changing its saved resting position. Active dragging, expanded entries and settings are protected. Fullscreen hiding is display-local; manually hidden cubes stay hidden. Collapsed/hidden cubes pause 3D rendering.
+1. **Cube Entries**: Assign apps, folders, files, websites, or system settings to each face. Drag-and-drop from Finder / Explorer is fully supported.
+2. **Appearance**: Choose materials (**Glass** or **Slime**), color themes, hover zoom scale, and theme cycling intervals. Click **Apply Settings** to save.
+3. **Launch Behavior**: Under **Launch Behavior**, toggle **Expand faces on click** on or off depending on whether you prefer panel expansion or direct launching.
+4. **Desktop & Placement**: Configure **Edge Auto-Collapse**, **Fullscreen Auto-Hide**, or use **Quick Placement** to position the cube at screen corners or center.
 
-Clipboard history has separate text/image categories, defaults to paused each launch and records only new clipboard changes after explicit enable/resume. History is session-only, cleared on exit, excluded from backups and never uploaded. Text retains100 entries,64 KiB per entry and2 MiB total. Select multiple items, preview newline-joined output, optionally trim each line and collapse repeated blank lines, then copy/paste or explicitly save a snippet. Merged output also caps at64 KiB; original entries stay unchanged.
+---
 
-Image history retains at most10 recent images,8 MiB encoded PNG each,32 MiB total and16 megapixels each, evicting oldest images as needed. It supports thumbnails, bounded selected previews, deduplication, copy and focus-checked paste. macOS PNG/TIFF source input also caps at8 MiB, so larger TIFF screenshots are skipped with a status. Processing is serial; full decoded images are not retained in the list. Limits bound admitted/retained data, not total application RSS or unavoidable transient native clipboard materialization. Privacy/file exclusions remain best-effort. No persistence or cloud sync is included.
+## Build from Source
 
-## Release reminders (0.19.0)
+### macOS (Native Swift 6)
 
-Settings → 启动与更新 offers manual checks and opt-in automatic release reminders. Automatic checks default to off; enabling them reads the latest stable GitHub release anonymously every six hours and prompts once per newer version, with limits preserved across restarts. Manual checks have a one-minute cooldown. No signing certificate, public key or token is needed; GitHub API connectivity is required. Network errors and rate limits show a retry status. Reminders open the release page for manual download and installation.
+- **Runtime**: macOS 15+
+- **Build Requirements**: Full Xcode with Swift 6 and the macOS 27 SDK.
+- **Target Architecture**: Apple Silicon (arm64).
 
-## Website titles (0.18.1)
+```bash
+# Clone the repository
+git clone --branch master https://github.com/gd0306/t-cube.git
+cd t-cube
 
-Website entries display the title you supplied beneath the icon on the cube and expanded face. Long names use a single line with an ellipsis; hover for the full title. Title clicks follow the same launch/expand setting as the icon. Names are drawn locally into the existing face artwork, with no favicon requests or configuration migration.
+# Compile and launch the app
+bash scripts/build-app.sh
+open build/T-Cube.app
 
-<img src="docs/images/website-titles-expanded.png" width="220" alt="Website titles beneath the icons: short Chinese names, a truncated long title and Emoji">
+# (Optional) Package a drag-to-install DMG installer
+bash scripts/build-dmg.sh
+open build/T-Cube-0.21.1.dmg
+```
 
-## Content templates
+### Windows (Electron + Three.js)
 
-Enable “作为模板使用” when editing a library item, then add placeholders such as `{{客户姓名}}` in its body or fields. Fill each variable once and preview the result before copying or pasting. Existing items remain ordinary text by default.
+- **Runtime**: Windows 10 (22H2) or Windows 11, x64.
+- **Build Requirements**: Node.js 22 LTS or newer, Git, and PowerShell.
 
-## Office and performance features (0.17.1)
+```powershell
+# Clone the repository
+git clone --branch master https://github.com/gd0306/t-cube.git
+cd t-cube
 
-Both platforms include a common-content library (menu bar/tray, or `Command+Shift+Space` on macOS / `Ctrl+Shift+Space` on Windows) with groups, favorites, search, full-text/field copy and focus-checked paste after Accessibility authorization. Settings include validated import/export, pre-import backups, manual backup/restore and explicit broken-launcher relinking. Hover delay is configurable; per-display positions survive disconnects. Idle power saving defaults to on for macOS and off for Windows: rotation and flowing light pause until interaction. Disable it in Performance settings for continuous animation. Windows glass has deeper tint and contours for light desktop visibility. Theme changes blend over 0.4 seconds without exposing preparation frames; the cube has no content-library button.
+# Run automated installer script (builds and installs to %LOCALAPPDATA%\T-Cube)
+powershell -NoProfile -ExecutionPolicy Bypass -File windows/scripts/install.ps1
+```
 
-Login at startup uses the system login-item service and changes only when enabled by the user. Sparkle authenticated updates and Developer ID/notarization packaging are integrated; production activation requires the release owner's EdDSA key configuration and signing credentials. Builds without a public key disable in-app download/install and use lightweight release reminders instead. See the [release guide](docs/updates/RELEASE-GUIDE.md). Windows also supports login settings; see [Windows signing and updates](docs/windows-signing-updates.md).
+For detailed Windows developer workflows and NSIS package building, see the [Windows Guide](windows/README.md).
 
-## Windows source installation
+### Let an AI Agent Install It
 
-Windows 10 22H2 / Windows 11 (x64) have a separate client with the same six shortcut groups, curved icons, shared glass/slime materials and themes, hover zoom, dragging, rotation and tray controls. Choose installed applications from a searchable name-and-icon list; portable apps can be added by file. Use the installer above or follow the source installation in the [Windows guide](windows/README.md). The previews above show the native macOS client.
+You can delegate the entire build and installation process by giving a local terminal agent one of these prompts:
 
-Give a local AI agent this prompt:
+<details>
+<summary><strong>macOS Agent Prompt</strong></summary>
+
+```text
+Install T-Cube from https://github.com/gd0306/t-cube (master). Follow the README to build, install to /Applications, and launch it. Quit any running version first and preserve existing configuration. Tell me if Xcode/SDK requirements or macOS security approvals need attention.
+```
+</details>
+
+<details>
+<summary><strong>Windows Agent Prompt</strong></summary>
 
 ```text
 Install https://github.com/gd0306/t-cube (master) on Windows. Follow windows/README.md, prepare Node.js 22 LTS, and run windows/scripts/install.ps1. Quit the old app first, preserve settings, create shortcuts, launch, and report test results.
 ```
+</details>
 
-## macOS install and run
+---
 
-Current source version: macOS **0.21.1**; Windows **0.21.0**. Published installer versions are listed above.
+## Local Data & Privacy
 
-Running requires macOS 15+. Building requires full Xcode with Swift 6 and the **macOS 27 SDK**. Current local packages target Apple Silicon and use ad-hoc signing; they are not notarized.
+- **macOS Configuration**: `~/Library/Application Support/T-Cube/configuration.json`
+- **Windows Configuration**: `%APPDATA%\T-Cube\configuration.json` and `%APPDATA%\T-Cube\applications`
 
-```bash
-git clone --branch master https://github.com/gd0306/t-cube.git
-cd t-cube
-bash scripts/build-app.sh
-open build/T-Cube.app
-```
+Configuration files store shortcut bindings, material/appearance choices, interaction tuning, and window coordinates. Removing a shortcut never deletes the original target file or application. Corrupted configurations are preserved rather than silently overwritten with default values.
 
-For a drag-to-install disk image, run `bash scripts/build-dmg.sh`, open `build/T-Cube-0.21.1.dmg`, and drag the app into **Applications**. Quit an existing version before updating and keep its configuration. Build artifacts are distributed through Releases; macOS security approvals remain with the user.
+T-Cube is 100% offline and privacy-first: no telemetry, no tracking, and no cloud synchronization.
 
-### Let an agent install it
+---
 
-Copy this prompt to an agent with terminal access:
+## Development & Verification
 
-```text
-Install T-Cube from https://github.com/gd0306/t-cube (master). Follow the README to build, install to /Applications, and launch it. Quit the old version first and preserve its configuration. Tell me if Xcode/SDK requirements or macOS security approvals need attention.
-```
-
-## Configure and use on macOS
-
-Settings open on first launch. Reopen them by right-clicking the cube or using its menu-bar icon.
-
-1. In **Cube entries (立方体入口)**, assign apps or folders to each face. Finder drag-and-drop is also supported.
-2. In **Appearance (外观)**, choose themes, materials, cycling, and hover size. Click **Apply settings (应用设置)** to save.
-3. To launch directly, disable **Expand faces on click (点击面展开放大)** under **Launch behavior (打开方式)**, then click **Apply settings (应用设置)**. Blank areas and empty slots do nothing.
-4. Use **Quick placement (快捷位置)** in the menu bar or Appearance to move to a corner or the screen center. Placement applies and saves immediately.
-
-For the gel effect, choose **Appearance → Material (材质) → Slime (史莱姆)** and click **Apply settings**. Themes, custom colors and automatic theme cycling work with both materials. Changing themes preserves the selected material; choose **Glass (玻璃)** to restore the original rigid shell.
-
-| Action | Result |
-| --- | --- |
-| Hover / leave | Reveal / hide icons; pause / resume idle rotation when enabled |
-| Two-finger horizontal / vertical scroll | Rotate along the corresponding axis; stop without snapping |
-| Mouse wheel / Shift + wheel | Rotate vertically / horizontally |
-| Left-button drag | Move and save the floating position |
-| Right-button drag | Rotate the cube freely; release to keep the current angle |
-| Hold Ctrl over the cube | Temporarily restore the resting size |
-| Ctrl + left-button drag | Move at resting size, even if Ctrl is released mid-drag |
-| Click outside an expanded face / Esc | Dismiss the icon panel |
-| Right-click | Open settings |
-
-Expanded faces contain only four icons. macOS 26+ uses Clear Liquid Glass; earlier supported systems use frosted glass. Quit from the settings footer or menu-bar menu.
-
-## macOS local data
-
-Configuration lives at `~/Library/Application Support/T-Cube/configuration.json`. It stores shortcuts, appearance, interaction preferences, and window position. Removing a shortcut does not delete its target. Corrupt configuration is preserved rather than overwritten with defaults.
-
-## macOS development
+Run tests and verification suites locally:
 
 ```bash
+# Run unit and behavior tests
 swift test --scratch-path .build/tests
+
+# Compile debug bundle
 bash scripts/build-app.sh --debug
-bash scripts/verify-dmg.sh  # After building the DMG
+
+# Verify DMG signature, layout, and links
+bash scripts/verify-dmg.sh
+
+# Check git whitespace
 git diff --check
 ```
 
-Regenerate the native previews, including the matching `readme-*` gallery:
+Regenerate native high-resolution preview renders:
 
 ```bash
 env TCUBE_RENDER_PREVIEWS=1 swift test --scratch-path .build/tests --filter 'GlassRenderPreviewTests|IconEdgeRenderingTests'
 ```
 
-Files are written to `.build/glass-previews/` using an isolated temporary configuration. Multi-background transparency checks and icon-edge checks are generated separately from the README gallery.
+- `Sources/CubeCore`: Reusable data models, geometry, hit testing, rotation, and theme engines (framework-independent).
+- `Sources/TCube`: macOS application lifecycle, RealityKit 3D rendering, floating windows, display brightness bridges, and SwiftUI settings.
+- `windows/src/`: Windows Electron main process, Win32 native bridge, and Three.js rendering pipelines.
 
-`Sources/CubeCore` owns configuration, geometry, and hit testing; `Sources/TCube` owns windows, rendering, and native UI. See [AGENTS.md](AGENTS.md) for contribution guidelines and [verification records](docs/verification/) for checks and limitations.
+Refer to [AGENTS.md](AGENTS.md) for contribution conventions and [docs/verification/](docs/verification/) for test records and hardware validation boundaries.
