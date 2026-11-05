@@ -15,7 +15,7 @@ T-Cube is a macOS 15+ launcher built with Swift 6, AppKit, SwiftUI, and RealityK
 Install full Xcode and select its developer directory before building.
 
 - `swift build --scratch-path .build/app`: compile the package.
-- `swift test --scratch-path .build/tests`: run core and native tests.
+- `swift test --scratch-path .build/tests --no-parallel`: run core and native tests.
 - `bash scripts/build-app.sh --debug`: create a locally signed debug app; omit `--debug` for release.
 - `open build/T-Cube.app`: run the bundled menu-bar application locally.
 - `bash scripts/build-dmg.sh`: build the app and package an installer.

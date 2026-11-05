@@ -1,10 +1,10 @@
 # T-Cube for Windows
 
-Version **0.21.0** targets Windows 10 22H2 / Windows 11, x64. This client uses Electron and Three.js; the repository's macOS client remains native Swift.
+Version **0.22.0** targets Windows 10 22H2 / Windows 11, x64. This client uses Electron and Three.js; the repository's macOS client remains native Swift.
 
 ## Installer
 
-Download [T-Cube 0.21.0 for Windows x64](https://github.com/gd0306/t-cube/releases/download/v0.21.0/T-Cube-0.21.0-windows-x64-setup.exe) from [Releases](https://github.com/gd0306/t-cube/releases/tag/v0.21.0). It installs per user, includes Electron/native dependencies, creates shortcuts and an uninstall entry, and requires neither Node.js nor administrator privileges. Quit the previous version before updating. Existing `%APPDATA%\\T-Cube` configuration is retained. The installer is not Authenticode signed.
+Download [T-Cube 0.22.0 for Windows x64](https://github.com/gd0306/t-cube/releases/download/v0.22.0/T-Cube-0.22.0-windows-x64-setup.exe) from [Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.0). It installs per user, includes Electron/native dependencies, creates shortcuts and an uninstall entry, and requires neither Node.js nor administrator privileges. Quit the previous version before updating. Existing `%APPDATA%\\T-Cube` configuration is retained. The installer is not Authenticode signed.
 
 Under **外观与主题 → 材质**, choose **玻璃** or **史莱姆**. All nine themes, custom colors and automatic cycling work with either material. Glass is the default. Slime follows the mouse with lag and elastic rebound while launcher icons remain rigid; Windows animation preferences disable its motion.
 
@@ -13,7 +13,7 @@ Under **交互与位置**, **靠边自动收起** and **全屏应用时隐藏** 
 
 ## Display input switching
 
-Source version `0.22.0` adds **显示器输入源…** to the tray context menu; left-click still shows or hides the cube. The panel switches a DDC/CI-capable monitor between **Type-C** on the left and **HDMI** on the right when the slider commits. Opening or refreshing reads hardware; there is no background display polling, startup source restoration, volume control or network relay.
+Version `0.22.0` adds **显示器输入源…** to the tray context menu; left-click still shows or hides the cube. The panel switches a DDC/CI-capable monitor between **Type-C** on the left and **HDMI** on the right when the slider commits. Opening or refreshing reads hardware; there is no background display polling, startup source restoration, volume control or network relay.
 
 Choose the correct monitor, then open input calibration if its ports are not recognized. The current raw number helps identify the active port. Save two different decimal values in `0–65535`; the other port's value may need to be read on its active computer. Saving calibration never switches the monitor. An exact EDID model match can select the validated **27C1U-D** profile automatically; otherwise choose that preset explicitly only for the matching model. Its measured values are **Type-C `7` / HDMI `5`**, rather than the advertised HDMI value `17`. User mappings override the preset and are bound to full monitor-interface identity, with ambiguous cloned targets rejected.
 

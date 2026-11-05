@@ -31,13 +31,13 @@ Published releases provide ready-to-run installation packages:
 
 | Platform | Version | Installer Package | Target Architecture | Requirements & Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| **macOS** | `0.21.0` | [T-Cube-0.21.0-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.21.0/T-Cube-0.21.0-macos-arm64.dmg) | Apple Silicon (arm64) | macOS 15+ · Ad-hoc signed |
-| **Windows** | `0.21.0` | [T-Cube-0.21.0-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.21.0/T-Cube-0.21.0-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · Standalone runtime |
+| **macOS** | `0.22.0` | [T-Cube-0.22.0-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.0/T-Cube-0.22.0-macos-arm64.dmg) | Apple Silicon (arm64) | macOS 15+ · Ad-hoc signed |
+| **Windows** | `0.22.0` | [T-Cube-0.22.0-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.0/T-Cube-0.22.0-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · Standalone runtime |
 
 > [!NOTE]
-> - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.21.0).
+> - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.0).
 > - The Windows installer bundles its runtime and requires no Node.js installation.
-> - Source version `0.22.0` adds calibrated display input switching on macOS and Windows; the download table lists published installers. Quit any running T-Cube instance before upgrading; your configuration is automatically preserved.
+> - Quit any running T-Cube instance before upgrading; your configuration is automatically preserved.
 
 ---
 
@@ -220,7 +220,7 @@ Run tests and verification suites locally:
 
 ```bash
 # Run unit and behavior tests
-swift test --scratch-path .build/tests
+swift test --scratch-path .build/tests --no-parallel
 
 # Compile debug bundle
 bash scripts/build-app.sh --debug
