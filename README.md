@@ -31,11 +31,11 @@ Published releases provide ready-to-run installation packages:
 
 | Platform | Version | Installer Package | Target Architecture | Requirements & Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| **macOS** | `0.22.0` | [T-Cube-0.22.0-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.0/T-Cube-0.22.0-macos-arm64.dmg) | Apple Silicon (arm64) | macOS 15+ · Ad-hoc signed |
-| **Windows** | `0.22.0` | [T-Cube-0.22.0-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.0/T-Cube-0.22.0-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · Standalone runtime |
+| **macOS** | `0.22.1` | [T-Cube-0.22.1-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.1/T-Cube-0.22.1-macos-arm64.dmg) | Apple Silicon (arm64) | macOS 15+ · Ad-hoc signed |
+| **Windows** | `0.22.1` | [T-Cube-0.22.1-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.1/T-Cube-0.22.1-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · Standalone runtime |
 
 > [!NOTE]
-> - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.0).
+> - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.1).
 > - The Windows installer bundles its runtime and requires no Node.js installation.
 > - Quit any running T-Cube instance before upgrading; your configuration is automatically preserved.
 
