@@ -2,6 +2,10 @@ import Foundation
 import CubeCore
 import DisplayBrightnessBridge
 
+enum DisplayHardwareQueue {
+    static let shared = DispatchQueue(label: "local.tcube.display-hardware", qos: .userInitiated)
+}
+
 protocol DisplayBrightnessHardware: Sendable {
     func read(_ target: DisplayBrightnessTarget) async throws -> DisplayBrightnessSample
     func write(_ fraction: Double, to target: DisplayBrightnessTarget,
@@ -10,7 +14,7 @@ protocol DisplayBrightnessHardware: Sendable {
 
 /// Blocking display-driver requests never run on the main actor or a rendering loop.
 final class NativeDisplayBrightnessHardware: DisplayBrightnessHardware, @unchecked Sendable {
-    private let queue = DispatchQueue(label: "local.tcube.display-brightness", qos: .userInitiated)
+    private let queue = DisplayHardwareQueue.shared
 
     func read(_ target: DisplayBrightnessTarget) async throws -> DisplayBrightnessSample {
         guard UUID(uuidString: target.uuid) != nil else { throw DisplayBrightnessFailure.unsupported }

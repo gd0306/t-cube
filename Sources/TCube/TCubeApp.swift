@@ -29,6 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var hoverController: CubeHoverController?
     private var statusItem: NSStatusItem!
     private var brightnessMenu: DisplayBrightnessMenu?
+    private var inputMenu: DisplayInputMenu?
     private var editor: NSWindow?
     private var screenObserver: NSObjectProtocol?
     private let snippetLibrary = SnippetLibraryController()
@@ -178,6 +179,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.delegate = self
         statusItem.menu = menu
         brightnessMenu = DisplayBrightnessMenu(menu: menu)
+        inputMenu = DisplayInputMenu(menu: menu)
         let mainMenu = NSMenu()
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu(title: "T-Cube")
@@ -213,11 +215,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func menuWillOpen(_ menu: NSMenu) {
-        if menu === statusItem?.menu { brightnessMenu?.beginTracking() }
+        if menu === statusItem?.menu { brightnessMenu?.beginTracking(); inputMenu?.beginTracking() }
     }
 
     func menuDidClose(_ menu: NSMenu) {
-        if menu === statusItem?.menu { brightnessMenu?.endTracking() }
+        if menu === statusItem?.menu { brightnessMenu?.endTracking(); inputMenu?.endTracking() }
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
@@ -259,6 +261,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         brightnessMenu?.stop()
+        inputMenu?.stop()
         lifecycle.stop()
         autoHide?.stop()
         snippetLibrary.stop()

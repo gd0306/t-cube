@@ -27,6 +27,12 @@ int32_t TCBrightnessDDCExchange(uint32_t displayID, const char *uuid,
     const uint8_t *request, uint32_t requestLength,
     uint8_t *reply, uint32_t replyLength);
 
+int32_t TCInputDDCExchange(uint32_t displayID, const char *uuid,
+    const uint8_t *request, uint32_t requestLength, uint8_t *reply, uint32_t replyLength);
+
+// Exercises the shared two-transmission result handling without hardware.
+int32_t TCInputTestTransmissionResults(int32_t first, int32_t second);
+
 #ifdef __cplusplus
 }
 #endif

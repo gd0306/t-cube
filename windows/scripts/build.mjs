@@ -3,8 +3,8 @@ import { cp, mkdir, rm } from 'node:fs/promises';
 
 await rm('dist', { recursive: true, force: true });
 await mkdir('dist/renderer', { recursive: true });
-await build({ entryPoints: { main: 'src/main/index.ts', preload: 'src/preload/index.ts', 'native-icons': 'src/native/icon-worker.ts', 'image-processor-preload': 'src/preload/image-processor.ts', 'edge-preload': 'src/preload/edge.ts' }, outdir: 'dist', outExtension: { '.js': '.cjs' }, bundle: true, platform: 'node', target: 'node22', format: 'cjs', external: ['electron', 'koffi', 'electron-updater'], sourcemap: true });
-await build({ entryPoints: { widget: 'src/renderer/widget.ts', settings: 'src/renderer/settings.ts', expanded: 'src/renderer/expanded.ts', library: 'src/renderer/library.ts', 'image-processor': 'src/renderer/image-processor.ts', edge: 'src/renderer/edge.ts' }, outdir: 'dist/renderer', bundle: true, splitting: true, platform: 'browser', target: 'chrome140', format: 'esm', sourcemap: true, minify: true });
+await build({ entryPoints: { main: 'src/main/index.ts', preload: 'src/preload/index.ts', 'native-icons': 'src/native/icon-worker.ts', 'image-processor-preload': 'src/preload/image-processor.ts', 'edge-preload': 'src/preload/edge.ts', 'display-input-preload': 'src/preload/display-input.ts', 'display-input-worker': 'src/native/display-input-worker.ts' }, outdir: 'dist', outExtension: { '.js': '.cjs' }, bundle: true, platform: 'node', target: 'node22', format: 'cjs', external: ['electron', 'koffi', 'electron-updater'], sourcemap: true });
+await build({ entryPoints: { widget: 'src/renderer/widget.ts', settings: 'src/renderer/settings.ts', expanded: 'src/renderer/expanded.ts', library: 'src/renderer/library.ts', 'image-processor': 'src/renderer/image-processor.ts', edge: 'src/renderer/edge.ts', 'display-input': 'src/renderer/display-input.ts' }, outdir: 'dist/renderer', bundle: true, splitting: true, platform: 'browser', target: 'chrome140', format: 'esm', sourcemap: true, minify: true });
 for (const name of ['widget', 'settings', 'expanded', 'library', 'image-processor', 'edge']) {
     await cp(`src/renderer/${name}.html`, `dist/renderer/${name}.html`);
 }

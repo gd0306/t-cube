@@ -37,7 +37,7 @@ Published releases provide ready-to-run installation packages:
 > [!NOTE]
 > - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.21.0).
 > - The Windows installer bundles its runtime and requires no Node.js installation.
-> - Source code on `master` includes macOS `0.21.1` interface updates. Quit any running T-Cube instance before upgrading; your configuration is automatically preserved.
+> - Source version `0.22.0` adds calibrated display input switching on macOS and Windows; the download table lists published installers. Quit any running T-Cube instance before upgrading; your configuration is automatically preserved.
 
 ---
 
@@ -96,6 +96,7 @@ A lighter glass shell lets the desktop show through. Hover to reveal icons that 
 - **Fullscreen Auto-Hide**: Automatically hides on the active display when a fullscreen application is focused, pausing 3D rendering to eliminate background GPU overhead.
 - **Quick Screen Placement**: Instantly snap the cube to any screen corner or display center from the menu bar or **Appearance → Quick Placement** (automatically accounts for Dock, menu bar, and taskbar insets).
 - **Independent Display Brightness (macOS)**: Adjust individual monitor brightness directly from the menu-bar cube. Supports native Apple displays and external monitor hardware backlight control over DDC/CI on Apple Silicon connections. Requires no extra utilities, administrator rights, Accessibility, or Screen Recording permissions.
+- **Monitor Input Switching (macOS / Windows)**: Switch a DDC/CI-capable monitor between Type-C (left) and HDMI (right) from the menu bar / tray. Includes a verified 27C1U-D preset and per-monitor calibration for other models; port numbers vary by firmware. Commands are sent only on commit, with no background polling. Switch back from the active computer or the monitor’s physical menu when inactive inputs stop accepting DDC. [Verification record](docs/verification/2026-11-05-display-input.md).
 
 ### 📋 Productivity Suite: Clipboard & Reusable Content
 - **In-Memory Session Clipboard**: Text and image history kept strictly in volatile memory. Cleared immediately on exit; never written to disk, included in backups, or transmitted over the network.
@@ -136,6 +137,7 @@ Settings open automatically on first launch, or reopen them anytime by right-cli
 2. **Appearance**: Choose materials (**Glass** or **Slime**), color themes, hover zoom scale, and theme cycling intervals. Click **Apply Settings** to save.
 3. **Launch Behavior**: Under **Launch Behavior**, toggle **Expand faces on click** on or off depending on whether you prefer panel expansion or direct launching.
 4. **Desktop & Placement**: Configure **Edge Auto-Collapse**, **Fullscreen Auto-Hide**, or use **Quick Placement** to position the cube at screen corners or center.
+5. **Display Input**: Open the input control from the macOS status menu or Windows tray menu. For an unrecognized monitor, configure its Type-C and HDMI numbers once using the current-input readout; learn the other port’s number on its active host if necessary. Each computer stores its mapping locally. Drag the control and release to switch; a sent command may lose readback as the picture moves to the other host.
 
 ---
 
@@ -203,6 +205,8 @@ Install https://github.com/gd0306/t-cube (master) on Windows. Follow windows/REA
 
 - **macOS Configuration**: `~/Library/Application Support/T-Cube/configuration.json`
 - **Windows Configuration**: `%APPDATA%\T-Cube\configuration.json` and `%APPDATA%\T-Cube\applications`
+
+Per-monitor input mappings are stored separately in `display-inputs.json` beside the configuration on each computer; calibration does not change the monitor’s source. These hardware-specific mappings are not included in the existing launcher configuration export.
 
 Configuration files store shortcut bindings, material/appearance choices, interaction tuning, and window coordinates. Removing a shortcut never deletes the original target file or application. Corrupted configurations are preserved rather than silently overwritten with default values.
 

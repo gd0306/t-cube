@@ -148,8 +148,8 @@ int32_t TCBrightnessWriteNative(uint32_t displayID, const char *uuid, float valu
     return nativeStatus(api.setBrightness(displayID, value));
 }
 
-static bool isBrightnessRequest(const uint8_t *request, uint32_t requestLength,
-    const uint8_t *reply, uint32_t replyLength) {
+static bool isFeatureRequest(const uint8_t *request, uint32_t requestLength,
+    const uint8_t *reply, uint32_t replyLength, uint8_t feature) {
     if (request == NULL) {
         return false;
     }
@@ -157,7 +157,7 @@ static bool isBrightnessRequest(const uint8_t *request, uint32_t requestLength,
         request[0] == 0x82 && request[1] == 0x01;
     bool set = requestLength == 6 && replyLength == 0 &&
         request[0] == 0x84 && request[1] == 0x03;
-    if ((!get && !set) || request[2] != 0x10) {
+    if ((!get && !set) || request[2] != feature) {
         return false;
     }
     uint8_t checksum = 0x6e ^ 0x51;
@@ -165,6 +165,25 @@ static bool isBrightnessRequest(const uint8_t *request, uint32_t requestLength,
         checksum ^= request[index];
     }
     return checksum == 0;
+}
+
+typedef int32_t (*Transmission)(void *context, unsigned cycle);
+static int32_t sendTwice(Transmission send, void *context, bool acceptedInputSet) {
+    for (unsigned cycle = 0; cycle < 2; ++cycle) {
+        int32_t status = send(context, cycle);
+        if (status != TCBrightnessSuccess) {
+            return acceptedInputSet && cycle > 0 ? TCBrightnessSuccess : status;
+        }
+    }
+    return TCBrightnessSuccess;
+}
+typedef struct { int32_t results[2]; } TestTransmission;
+static int32_t testTransmission(void *context, unsigned cycle) {
+    return ((TestTransmission *)context)->results[cycle];
+}
+int32_t TCInputTestTransmissionResults(int32_t first, int32_t second) {
+    TestTransmission test = {{first, second}};
+    return sendTwice(testTransmission, &test, true);
 }
 
 #if defined(__arm64__)
@@ -265,10 +284,29 @@ static DDCTransport copyTransport(uint32_t displayID) {
 }
 #endif
 
-int32_t TCBrightnessDDCExchange(uint32_t displayID, const char *uuid,
+#if defined(__arm64__)
+typedef struct {
+    DDCTransport transport;
+    uint32_t displayID;
+    const char *uuid;
+    uint8_t *packet;
+    uint32_t length;
+    uint8_t feature;
+} TransmissionContext;
+static int32_t sendTransmission(void *value, unsigned cycle) {
+    (void)cycle;
+    TransmissionContext *context = value;
+    usleep(context->feature == 0x60 ? 50000 : 10000);
+    if (!displayMatches(context->displayID, context->uuid)) return TCBrightnessDisplayUnavailable;
+    return api.writeI2C(context->transport.service, context->transport.chipAddress, 0x51, context->packet, context->length) == kIOReturnSuccess
+        ? TCBrightnessSuccess : TCBrightnessOperationFailed;
+}
+#endif
+
+static int32_t exchange(uint32_t displayID, const char *uuid,
     const uint8_t *request, uint32_t requestLength,
-    uint8_t *reply, uint32_t replyLength) {
-    if (uuid == NULL || !isBrightnessRequest(request, requestLength, reply, replyLength)) {
+    uint8_t *reply, uint32_t replyLength, uint8_t feature) {
+    if (uuid == NULL || !isFeatureRequest(request, requestLength, reply, replyLength, feature)) {
         return TCBrightnessInvalidArgument;
     }
     pthread_once(&apiOnce, loadAPIs);
@@ -288,21 +326,10 @@ int32_t TCBrightnessDDCExchange(uint32_t displayID, const char *uuid,
     if (transport.service == NULL) {
         return TCBrightnessUnsupported;
     }
-    int32_t status = TCBrightnessSuccess;
     uint8_t packet[6];
     memcpy(packet, request, requestLength);
-    for (unsigned cycle = 0; cycle < 2; ++cycle) {
-        usleep(10000);
-        // Even a Get VCP uses a query write; every I2C call checks identity.
-        if (!displayMatches(displayID, uuid)) {
-            status = TCBrightnessDisplayUnavailable;
-            break;
-        }
-        if (api.writeI2C(transport.service, transport.chipAddress, 0x51, packet, requestLength) != kIOReturnSuccess) {
-            status = TCBrightnessOperationFailed;
-            break;
-        }
-    }
+    TransmissionContext context = {transport, displayID, uuid, packet, requestLength, feature};
+    int32_t status = sendTwice(sendTransmission, &context, feature == 0x60 && replyLength == 0);
     if (status == TCBrightnessSuccess && replyLength != 0) {
         usleep(transport.chipAddress == 0xb7 ? 100000 : 50000);
         if (!displayMatches(displayID, uuid)) {
@@ -323,4 +350,11 @@ int32_t TCBrightnessDDCExchange(uint32_t displayID, const char *uuid,
 #else
     return TCBrightnessUnsupported;
 #endif
+}
+
+int32_t TCBrightnessDDCExchange(uint32_t id, const char *uuid, const uint8_t *request, uint32_t length, uint8_t *reply, uint32_t replyLength) {
+    return exchange(id, uuid, request, length, reply, replyLength, 0x10);
+}
+int32_t TCInputDDCExchange(uint32_t id, const char *uuid, const uint8_t *request, uint32_t length, uint8_t *reply, uint32_t replyLength) {
+    return exchange(id, uuid, request, length, reply, replyLength, 0x60);
 }

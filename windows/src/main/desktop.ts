@@ -1,3 +1,6 @@
+import { DisplayInputPanel } from './display-input-panel';
+import { DisplayInputService } from './display-input-service';
+import { DisplayInputStore } from './display-input-store';
 import {bindEdgeVisibility} from './edge-visibility';
 import { DesktopPresentation, isFullscreenOnDisplay, edgeHandleWindowLayout, presentationProtection } from '../core/desktop-presentation';
 import { fullscreenFrameOnDisplay } from '../native/fullscreen';
@@ -28,6 +31,7 @@ export class DesktopApplication {
     settings: BrowserWindow | null = null;
     expanded: BrowserWindow | null = null;
     private tray: Tray | null = null;
+    private displayInput: DisplayInputPanel | null = null;
     private roles = new Map<number, WindowRole>();
     private timer: NodeJS.Timeout | null = null;
     private quitting = false;
@@ -111,20 +115,21 @@ export class DesktopApplication {
         this.widget.show();
         const trayImage = nativeImage.createFromPath(path.join(this.directory, 'assets', 'tray.png')).resize({ width: 20, height: 20 });
         this.tray = new Tray(trayImage);
+        this.displayInput = new DisplayInputPanel(this.directory, new DisplayInputService(this.directory, new DisplayInputStore(path.join(app.getPath('userData'), 'display-inputs.json'))));
         this.tray.setToolTip('T-Cube'); this.updateTray();
         this.tray.on('click', () => this.toggleWidget());
         this.timer = setTimeout(() => this.tick(), 16);
         void this.host.refreshIcons().catch(error => this.host.reportError(error));
-        const refreshDisplays = () => { this.presentation.reset(); this.fullscreenSample = 0; this.handleFrame = ''; this.edgeReady = false; this.edgeShape = null; this.edgeWindow?.hide(); void this.host.refreshDisplays().catch(error => this.host.reportError(error)); };
+        const refreshDisplays = () => { this.displayInput?.cancel(); this.presentation.reset(); this.fullscreenSample = 0; this.handleFrame = ''; this.edgeReady = false; this.edgeShape = null; this.edgeWindow?.hide(); void this.host.refreshDisplays().catch(error => this.host.reportError(error)); };
         screen.on('display-added', refreshDisplays);
         screen.on('display-removed', refreshDisplays);
         screen.on('display-metrics-changed', refreshDisplays);
         app.on('before-quit', event => {
             if (this.quitting) return;
-            event.preventDefault(); this.quitting = true; this.office?.setQuitting(true);
+            event.preventDefault(); this.quitting = true; this.office?.setQuitting(true); this.displayInput?.cancel();
             // A last drag save must finish before windows are destroyed. External launches do not delay quit.
             void (async () => {
-                await this.office?.whenIdle(); await this.whenLauncherOperationsIdle(); await this.host.whenIdle({ includeLaunches: false });
+                await this.displayInput?.whenIdle(); await this.office?.whenIdle(); await this.whenLauncherOperationsIdle(); await this.host.whenIdle({ includeLaunches: false });
                 const library = this.office?.libraryWindow;
                 if (library && !library.isDestroyed()) {
                     const closed = await new Promise<boolean>(resolve => {
@@ -311,6 +316,7 @@ export class DesktopApplication {
         this.tray?.setContextMenu(Menu.buildFromTemplate([
             { label: this.host.snapshot.state.visible ? 'Hide cube' : 'Show cube', click: () => this.toggleWidget() },
             { label: 'Settings…', click: () => this.showSettings() },
+            { label: '显示器输入源…', click: () => { if (this.tray) this.displayInput?.show(this.tray); } },
             {label:'常用内容…    Ctrl+Shift+Space',click:run(()=>this.office?.showLibrary())},
             {label:`剪贴板历史…（${this.office?.clipboardHistory.state.isEnabled ? '正在记录' : '已暂停'}）`,click:run(()=>this.office?.showClipboardHistory())},
             { label: 'Placement', submenu: placements.map(([label, placement]) => ({ label, click: run(() => this.host.place(placement)) })) },
@@ -319,5 +325,5 @@ export class DesktopApplication {
             { type: 'separator' }, { label: 'Quit T-Cube', click: () => app.quit() }
         ]));
     }
-    dispose(): void { this.presentation.reset(); this.edgeWindow?.destroy(); this.edgeWindow = null; this.office?.dispose(); if (this.timer) clearTimeout(this.timer); this.timer = null; this.tray?.destroy(); this.tray = null; }
+    dispose(): void { this.displayInput?.dispose(); this.displayInput = null; this.presentation.reset(); this.edgeWindow?.destroy(); this.edgeWindow = null; this.office?.dispose(); if (this.timer) clearTimeout(this.timer); this.timer = null; this.tray?.destroy(); this.tray = null; }
 }
