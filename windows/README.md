@@ -13,7 +13,7 @@ Under **交互与位置**, **靠边自动收起** and **全屏应用时隐藏** 
 
 ## Display input switching
 
-Version `0.22.0` adds **显示器输入源…** to the tray context menu; left-click still shows or hides the cube. The panel switches a DDC/CI-capable monitor between **Type-C** on the left and **HDMI** on the right when the slider commits. Opening or refreshing reads hardware; there is no background display polling, startup source restoration, volume control or network relay.
+Version `0.22.0` adds **显示器输入源…** to the tray context menu; left-click still shows or hides the cube. The panel switches a DDC/CI-capable monitor between **Type-C** on the left and **HDMI** on the right through a two-segment switch. Click a port or use the keyboard arrow keys; controls lock while busy, retain the last confirmed selection during a request, and clear selection when readback is unknown. Opening or refreshing reads hardware; there is no background display polling, startup source restoration, volume control or network relay.
 
 Choose the correct monitor, then open input calibration if its ports are not recognized. The current raw number helps identify the active port. Save two different decimal values in `0–65535`; the other port's value may need to be read on its active computer. Saving calibration never switches the monitor. An exact EDID model match can select the validated **27C1U-D** profile automatically; otherwise choose that preset explicitly only for the matching model. Its measured values are **Type-C `7` / HDMI `5`**, rather than the advertised HDMI value `17`. User mappings override the preset and are bound to full monitor-interface identity, with ambiguous cloned targets rejected.
 

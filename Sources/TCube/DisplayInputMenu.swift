@@ -4,9 +4,7 @@ import CubeCore
 @MainActor final class DisplayInputMenuRow: NSView {
     private let name = NSTextField(labelWithString: "")
     private let detail = NSTextField(labelWithString: "")
-    private let left = NSTextField(labelWithString: "Type-C")
-    private let right = NSTextField(labelWithString: "HDMI")
-    private let slider = NSSlider(value: 0, minValue: 0, maxValue: 1, target: nil, action: nil)
+    private let sourceSwitch = NSSegmentedControl(labels: ["Type-C", "HDMI"], trackingMode: .selectOne, target: nil, action: nil)
     private let setup = NSButton(title: "设置…", target: nil, action: nil)
     private let refresh = NSButton(title: "刷新", target: nil, action: nil)
     private var row: DisplayInputRow
@@ -18,12 +16,12 @@ import CubeCore
         super.init(frame: CGRect(x: 0, y: 0, width: 288, height: 92))
         name.font = .systemFont(ofSize: 12, weight: .medium); name.lineBreakMode = .byTruncatingTail
         detail.font = .systemFont(ofSize: NSFont.smallSystemFontSize); detail.textColor = .secondaryLabelColor; detail.lineBreakMode = .byTruncatingTail
-        left.font = .systemFont(ofSize: 10); right.font = .systemFont(ofSize: 10); right.alignment = .right
-        slider.controlSize = .small; slider.numberOfTickMarks = 2; slider.allowsTickMarkValuesOnly = true; slider.isContinuous = false
-        slider.target = self; slider.action = #selector(changed)
+        sourceSwitch.segmentStyle = .capsule; sourceSwitch.segmentDistribution = .fillEqually
+        sourceSwitch.font = .systemFont(ofSize: 12, weight: .medium)
+        sourceSwitch.target = self; sourceSwitch.action = #selector(changed)
         setup.bezelStyle = .inline; setup.controlSize = .small; setup.target = self; setup.action = #selector(openSetup)
         refresh.bezelStyle = .inline; refresh.controlSize = .small; refresh.target = self; refresh.action = #selector(doRefresh)
-        [name, detail, left, right, slider, setup, refresh].forEach(addSubview); apply(row)
+        [name, detail, sourceSwitch, setup, refresh].forEach(addSubview); apply(row)
     }
     required init?(coder: NSCoder) { nil }
     override func layout() {
@@ -31,24 +29,31 @@ import CubeCore
         name.frame = NSRect(x: 16, y: 69, width: 160, height: 17)
         setup.frame = NSRect(x: 224, y: 67, width: 50, height: 20)
         refresh.frame = NSRect(x: 178, y: 67, width: 42, height: 20)
-        left.frame = NSRect(x: 16, y: 41, width: 47, height: 15)
-        right.frame = NSRect(x: 226, y: 41, width: 47, height: 15)
-        slider.frame = NSRect(x: 68, y: 37, width: 151, height: 23)
+        sourceSwitch.frame = NSRect(x: 16, y: 35, width: 258, height: 27)
         detail.frame = NSRect(x: 16, y: 10, width: 258, height: 18)
     }
     func apply(_ row: DisplayInputRow) {
         self.row = row; name.stringValue = row.target.name; name.toolTip = row.target.name
-        slider.isEnabled = row.enabled
-        if let current = row.current, let source = row.mapping?.source(for: current) { slider.doubleValue = source == .typeC ? 0 : 1 }
         let activeSource = row.current.flatMap { row.mapping?.source(for: $0) }
+        sourceSwitch.isEnabled = row.enabled
+        sourceSwitch.selectedSegment = activeSource.map { $0 == .typeC ? 0 : 1 } ?? -1
         let currentText = activeSource.map { $0 == .typeC ? "当前：Type-C" : "当前：HDMI" } ?? row.current.map { "当前输入代码：\($0)" } ?? "不可用"
         detail.stringValue = row.message ?? (row.busy ? "正在读取…" : currentText)
         detail.toolTip = detail.stringValue; setup.isEnabled = !row.busy; refresh.isEnabled = !row.busy
-        slider.setAccessibilityLabel("\(row.target.name) 输入源")
+        sourceSwitch.setAccessibilityLabel("\(row.target.name) 输入源")
         let source = row.current.flatMap { row.mapping?.source(for: $0) }.map { $0 == .typeC ? "Type-C" : "HDMI" } ?? "未知"
-        slider.setAccessibilityHelp("当前输入：\(source)。\(detail.stringValue)")
+        sourceSwitch.setAccessibilityHelp("当前输入：\(source)。\(detail.stringValue)")
     }
-    @objc private func changed() { if slider.isEnabled { change(row.id, slider.doubleValue < 0.5 ? .typeC : .hdmi) } }
+    @objc private func changed() {
+        let selected = sourceSwitch.selectedSegment
+        // Native selection is a request. Keep the confirmed source highlighted
+        // until the controller publishes readback, including while disabled.
+        apply(row)
+        guard row.enabled, selected == 0 || selected == 1 else { return }
+        let source: DisplayInputSource = selected == 0 ? .typeC : .hdmi
+        guard row.current.flatMap({ row.mapping?.source(for: $0) }) != source else { return }
+        change(row.id, source)
+    }
     @objc private func openSetup() {
         let selected = row
         enclosingMenuItem?.menu?.cancelTracking()

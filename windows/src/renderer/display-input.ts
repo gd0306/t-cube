@@ -4,7 +4,8 @@ interface Display { identity: string; name: string; reading: InputReading | null
 interface Bridge { list(): Promise<{ result: InputResult; mappings: Record<string, DisplayInputMapping> }>; save(identity: string, mapping: DisplayInputMapping): Promise<void>; switch(identity: string, target: 'typeC' | 'hdmi'): Promise<InputResult>; close(): Promise<void> }
 const bridge = (window as unknown as { displayInput: Bridge }).displayInput;
 const get = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
-const select = get<HTMLSelectElement>('display'), source = get<HTMLInputElement>('source'), current = get('current'), status = get('status');
+const select = get<HTMLSelectElement>('display'), source = get<HTMLFieldSetElement>('source'), current = get('current'), status = get('status');
+const sourceOptions = Array.from(source.querySelectorAll<HTMLInputElement>('input[type=radio]'));
 const code = get('code');
 const typeC = get<HTMLInputElement>('typec'), hdmi = get<HTMLInputElement>('hdmi');
 const refreshButton = get<HTMLButtonElement>('refresh'), saveButton = get<HTMLButtonElement>('save');
@@ -25,10 +26,11 @@ function render(preserveFields = false) {
     const active = reading && mapping && (reading.current === mapping.typeC ? 'Type-C' : reading.current === mapping.hdmi ? 'HDMI' : null);
     current.textContent = !display ? '未找到可唯一识别的显示器。' : active ? `当前输入源：${active}` : reading ? '当前输入源尚未匹配。' : '无法读取当前输入源。';
     code.textContent = reading ? `当前代码：${reading.current}（显示器报告的最大值：${reading.maximum}）` : '当前代码未知。';
-    const value = reading && mapping && (reading.current === mapping.typeC ? 0 : reading.current === mapping.hdmi ? 1 : null);
+    const value = reading && mapping && (reading.current === mapping.typeC ? 'typeC' : reading.current === mapping.hdmi ? 'hdmi' : null);
     source.disabled = busy || value === null || value === undefined;
-    if (value !== null && value !== undefined) { source.value = String(value); source.setAttribute('aria-valuetext', value === 0 ? 'Type-C' : 'HDMI'); }
-    else source.setAttribute('aria-valuetext', '未知');
+    source.dataset.selected = value ?? 'unknown';
+    source.setAttribute('aria-busy', String(busy));
+    for (const option of sourceOptions) option.checked = option.value === value;
     if (!preserveFields) { typeC.value = mapping ? String(mapping.typeC) : ''; hdmi.value = mapping ? String(mapping.hdmi) : ''; }
     status.textContent = source.disabled ? '请先设置两个不同的输入代码，并激活其中一个输入源。' : '选择要切换的输入源。';
 }
@@ -56,9 +58,13 @@ get('save').addEventListener('click', () => void (async () => {
     try { await bridge.save(display.identity, mapping); await refresh(); }
     catch (error) { busy = false; render(true); status.textContent = message(error); }
 })());
-source.addEventListener('input', () => source.setAttribute('aria-valuetext', source.value === '0' ? 'Type-C' : 'HDMI'));
-source.addEventListener('change', () => void (async () => {
-    const display = selected(); if (!display || busy) return; const target = source.value === '0' ? 'typeC' : 'hdmi';
+source.addEventListener('change', event => void (async () => {
+    const option = event.target;
+    const display = selected(), mapping = display && mappings[display.identity];
+    if (!(option instanceof HTMLInputElement) || !sourceOptions.includes(option) || !display || busy || source.disabled) return;
+    const target = option.value;
+    if (target !== 'typeC' && target !== 'hdmi') return;
+    if (mapping && display.reading?.current === mapping[target]) { render(); return; }
     busy = true; render(); status.textContent = '正在发送切换指令…';
     try {
         const result = await bridge.switch(display.identity, target); busy = false;

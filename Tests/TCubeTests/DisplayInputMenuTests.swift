@@ -13,14 +13,45 @@ private final class InputPreviewPanel: NSPanel {
         let target = DisplayBrightnessTarget(id: 2, uuid: UUID().uuidString, name: "Example", isBuiltIn: false)
         let mapping = DisplayInputMapping(typeC: 7, hdmi: 5)!
         let row = DisplayInputMenuRow(row: .init(target: target, mapping: mapping, current: 5, busy: false), change: { _, _ in }, configure: { _ in }, reload: {})
-        let slider = try #require(row.subviews.compactMap { $0 as? NSSlider }.first)
-        #expect(slider.isEnabled && slider.doubleValue == 1)
-        #expect(slider.accessibilityHelp()?.contains("HDMI") == true)
+        let sourceSwitch = try #require(row.subviews.compactMap { $0 as? NSSegmentedControl }.first)
+        #expect(sourceSwitch.isEnabled && sourceSwitch.selectedSegment == 1)
+        #expect(sourceSwitch.label(forSegment: 0) == "Type-C" && sourceSwitch.label(forSegment: 1) == "HDMI")
+        #expect(sourceSwitch.accessibilityHelp()?.contains("HDMI") == true)
         #expect(row.subviews.compactMap { $0 as? NSTextField }.contains { $0.stringValue == "当前：HDMI" })
         #expect(row.subviews.compactMap { $0 as? NSButton }.filter { !$0.isEnabled }.isEmpty)
         row.apply(.init(target: target, current: 16, busy: false))
-        #expect(!slider.isEnabled)
+        #expect(!sourceSwitch.isEnabled && sourceSwitch.selectedSegment == -1)
         #expect(row.subviews.compactMap { $0 as? NSButton }.filter { !$0.isEnabled }.isEmpty)
+    }
+
+    @Test func switchCommitsExplicitPortsAndKeepsOnlyConfirmedSelection() throws {
+        _ = NSApplication.shared
+        let target = DisplayBrightnessTarget(id: 2, uuid: UUID().uuidString, name: "Example", isBuiltIn: false)
+        let mapping = DisplayInputMapping(typeC: 7, hdmi: 5)!
+        var requests: [DisplayInputSource] = []
+        let row = DisplayInputMenuRow(row: .init(target: target, mapping: mapping, current: 5, busy: false),
+            change: { id, source in #expect(id == target.uuid); requests.append(source) }, configure: { _ in }, reload: {})
+        let control = try #require(row.subviews.compactMap { $0 as? NSSegmentedControl }.first)
+        func choose(_ segment: Int) {
+            control.selectedSegment = segment
+            NSApp.sendAction(control.action!, to: control.target, from: control)
+        }
+        choose(0)
+        #expect(requests == [.typeC])
+        #expect(control.selectedSegment == 1, "A click is a request, not hardware confirmation")
+        row.apply(.init(target: target, mapping: mapping, current: 5, busy: true, message: "正在切换…"))
+        choose(0)
+        #expect(requests == [.typeC] && !control.isEnabled && control.selectedSegment == 1)
+        row.apply(.init(target: target, mapping: mapping, current: 7, busy: false))
+        #expect(control.selectedSegment == 0)
+        choose(0)
+        #expect(requests == [.typeC], "Selecting the current input must not write again")
+        choose(1)
+        #expect(requests == [.typeC, .hdmi])
+        row.apply(.init(target: target, mapping: mapping, busy: false, message: "命令已发送，无法确认"))
+        #expect(!control.isEnabled && control.selectedSegment == -1)
+        choose(1)
+        #expect(requests == [.typeC, .hdmi] && control.selectedSegment == -1)
     }
     @Test(.enabled(if: ProcessInfo.processInfo.environment["TCUBE_INPUT_PREVIEWS"] == "1"))
     func exportInputRows() throws {
