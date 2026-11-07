@@ -13,7 +13,7 @@ const server = createServer((request, response) => {
 await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
 const address = server.address(); if (!address || typeof address === 'string') throw new Error('No preview port');
 const browser = await chromium.launch({ headless: true, channel: 'chrome' });
-interface Fixture { requests: { id: string; target: string }[]; result: unknown; complete(): void }
+interface Fixture { requests: { id: string; target: string }[]; result: unknown; complete(): void; displays: { identity: string; name: string; reading: { current: number; maximum: number } | null; unavailable?: string }[]; changed(): void }
 type PreviewWindow = Window & { fixture: Fixture };
 try {
     await mkdir('.cache/display-input-preview', { recursive: true });
@@ -24,10 +24,10 @@ try {
         page.on('pageerror', error => errors.push(error.message));
         await page.addInitScript({ content: `
             const identity = 'preview-monitor';
-            window.fixture = { requests: [], result: null, complete: null };
+            window.fixture = { requests: [], result: null, complete: null, changed: null, displays: [{ identity, name: 'Studio monitor · DISPLAY1', reading: { current: 5, maximum: 14 } }] };
             window.displayInput = {
-                list: async () => ({ result: { status: 'listed', displays: [{ identity, name: 'Studio monitor', reading: { current: 5, maximum: 14 } }] }, mappings: { [identity]: { typeC: 7, hdmi: 5 } } }),
-                save: async () => {}, close: async () => {},
+                list: async () => ({ result: { status: 'listed', displays: structuredClone(window.fixture.displays) }, mappings: { [identity]: { typeC: 7, hdmi: 5 } } }),
+                save: async () => {}, close: async () => {}, onDisplaysChanged: callback => { window.fixture.changed = callback; },
                 switch: (id, target) => {
                     window.fixture.requests.push({id, target});
                     return new Promise(resolve => { window.fixture.complete = () => resolve(window.fixture.result); });
@@ -80,6 +80,43 @@ try {
             }
             if (scenario.status === 'sent-unconfirmed') await page.screenshot({ path: `.cache/display-input-preview/${theme}-unconfirmed.png`, fullPage: true, animations: 'disabled' });
         }
+        // Hot-plug preserves an existing identity and never selects a different monitor on removal.
+        await page.goto(`http://127.0.0.1:${address.port}/display-input.html`);
+        await page.locator('#source:not([disabled])').waitFor();
+        await page.evaluate(() => {
+            const fixture = (window as unknown as PreviewWindow).fixture;
+            fixture.displays.push({ identity: 'second-monitor', name: 'Generic monitor · DISPLAY2', reading: { current: 17, maximum: 3 } });
+            fixture.changed();
+        });
+        await page.locator('#display option').nth(2).waitFor({ state: 'attached' });
+        assert.equal(await page.locator('#display').inputValue(), '0');
+        await page.locator('#display').selectOption('1');
+        assert.equal(await page.getByRole('radio', { name: 'Type-C', exact: true }).isDisabled(), true);
+        await page.locator('#help summary').click();
+        await page.locator('#help ol').waitFor({ state: 'visible' });
+        await page.locator('#setup summary').click();
+        await page.screenshot({ path: `.cache/display-input-preview/${theme}-help.png`, fullPage: true, animations: 'disabled' });
+        await page.evaluate(() => {
+            const fixture = (window as unknown as PreviewWindow).fixture;
+            fixture.displays = fixture.displays.slice(0, 1);
+            fixture.changed();
+        });
+        await page.locator('#display option').nth(2).waitFor({ state: 'detached' });
+        assert.equal(await page.locator('#display').inputValue(), '', 'Removed selection must not fall back to another monitor');
+        assert.equal(await page.getByRole('radio', { name: 'HDMI', exact: true }).isDisabled(), true);
+        await page.getByRole('button', { name: '刷新', exact: true }).click();
+        await page.locator('#display:not([disabled])').waitFor();
+        assert.equal(await page.locator('#display').inputValue(), '', 'Later refresh must preserve the explicit empty selection');
+        assert.deepEqual(await page.evaluate(() => (window as unknown as PreviewWindow).fixture.requests), []);
+        await page.evaluate(() => {
+            const fixture = (window as unknown as PreviewWindow).fixture;
+            fixture.displays = [{ identity: '', name: 'Ambiguous monitor', reading: null, unavailable: 'identity' }];
+            fixture.changed();
+        });
+        await page.locator('#display option', { hasText: 'Ambiguous monitor' }).waitFor({ state: 'attached' });
+        await page.locator('#display').selectOption('0');
+        assert.equal(await page.locator('#save').isDisabled(), true);
+        assert.equal(await page.getByRole('radio', { name: 'HDMI', exact: true }).isDisabled(), true);
         assert.deepEqual(errors, []);
         await page.close();
     }

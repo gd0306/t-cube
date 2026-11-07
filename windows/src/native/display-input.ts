@@ -7,7 +7,7 @@ export function classifyInputError(error: unknown): { kind: InputFailureKind; me
     return error instanceof InputOperationError ? { kind: error.kind, message: error.message } : { kind: 'not-attempted', message: String(error) };
 }
 export interface InputReading { current: number; maximum: number }
-export interface PhysicalGroup<H> { identity: string; name: string; handles: H[]; knownModel?: boolean }
+export interface PhysicalGroup<H> { identity: string; name: string; handles: H[] }
 export interface DisplayInputDriver<H> {
     enumerate(): PhysicalGroup<H>[];
     read(handle: H): InputReading | null;
@@ -16,9 +16,11 @@ export interface DisplayInputDriver<H> {
     delay(): Promise<void> | void;
 }
 export type InputJob = { kind: 'list' } | { kind: 'switch'; identity: string; mapping?: DisplayInputMapping; target: 'typeC' | 'hdmi' };
-export type InputResult = { status: 'listed'; displays: { identity: string; name: string; reading: InputReading | null; knownModel?: boolean }[] } | { status: 'no-op' | 'confirmed' | 'not-applied'; reading: InputReading } | { status: 'sent-unconfirmed' };
+export interface InputDisplay { identity: string; name: string; reading: InputReading | null; unavailable?: 'identity' | 'transport' | 'ddc' }
+export type InputResult = { status: 'listed'; displays: InputDisplay[] } | { status: 'no-op' | 'confirmed' | 'not-applied'; reading: InputReading } | { status: 'sent-unconfirmed' };
 function validReading(reading: InputReading | null): reading is InputReading {
-    return reading !== null && Number.isInteger(reading.current) && reading.current >= 0 && reading.current <= 65535 && Number.isInteger(reading.maximum) && reading.maximum >= 0 && reading.maximum <= 65535;
+    // Input Select is non-continuous: Win32 explicitly leaves maximum undefined.
+    return reading !== null && Number.isInteger(reading.current) && reading.current >= 0 && reading.current <= 65535;
 }
 /** Each acquired handle is destroyed even when a read, write, or validation fails. */
 export async function runDisplayInputJob<H>(driver: DisplayInputDriver<H>, job: InputJob, cancelled: () => boolean = () => false, beforeWrite: () => void = () => {}): Promise<InputResult> {
@@ -26,18 +28,22 @@ export async function runDisplayInputJob<H>(driver: DisplayInputDriver<H>, job: 
     let accepted = false; let phase: InputFailureKind = 'not-attempted'; let operationFailed = false;
     try {
         const identities = groups.map(group => { try { return normalizeIdentity(group.identity); } catch { return null; } });
-        if (job.kind === 'list') return { status: 'listed', displays: groups.flatMap((group, index) => {
+        if (job.kind === 'list') return { status: 'listed', displays: groups.map((group, index): InputDisplay => {
             const identity = identities[index];
-            if (!identity || group.handles.length !== 1 || identities.filter(candidate => candidate === identity).length !== 1) return [];
-            const reading = driver.read(group.handles[0]);
-            return [{ identity, name: group.name, reading: validReading(reading) ? reading : null, knownModel: group.knownModel === true }];
+            const display: InputDisplay = { identity: identity ?? '', name: group.name, reading: null };
+            if (!identity || identities.filter(candidate => candidate === identity).length !== 1 || group.handles.length > 1) return { ...display, unavailable: 'identity' };
+            if (group.handles.length === 0) return { ...display, unavailable: 'transport' };
+            try {
+                const reading = driver.read(group.handles[0]);
+                return validReading(reading) ? { ...display, reading } : { ...display, unavailable: 'ddc' };
+            } catch { return { ...display, unavailable: 'ddc' }; }
         }) };
         const identity = normalizeIdentity(job.identity);
         if (job.target !== 'typeC' && job.target !== 'hdmi') throw new Error('Invalid input target');
         const indexes = identities.flatMap((candidate, index) => candidate === identity ? [index] : []);
         if (indexes.length !== 1 || groups[indexes[0]].handles.length !== 1) throw new Error('Display identity is ambiguous or unavailable');
         const group = groups[indexes[0]];
-        const mapping = job.mapping ?? (group.knownModel ? { typeC: 7, hdmi: 5 } : undefined);
+        const mapping = job.mapping;
         if (!validMapping(mapping)) throw new Error('Configure this display before switching');
         const handle = group.handles[0]; const before = driver.read(handle);
         if (!validReading(before) || !Object.values(mapping).includes(before.current)) throw new Error('Current source is unavailable or not calibrated');

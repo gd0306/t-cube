@@ -4,5 +4,13 @@
 <div class="toolbar"><label for="display">显示器</label><button id="refresh">刷新</button></div><select id="display" disabled><option>正在读取显示器…</option></select>
 <p id="current" class="secondary" aria-live="polite">正在读取当前输入源…</p>
 <section aria-labelledby="switch-title"><h2 id="switch-title">输入源</h2><fieldset id="source" class="source-switch" role="radiogroup" aria-label="输入源" data-selected="unknown" disabled><span class="source-selection" aria-hidden="true"></span><label><input type="radio" name="input-source" value="typeC"><span>Type-C</span></label><label><input type="radio" name="input-source" value="hdmi"><span>HDMI</span></label></fieldset><p id="status" role="status">请选择已设置的显示器。</p></section>
-<details id="setup"><summary>设置输入源代码</summary><p id="code">当前代码未知。</p><p>请分别在每个输入源激活时读取代码。另一端的代码可能需要在对应主机的 T-Cube 中读取。保存代码不会切换输入源。</p><div class="fields"><label>Type-C 代码 <input id="typec" type="number" min="0" max="65535" step="1" inputmode="numeric"></label><label>HDMI 代码 <input id="hdmi" type="number" min="0" max="65535" step="1" inputmode="numeric"></label></div><div class="actions"><button id="preset">使用 27C1U-D 预设（7 / 5）</button><button id="save">保存代码</button></div></details>
+<details id="help"><summary>如何获取输入代码？</summary>
+<p>T-Cube 自动检测已连接的显示器并读取当前输入代码，不读取全部可用值，也不会按型号猜值。VCP 0x60 是功能编号，不是要填写的端口值。</p>
+<ol><li>在显示器实体菜单开启 DDC/CI，连接并唤醒 Type-C 与 HDMI 两端主机。按名称和 DISPLAY 编号选择对应屏幕；同名时可暂时断开其他屏幕再刷新。</li>
+<li>用实体菜单选中 Type-C。在当前显示画面的主机上打开 T-Cube「显示器输入源…」，选择该屏幕并点「刷新」，展开「设置输入源代码」，记下「当前代码」的十进制整数。</li>
+<li>用实体菜单选中 HDMI，在 HDMI 活动主机上重复刷新并记下代码。不要在已经失去画面的主机上反复读取。</li>
+<li>回到要配置的主机，填写两个实测、不同的代码（0–65535），点「保存代码」。每台主机分别保存，保存不会切换输入。</li>
+<li>确认能用实体菜单切回后，点击 Type-C 或 HDMI 验证画面及回读。「无法确认」可能已经切走，请从当前活动主机或实体菜单切回。</li></ol>
+<p>无法读取？检查 DDC/CI、线缆、扩展坞和转接器，尝试直连并刷新。部分连接或显示器不支持输入源控制。未返回代码时不要猜值，使用实体菜单或咨询厂商。自动检测不代表硬件已验证兼容。</p></details>
+<details id="setup"><summary>设置输入源代码</summary><p id="code">当前代码未知。</p><p>输入代码由固件决定，请按上方帮助分别读取两个端口；保存不会切换输入源。</p><div class="fields"><label>Type-C 代码 <input id="typec" type="number" min="0" max="65535" step="1" inputmode="numeric"></label><label>HDMI 代码 <input id="hdmi" type="number" min="0" max="65535" step="1" inputmode="numeric"></label></div><div class="actions"><button id="save">保存代码</button></div></details>
 <footer>切回时，请在当前显示画面的主机上操作 T-Cube，或使用显示器实体菜单。</footer></main><script type="module" src="display-input.js"></script></body></html>

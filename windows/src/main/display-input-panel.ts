@@ -16,7 +16,7 @@ export class DisplayInputPanel {
         });
     }
     show(tray: Tray): void {
-        if (this.window && !this.window.isDestroyed()) { this.window.show(); this.window.focus(); return; }
+        if (this.window && !this.window.isDestroyed()) { this.window.show(); this.window.focus(); this.window.webContents.send('display-input:displays-changed'); return; }
         const bounds = tray.getBounds(); const work = screen.getDisplayNearestPoint({ x: bounds.x, y: bounds.y }).workArea;
         const width = 400, height = 520;
         const x = Math.max(work.x, Math.min(work.x + work.width - width, bounds.x + bounds.width - width));
@@ -36,7 +36,10 @@ export class DisplayInputPanel {
         window.on('closed', () => { this.service.cancel(); if (this.window === window) this.window = null; });
         void window.loadFile(path.join(this.directory, 'renderer', 'display-input.html')).then(() => { if (!window.isDestroyed()) window.show(); });
     }
-    cancel(): void { this.service.cancel(); }
+    cancel(): void {
+        this.service.cancel();
+        if (this.window && !this.window.isDestroyed()) this.window.webContents.send('display-input:displays-changed');
+    }
     whenIdle(): Promise<unknown> { return this.service.whenIdle(); }
     dispose(): void { this.service.cancel(); this.window?.destroy(); this.window = null; for (const channel of ['list', 'save', 'switch', 'close']) ipcMain.removeHandler(`display-input:${channel}`); }
 }

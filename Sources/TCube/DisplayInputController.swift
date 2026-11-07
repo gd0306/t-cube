@@ -1,16 +1,17 @@
 import Foundation
-import CoreGraphics
 
 import CubeCore
 
 struct DisplayInputRow: Identifiable {
     let target: DisplayBrightnessTarget
-    var id: String { target.uuid }
+    var id: String { identityAvailable ? target.uuid : "unavailable:\(target.id)" }
     var mapping: DisplayInputMapping?
     var current: UInt16?
     var busy = true
     var message: String?
-    var enabled: Bool { !busy && mapping?.source(for: current ?? UInt16.max) != nil && current != nil }
+    var identityAvailable = true
+    var canConfigure: Bool { identityAvailable && !busy }
+    var enabled: Bool { canConfigure && current.flatMap { mapping?.source(for: $0) } != nil }
 }
 
 @MainActor final class DisplayInputController {
@@ -28,22 +29,27 @@ struct DisplayInputRow: Identifiable {
     func beginTracking() { isOpen = true; refresh() }
     func endTracking() { isOpen = false; generation += 1; tasks.forEach { $0.cancel() }; tasks.removeAll() }
     func stop() { endTracking(); rows = []; onChange = nil }
-    func screenParametersChanged() { generation += 1; tasks.forEach { $0.cancel() }; tasks.removeAll(); rows = []; if isOpen { refresh() } }
+    func screenParametersChanged() { generation += 1; tasks.forEach { $0.cancel() }; tasks.removeAll(); rows = []; if isOpen { refresh() } else { onChange?() } }
     func refresh() {
         guard isOpen else { return }
         generation += 1; tasks.forEach { $0.cancel() }; tasks.removeAll()
         let token = generation
-        let displays = targets().filter { !$0.isBuiltIn && UUID(uuidString: $0.uuid) != nil }
-        let identities = Dictionary(grouping: displays, by: { UUID(uuidString: $0.uuid)!.uuidString })
-        rows = displays.filter { identities[UUID(uuidString: $0.uuid)!.uuidString]?.count == 1 }.map { target in
+        let displays = targets().filter { !$0.isBuiltIn }
+        let identities = Dictionary(grouping: displays, by: { UUID(uuidString: $0.uuid)?.uuidString ?? "" })
+        rows = displays.map { target in
             var row = DisplayInputRow(target: target)
+            guard let identity = UUID(uuidString: target.uuid)?.uuidString, identities[identity]?.count == 1 else {
+                row.identityAvailable = false; row.busy = false
+                row.message = "无法唯一识别此显示器；请检查连接后刷新"
+                return row
+            }
             do {
-                row.mapping = try store.mapping(for: target.uuid) ?? Self.preset(target)
+                row.mapping = try store.mapping(for: target.uuid)
             } catch { row.message = "输入配置损坏，请备份并修复 display-inputs.json" }
             return row
         }
         onChange?()
-        for row in rows {
+        for row in rows where row.identityAvailable {
             let task = Task { [weak self] in
                 guard let self else { return }
                 do {
@@ -52,25 +58,33 @@ struct DisplayInputRow: Identifiable {
                     self.update(row.id) { $0.current = current; $0.busy = false; if $0.message == nil && $0.mapping?.source(for: current) == nil { $0.message = "当前输入代码 \(current)；请设置映射" } }
                 } catch {
                     guard self.isOpen, self.generation == token, !Task.isCancelled else { return }
-                    self.update(row.id) { $0.busy = false; if $0.message == nil { $0.message = "无法读取输入源，请检查 DDC/CI" } }
+                    self.update(row.id) {
+                        $0.busy = false
+                        if $0.message == nil {
+                            $0.message = error as? DisplayBrightnessFailure == .unsupported
+                                ? "此连接不支持输入源 DDC/CI；请查看获取代码帮助"
+                                : "无法读取输入代码；请开启 DDC/CI 并检查连接"
+                        }
+                    }
                 }
             }
             tasks.append(task)
         }
     }
-    static func preset(_ target: DisplayBrightnessTarget) -> DisplayInputMapping? {
-        guard target.name == "27C1U-D", CGDisplayVendorNumber(target.id) == 9699, CGDisplayModelNumber(target.id) == 65535 else { return nil }
-        return DisplayInputMapping(typeC: 7, hdmi: 5)
+    private func isConnected(_ row: DisplayInputRow) -> Bool {
+        guard row.identityAvailable, let identity = UUID(uuidString: row.target.uuid) else { return false }
+        let matches = targets().filter { !$0.isBuiltIn && UUID(uuidString: $0.uuid) == identity }
+        return matches.count == 1 && matches[0].id == row.target.id
     }
     func save(_ mapping: DisplayInputMapping, for uuid: String) throws {
-        guard let target = rows.first(where: { $0.id == uuid })?.target else { throw DisplayBrightnessFailure.disconnected }
+        guard let row = rows.first(where: { $0.id == uuid }), isConnected(row) else { throw DisplayBrightnessFailure.disconnected }
         try store.save(mapping, for: uuid)
         if isOpen { refresh() }
-        else { Task { [hardware] in _ = try? await hardware.read(target) } }
     }
     func setSource(_ source: DisplayInputSource, for uuid: String) {
         guard isOpen, let row = rows.first(where: { $0.id == uuid }), row.enabled,
               let mapping = row.mapping, mapping.source(for: row.current!) != source else { return }
+        guard isConnected(row) else { refresh(); return }
         let token = generation
         update(uuid) { $0.busy = true; $0.message = "正在切换…" }
         let task = Task { [weak self] in

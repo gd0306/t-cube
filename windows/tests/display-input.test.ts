@@ -53,15 +53,6 @@ test('readback exception after acceptance remains unconfirmed', async () => {
     const result = await runDisplayInputJob(driver, { kind: 'switch', identity: id, mapping: { typeC: 7, hdmi: 5 }, target: 'typeC' });
     assert.equal(result.status, 'sent-unconfirmed'); assert.equal(writes, 1);
 });
-test('automatic preset requires valid EDID and model descriptor, not generic IOC marker', async () => {
-    const { isKnownModelEdid } = await import('../src/native/display-input-edid');
-    const block = Buffer.alloc(128); Buffer.from('00ffffffffffff00', 'hex').copy(block);
-    block.set([0x25, 0xe3, 0xff, 0xff], 8); block.set([0, 0, 0, 0xfc, 0], 54); block.write('27C1U-D\n', 59, 'ascii');
-    block[127] = (-block.reduce((sum, byte) => sum + byte, 0)) & 255;
-    assert.equal(isKnownModelEdid(block), true);
-    block[59] = 0x58; assert.equal(isKnownModelEdid(block), false);
-    assert.equal(isKnownModelEdid(Buffer.alloc(128)), false);
-});
 test('panel IPC authorizes before payload inspection or service calls', async () => {
     const { handleDisplayInputRequest } = await import('../src/main/display-input-ipc');
     let calls = 0; const service = { list: async () => { calls++; }, save: async () => { calls++; }, switch: async () => { calls++; }, close: () => { calls++; } };
@@ -72,13 +63,33 @@ test('panel IPC authorizes before payload inspection or service calls', async ()
     assert.equal(calls, 0);
     await handleDisplayInputRequest('switch', true, { identity: id, target: 'typeC' }, service); assert.equal(calls, 1);
 });
-test('known model fallback is identity-specific, while generic IOC monitor requires setup', async () => {
+test('monitor model never supplies guessed input codes without saved calibration', async () => {
     let writes = 0;
-    const driver: DisplayInputDriver<number> = { enumerate: () => [{ identity: id, name: '', handles: [1], knownModel: true }], read: () => ({ current: 5, maximum: 14 }), write: () => { writes++; return true; }, destroy: () => {}, delay: () => {} };
-    const job = { kind: 'switch' as const, identity: id, target: 'typeC' as const };
-    assert.equal((await runDisplayInputJob(driver, job)).status, 'not-applied'); assert.equal(writes, 1);
-    driver.enumerate = () => [{ identity: id, name: '', handles: [1] }];
-    await assert.rejects(runDisplayInputJob(driver, job), /Configure/); assert.equal(writes, 1);
+    const driver: DisplayInputDriver<number> = { enumerate: () => [{ identity: id, name: '27C1U-D', handles: [1], knownModel: true }], read: () => ({ current: 5, maximum: 14 }), write: () => { writes++; return true; }, destroy: () => {}, delay: () => {} };
+    await assert.rejects(runDisplayInputJob(driver, { kind: 'switch', identity: id, target: 'typeC' }), /Configure/);
+    assert.equal(writes, 0);
+});
+test('listing keeps unsupported and ambiguous monitors visible and isolates read failures', async () => {
+    const closed: number[] = [];
+    const driver: DisplayInputDriver<number> = {
+        enumerate: () => [
+            { identity: id, name: 'Generic A', handles: [1] },
+            { identity: id.replace('instance', 'other'), name: 'No DDC', handles: [2] },
+            { identity: '', name: 'No transport', handles: [] },
+            { identity: id.replace('instance', 'clone'), name: 'Clone A', handles: [3] },
+            { identity: id.replace('instance', 'clone').toUpperCase(), name: 'Clone B', handles: [4] }
+        ],
+        read: handle => { if (handle === 2) throw new Error('DDC unsupported'); assert.equal(handle, 1); return { current: 17, maximum: 3 }; },
+        write: () => { throw new Error('listing must not switch'); }, destroy: handle => { closed.push(handle); }, delay: () => {}
+    };
+    const result = await runDisplayInputJob(driver, { kind: 'list' });
+    assert.equal(result.status, 'listed');
+    if (result.status === 'listed') {
+        assert.equal(result.displays.length, 5);
+        assert.equal(result.displays[0].reading?.current, 17);
+        assert.ok(result.displays.slice(1).every(display => display.reading === null));
+    }
+    assert.deepEqual(closed, [1, 2, 3, 4]);
 });
 test('service rejects duplicate switch, cancels a running worker and skips queued work', async () => {
     const { DisplayInputService } = await import('../src/main/display-input-service');
@@ -147,9 +158,25 @@ test('saving and switching serialize so switch uses completed mapping', async ()
     try {
         let release!: () => void, start!: () => void; const gate = new Promise<void>(resolve => { release = resolve; }); const started = new Promise<void>(resolve => { start = resolve; });
         const store = new DisplayInputStore(file, async (file, data, guard) => { start(); await gate; await atomicWriteJSON(file, data, guard); });
-        let used: unknown; const service = new DisplayInputService('', store, async job => { if (job.kind === 'switch') used = job.mapping; return { status: 'no-op', reading: { current: 5, maximum: 14 } }; });
+        let used: unknown; const service = new DisplayInputService('', store, async job => {
+            if (job.kind === 'list') return { status: 'listed', displays: [{ identity: id.toLowerCase(), name: 'Generic', reading: { current: 5, maximum: 14 } }] };
+            used = job.mapping; return { status: 'no-op', reading: { current: 5, maximum: 14 } };
+        });
         const save = service.save(id, { typeC: 7, hdmi: 5 }); await started; const change = service.switch(id, 'typeC'); release(); await save; await change;
         assert.deepEqual(used, { typeC: 7, hdmi: 5 });
+    } finally { await rm(dir, { recursive: true, force: true }); }
+});
+test('service refuses stale or ambiguous calibration saves and preserves existing bytes', async () => {
+    const { DisplayInputService } = await import('../src/main/display-input-service');
+    const dir = await mkdtemp(join(tmpdir(), 'tcube-stale-input-')); const file = join(dir, 'display-inputs.json');
+    try {
+        const store = new DisplayInputStore(file); await store.save(id, { typeC: 7, hdmi: 5 });
+        const before = await readFile(file, 'utf8');
+        for (const displays of [[], [{ identity: id.toLowerCase(), name: 'Clone', reading: null, unavailable: 'identity' as const }]]) {
+            const service = new DisplayInputService('', store, async () => ({ status: 'listed', displays }));
+            await assert.rejects(service.save(id, { typeC: 15, hdmi: 17 }), /ambiguous|unavailable/);
+            assert.equal(await readFile(file, 'utf8'), before);
+        }
     } finally { await rm(dir, { recursive: true, force: true }); }
 });
 test('write-start marker precedes Set, and a marker failure prevents the write', async () => {
@@ -174,4 +201,16 @@ test('write false is rejected, cancellation after marker is not attempted, and t
     driver.write = () => { writes++; throw new Error('native call error'); };
     await assert.rejects(runDisplayInputJob(driver, job), error => classifyInputError(error).kind === 'uncertain');
     assert.equal(writes, 1);
+});
+
+test('undefined noncontinuous VCP maximum cannot reject a valid current input', async () => {
+    const driver: DisplayInputDriver<number> = {
+        enumerate: () => [{ identity: id, name: 'Generic', handles: [1] }],
+        read: () => ({ current: 16, maximum: 0xffffffff }),
+        write: () => { throw new Error('active input must not be written'); }, destroy: () => {}, delay: () => {}
+    };
+    const listing = await runDisplayInputJob(driver, { kind: 'list' });
+    assert.equal(listing.status, 'listed');
+    if (listing.status === 'listed') assert.equal(listing.displays[0].reading?.current, 16);
+    assert.equal((await runDisplayInputJob(driver, { kind: 'switch', identity: id, mapping: { typeC: 16, hdmi: 17 }, target: 'typeC' })).status, 'no-op');
 });

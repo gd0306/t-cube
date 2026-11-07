@@ -74,3 +74,8 @@
     .source-switch input:checked + span { color: HighlightText; forced-color-adjust: none; }
     .source-switch label:has(input:focus-visible) { outline-color: Highlight; }
 }
+
+#help { margin-bottom: 16px; }
+#help ol { padding-left: 22px; margin: 12px 0; }
+#help li + li { margin-top: 10px; }
+#code { font-variant-numeric: tabular-nums; }

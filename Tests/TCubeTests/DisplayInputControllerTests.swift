@@ -22,7 +22,81 @@ private struct UnreadableInputFixture: DisplayInputHardware {
     func read(_ target: DisplayBrightnessTarget) async throws -> UInt16 { throw DisplayBrightnessFailure.readFailed }
     func write(_ value: UInt16, target: DisplayBrightnessTarget, mapping: DisplayInputMapping) async throws -> DisplayInputOutcome { throw DisplayBrightnessFailure.writeFailed }
 }
+private actor GenericInputFixture: DisplayInputHardware {
+    var reads: [UInt32] = []
+    var writes: [UInt32] = []
+    func read(_ target: DisplayBrightnessTarget) async throws -> UInt16 {
+        reads.append(target.id)
+        if target.id == 4 { throw DisplayBrightnessFailure.unsupported }
+        return target.id == 3 ? 17 : 15
+    }
+    func write(_ value: UInt16, target: DisplayBrightnessTarget, mapping: DisplayInputMapping) async throws -> DisplayInputOutcome {
+        writes.append(target.id)
+        return .confirmed(value)
+    }
+}
 @MainActor @Suite(.serialized) struct DisplayInputControllerTests {
+    @Test func everyConnectedExternalDisplayIsVisibleEvenWhenIdentityIsUnavailable() async throws {
+        let fixture = GenericInputFixture(), clone = UUID().uuidString
+        let displays = [DisplayBrightnessTarget(id: 1, uuid: UUID().uuidString, name: "Built in", isBuiltIn: true),
+                        .init(id: 2, uuid: clone, name: "Same model A", isBuiltIn: false),
+                        .init(id: 3, uuid: clone.lowercased(), name: "Same model B", isBuiltIn: false),
+                        .init(id: 4, uuid: "unsupported:4", name: "No identity", isBuiltIn: false)]
+        let controller = DisplayInputController(hardware: fixture, targets: { displays }, store: DisplayInputStore(url: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)))
+        controller.beginTracking()
+        try await Task.sleep(for: .milliseconds(10))
+        #expect(controller.rows.count == 3)
+        #expect(Set(controller.rows.map(\.id)).count == 3)
+        #expect(controller.rows.allSatisfy { !$0.enabled && !$0.busy && $0.message != nil })
+        #expect(await fixture.reads.isEmpty)
+        controller.stop()
+    }
+    @Test func genericMonitorsKeepIndependentMappingsAcrossReconnectAndUnsupportedDDC() async throws {
+        let fixture = GenericInputFixture(), a = UUID().uuidString, b = UUID().uuidString
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = DisplayInputStore(url: dir.appendingPathComponent("display-inputs.json"))
+        try store.save(DisplayInputMapping(typeC: 15, hdmi: 16)!, for: a)
+        try store.save(DisplayInputMapping(typeC: 18, hdmi: 17)!, for: b)
+        let before = try Data(contentsOf: store.url)
+        let first = DisplayBrightnessTarget(id: 2, uuid: a, name: "Generic A", isBuiltIn: false)
+        let second = DisplayBrightnessTarget(id: 3, uuid: b, name: "Generic B", isBuiltIn: false)
+        var targets = [first, second, DisplayBrightnessTarget(id: 4, uuid: UUID().uuidString, name: "No DDC", isBuiltIn: false)]
+        let controller = DisplayInputController(hardware: fixture, targets: { targets }, store: store)
+        controller.beginTracking()
+        for _ in 0..<100 where controller.rows.contains(where: \.busy) { try await Task.sleep(for: .milliseconds(2)) }
+        #expect(controller.rows.count == 3)
+        #expect(controller.rows[0].enabled && controller.rows[1].enabled)
+        #expect(!controller.rows[2].enabled && controller.rows[2].message != nil)
+        controller.setSource(.typeC, for: b)
+        for _ in 0..<100 where controller.rows[1].busy { try await Task.sleep(for: .milliseconds(2)) }
+        #expect(await fixture.writes == [3])
+        targets = [second]; controller.screenParametersChanged()
+        targets = [first, second]; controller.screenParametersChanged()
+        for _ in 0..<100 where controller.rows.contains(where: \.busy) { try await Task.sleep(for: .milliseconds(2)) }
+        #expect(controller.rows.map(\.mapping) == [DisplayInputMapping(typeC: 15, hdmi: 16), DisplayInputMapping(typeC: 18, hdmi: 17)])
+        #expect(try Data(contentsOf: store.url) == before)
+        controller.stop()
+    }
+    @Test func staleActionsCannotWriteOrSaveAfterDisplayReplacement() async throws {
+        let fixture = GenericInputFixture(), id = UUID().uuidString
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = DisplayInputStore(url: dir.appendingPathComponent("display-inputs.json"))
+        try store.save(DisplayInputMapping(typeC: 15, hdmi: 16)!, for: id)
+        let before = try Data(contentsOf: store.url)
+        var targets = [DisplayBrightnessTarget(id: 2, uuid: id, name: "Generic", isBuiltIn: false)]
+        let controller = DisplayInputController(hardware: fixture, targets: { targets }, store: store)
+        controller.beginTracking()
+        for _ in 0..<100 where controller.rows.first?.busy != false { try await Task.sleep(for: .milliseconds(2)) }
+        targets = [.init(id: 2, uuid: UUID().uuidString, name: "Replacement", isBuiltIn: false)]
+        controller.setSource(.hdmi, for: id)
+        try await Task.sleep(for: .milliseconds(10))
+        #expect(await fixture.writes.isEmpty)
+        #expect(throws: (any Error).self) { try controller.save(DisplayInputMapping(typeC: 1, hdmi: 2)!, for: id) }
+        #expect(try Data(contentsOf: store.url) == before)
+        controller.stop()
+    }
     @Test func unexpectedInputShowsItsCodeAndDisablesSwitching() async throws {
         let id = UUID().uuidString, dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -88,7 +162,8 @@ private struct UnreadableInputFixture: DisplayInputHardware {
         displays.append(DisplayBrightnessTarget(id: 3, uuid: id, name: "Clone", isBuiltIn: false))
         controller.screenParametersChanged(); await fixture.release()
         try await Task.sleep(for: .milliseconds(10))
-        #expect(controller.rows.isEmpty)
+        #expect(controller.rows.count == 2)
+        #expect(controller.rows.allSatisfy { !$0.enabled })
         #expect(await fixture.writes == 1)
         controller.stop()
     }

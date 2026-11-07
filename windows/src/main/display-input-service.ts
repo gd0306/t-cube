@@ -34,7 +34,15 @@ export class DisplayInputService {
     }
     save(identity: string, mapping: DisplayInputMapping) {
         const generation = this.generation;
-        return this.serialize(async () => { await this.store.save(identity, mapping, () => generation !== this.generation); if (generation !== this.generation) throw new Error('Display operation cancelled'); });
+        return this.serialize(async () => {
+            const key = normalizeIdentity(identity);
+            const result = await this.worker({ kind: 'list' });
+            if (generation !== this.generation) throw new Error('Display operation cancelled');
+            const matches = result.status === 'listed' ? result.displays.filter(display => display.identity === key) : [];
+            if (matches.length !== 1 || matches[0].unavailable === 'identity' || matches[0].unavailable === 'transport') throw new Error('Display identity is ambiguous or unavailable');
+            await this.store.save(key, mapping, () => generation !== this.generation);
+            if (generation !== this.generation) throw new Error('Display operation cancelled');
+        });
     }
     switch(identity: string, target: 'typeC' | 'hdmi') {
         if (this.busy) return Promise.reject(new Error('Display input operation already in progress'));

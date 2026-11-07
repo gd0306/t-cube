@@ -13,7 +13,7 @@ function bindings() {
         getPhysical: (handle, count, buffer) => { assert.equal(count, 1); assert.equal(buffer.length, 264); buffer.writeBigUInt64LE(BigInt(handle as number)); buffer.write('Generic PnP\0', 8, 'utf16le'); return 1; },
         decode: (buffer, offset) => Number(buffer.readBigUInt64LE(offset)), pointerSize: 8,
         destroy: handle => { released.push(handle as number); return 1; }, destroyAll: count => { destroyedArrays.push(count); return 1; },
-        get: (_h, _code, _type, current, maximum) => { current[0] = 5; maximum[0] = 14; return 1; }, set: () => 1, knownModel: () => false
+        get: (_h, _code, _type, current, maximum) => { current[0] = 5; maximum[0] = 14; return 1; }, set: () => 1
     };
     return { native, released, destroyedArrays };
 }
@@ -25,7 +25,8 @@ test('real acquisition algorithm extracts interface and logical display from Win
 });
 test('acquisition failures do not invent handles and decode failure releases full acquired array and earlier handles', () => {
     const first = bindings(); first.native.getPhysical = (handle) => Number(handle) === 1 ? 0 : 0;
-    assert.deepEqual(createDisplayInputDriverFromBindings(first.native).enumerate(), []); assert.deepEqual(first.released, []);
+    const unavailable = createDisplayInputDriverFromBindings(first.native).enumerate();
+    assert.equal(unavailable.length, 2); assert.ok(unavailable.every(display => display.handles.length === 0)); assert.deepEqual(first.released, []);
     const second = bindings(); const decode = second.native.decode; let n = 0;
     second.native.decode = (buffer, offset) => { if (n++) throw new Error('decode failed'); return decode(buffer, offset); };
     assert.throws(() => createDisplayInputDriverFromBindings(second.native).enumerate(), /decode failed/);
