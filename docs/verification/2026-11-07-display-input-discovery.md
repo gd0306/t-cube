@@ -28,6 +28,7 @@ macOS 外接输入传输目前限 Apple Silicon；Intel Mac 不支持该传输�
 - Windows 新增“过期/歧义目标保存”用例在修复前失败于 `Missing expected rejection`，修复后通过；相关输入模块 30 项通过、2 项 Windows 硬件/安装环境用例跳过。其余回归覆盖无预设、逐屏读取失败隔离、物理句柄释放、未定义 `maximum`、身份检查及配置字节保留。
 - `npm run build` 和 `node --import tsx scripts/display-input-preview.ts` 通过。Chrome 运行真实构建的 renderer，硬件桥接为隔离样本：验证明暗主题、原有输入确认状态、键盘操作、帮助展开、多屏添加、保持已选身份、移除后不回退、后续刷新保持空选择、歧义屏幕禁用保存/切换，且没有页面错误。
 - Impeccable detector 对变更的三个 renderer 文件返回 `[]`；`git diff --check` 通过。
+- 评审跟进：macOS 帮助原第 2 步把 Type-C 活动主机写成 Mac，现改为当前显示画面的主机，并明确 macOS 状态栏 / Windows 托盘入口；保存步骤也采用平台通用表述，适用于 Mac 接 HDMI、Windows 接 Type-C 的流程。仅修改帮助文案及其明暗截图，控制逻辑未变。重跑 `env TCUBE_INPUT_PREVIEWS=1 swift test --scratch-path .build/tests --no-parallel --filter DisplayInputMenuTests`：5 项通过；两张新帮助截图均已目视检查。
 
 ## 原生截图与限制
 
