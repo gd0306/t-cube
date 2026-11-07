@@ -12,7 +12,7 @@ macOS 沿用屏幕参数通知，Windows 沿用显示器变化事件，并在重
 
 ## 帮助流程
 
-macOS 菜单在没有可用外接屏幕时仍提供「如何获取输入代码…」，设置窗口也有帮助按钮。Windows 在实际输入源面板提供可展开的「如何获取输入代码？」。
+macOS 通过对应屏幕「设置…」内的「如何获取输入代码…」按钮打开帮助。按用户后续菜单简化要求，输入源区不再单独占一行提供该入口；输入源区与后续亮度区之间保留一条原生分隔线。Windows 在实际输入源面板提供可展开的「如何获取输入代码？」。
 
 步骤依据 pixel 在任务 #79588a4c 的独立研究：开启显示器 DDC/CI → 按名称和显示器 ID 确认目标 → 用实体菜单分别激活 Type-C 与 HDMI → 在当前显示画面的主机上刷新 T-Cube 并记录当前十进制代码 → 每台主机分别保存两个实测、不同的 `0–65535` 整数 → 保留实体菜单恢复途径，再验证一次切换及回读。
 
@@ -33,6 +33,12 @@ macOS 外接输入传输目前限 Apple Silicon；Intel Mac 不支持该传输�
 ## 原生截图与限制
 
 下图使用当前源码生成的 AppKit 行及真实 `NSAlert` 工厂，示例数据不接触用户配置、不执行硬件写入。Windows 为真实 renderer 在 macOS Chrome 中的隔离截图，不能替代 Windows 原生窗口或安装验证。截图已检查正文、帮助入口、输入字段、明暗主题和状态可读性。
+
+菜单简化验证：删除仅检查独立帮助行的过时测试，保留现有设置帮助动作与字段保留用例。`env TCUBE_INPUT_PREVIEWS=1 swift test --scratch-path .build/tests --no-parallel --filter 'DisplayInput.*Menu|DisplayBrightnessMenu|BrightnessMenuTracking'` 通过：2 项同步 XCTest（含真实菜单导出）、7 项 Swift Testing 通过、1 项亮度专用预览跳过。菜单导出使用与应用相同的输入源/亮度节和后续命令布局、同顺序的菜单生命周期；临时配置与只读样本硬件隔离用户数据。导出入口最终调整后单独重跑 `DisplayInputNativeMenuPreviewTests`，1 项通过。已目视检查输入源区到亮度区仅有一条分隔，无独立帮助行或额外空行，后续命令正常。
+
+| 当前 macOS 原生菜单（浅色） | 当前 macOS 原生菜单（深色） |
+| --- | --- |
+| <img src="../images/display-input-native-menu-light.png" width="288" alt="浅色实际 NSMenu，输入源行后直接分隔到亮度区，无独立读码帮助入口"> | <img src="../images/display-input-native-menu-dark.png" width="288" alt="深色实际 NSMenu，保留每屏设置、亮度和后续应用命令"> |
 
 | macOS 多屏状态（浅色） | macOS 多屏状态（深色） |
 | --- | --- |

@@ -1,7 +1,7 @@
 import AppKit
 import CubeCore
 
-/// The same native help is reachable from an empty menu and from calibration.
+/// Calibration help opened from the per-display setup view.
 @MainActor enum DisplayInputHelp {
     static func makeAlert() -> NSAlert {
         let alert = NSAlert()

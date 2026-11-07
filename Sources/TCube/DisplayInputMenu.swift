@@ -69,12 +69,12 @@ import CubeCore
     private var items: [NSMenuItem] = []
     private var views: [String: DisplayInputMenuRow] = [:]
     private var observer: NSObjectProtocol?
-    init(menu: NSMenu) {
+    init(menu: NSMenu, controller: DisplayInputController? = nil) {
         self.menu = menu
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("T-Cube/display-inputs.json")
-        controller = DisplayInputController(hardware: NativeDisplayInputHardware(), targets: DisplayBrightnessMenu.connectedDisplays, store: DisplayInputStore(url: base))
+        self.controller = controller ?? DisplayInputController(hardware: NativeDisplayInputHardware(), targets: DisplayBrightnessMenu.connectedDisplays, store: DisplayInputStore(url: base))
         super.init()
-        controller.onChange = { [weak self] in self?.render() }
+        self.controller.onChange = { [weak self] in self?.render() }
         observer = NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.controller.screenParametersChanged() }
         }
@@ -97,8 +97,6 @@ import CubeCore
             let view = DisplayInputMenuRow(row: row, change: { [weak self] in self?.controller.setSource($1, for: $0) }, configure: { [weak self] in self?.configure($0) }, reload: { [weak self] in self?.controller.refresh() })
             item.view = view; items.append(item); views[row.id] = view
         }
-        let help = NSMenuItem(title: "如何获取输入代码…", action: #selector(showInputHelp), keyEquivalent: "")
-        help.target = self; items.append(help)
         items.append(.separator())
         for (index, item) in items.enumerated() { menu.insertItem(item, at: index) }
     }
@@ -119,7 +117,7 @@ import CubeCore
             alert.runModal()
         }
     }
-    @objc private func showInputHelp() {
+    private func showInputHelp() {
         menu?.cancelTracking()
         DispatchQueue.main.async { DisplayInputHelp.makeAlert().runModal() }
     }

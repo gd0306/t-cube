@@ -1,4 +1,5 @@
 import AppKit
+import XCTest
 import Testing
 import CubeCore
 @testable import TCube
@@ -7,16 +8,82 @@ private final class InputPreviewPanel: NSPanel {
     override var canBecomeKey: Bool { true }
 }
 
-@MainActor @Suite(.serialized) struct DisplayInputMenuTests {
-    @Test func inputCodeHelpIsDiscoverableWithoutAUsableMonitor() {
-        _ = NSApplication.shared
-        let menu = NSMenu()
-        let feature = DisplayInputMenu(menu: menu)
-        defer { feature.stop() }
-        let help = menu.items.first { $0.title == "如何获取输入代码…" }
-        #expect(help?.isEnabled == true)
-        #expect(help?.action != nil)
+private struct InputMenuPreviewHardware: DisplayInputHardware {
+    func read(_ target: DisplayBrightnessTarget) async throws -> UInt16 { 15 }
+    func write(_ value: UInt16, target: DisplayBrightnessTarget, mapping: DisplayInputMapping) async throws -> DisplayInputOutcome { throw DisplayBrightnessFailure.unsupported }
+}
+
+private struct InputMenuPreviewBrightness: DisplayBrightnessHardware {
+    func read(_ target: DisplayBrightnessTarget) async throws -> DisplayBrightnessSample { .init(fraction: 0.6, backend: target.isBuiltIn ? .native : .ddc) }
+    func write(_ fraction: Double, to target: DisplayBrightnessTarget, using backend: DisplayBrightnessBackend) async throws -> DisplayBrightnessSample { throw DisplayBrightnessFailure.unsupported }
+}
+
+@MainActor private final class InputMenuPreviewDelegate: NSObject, NSMenuDelegate {
+    let menu: NSMenu
+    let input: DisplayInputMenu
+    let brightness: DisplayBrightnessMenu
+    init(menu: NSMenu, input: DisplayInputMenu, brightness: DisplayBrightnessMenu) { self.menu = menu; self.input = input; self.brightness = brightness }
+    func menuWillOpen(_ menu: NSMenu) { brightness.beginTracking(); input.beginTracking() }
+    func menuDidClose(_ menu: NSMenu) { input.endTracking(); brightness.endTracking() }
+    @objc func command() {}
+    func capture(to url: URL) {
+        defer { menu.cancelTracking() }
+        guard let nativeWindow = menu.items.compactMap({ $0.view as? DisplayInputMenuRow }).first?.window else { XCTFail("Native menu did not appear"); return }
+        let screenshot = Process()
+        screenshot.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+        screenshot.arguments = ["-x", "-o", "-l", String(nativeWindow.windowNumber), url.path]
+        do { try screenshot.run(); screenshot.waitUntilExit(); XCTAssertEqual(screenshot.terminationStatus, 0) }
+        catch { XCTFail("Native menu capture failed: \(error)") }
     }
+}
+
+/// Synchronous XCTest permits async controller reads inside AppKit's tracking queue.
+@MainActor final class DisplayInputNativeMenuPreviewTests: XCTestCase {
+    func testExportActualMenuWithBrightnessAndFollowingCommands() throws {
+        guard ProcessInfo.processInfo.environment["TCUBE_INPUT_PREVIEWS"] == "1" else { throw XCTSkip("Opt-in native menu capture") }
+        _ = NSApplication.shared
+        let folder = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(".build/display-input-previews")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: temporary) }
+        let external = DisplayBrightnessTarget(id: 2, uuid: UUID().uuidString, name: "示例外接显示器", isBuiltIn: false)
+        let builtIn = DisplayBrightnessTarget(id: 1, uuid: UUID().uuidString, name: "内建显示器", isBuiltIn: true)
+        let store = DisplayInputStore(url: temporary.appendingPathComponent("display-inputs.json"))
+        try store.save(try XCTUnwrap(DisplayInputMapping(typeC: 15, hdmi: 17)), for: external.uuid)
+        let originalAppearance = NSApp.appearance
+        defer { NSApp.appearance = originalAppearance }
+        for (name, appearance) in [("light", NSAppearance.Name.aqua), ("dark", .darkAqua)] {
+            NSApp.appearance = NSAppearance(named: appearance)
+            let menu = NSMenu()
+            let brightnessController = DisplayBrightnessController(hardware: InputMenuPreviewBrightness(), targets: { [builtIn, external] })
+            let brightness = DisplayBrightnessMenu(menu: menu, controller: brightnessController)
+            let inputController = DisplayInputController(hardware: InputMenuPreviewHardware(), targets: { [builtIn, external] }, store: store)
+            let input = DisplayInputMenu(menu: menu, controller: inputController)
+            let delegate = InputMenuPreviewDelegate(menu: menu, input: input, brightness: brightness)
+            menu.delegate = delegate
+            // Use the production command layout after both production display sections.
+            let command = #selector(InputMenuPreviewDelegate.command)
+            let commands = StatusMenuLayout.make(target: delegate, actions: .init(toggleCube: command, contentLibrary: command, clipboardHistory: command, pauseClipboard: command, settings: command, checkUpdates: command, changeSize: command, quit: command), placementMenu: NSMenu())
+            for item in commands.items { commands.removeItem(item); menu.addItem(item) }
+            let window = InputPreviewPanel(contentRect: CGRect(x: 160, y: 80, width: 480, height: 820), styleMask: [.borderless], backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false; window.backgroundColor = .windowBackgroundColor
+            window.contentView = NSView(frame: window.contentRect(forFrameRect: window.frame))
+            window.orderFrontRegardless()
+            defer { input.stop(); brightness.stop(); window.orderOut(nil); window.contentView = nil }
+            let capture = Timer(timeInterval: 0.7, repeats: false) { _ in
+                MainActor.assumeIsolated {
+                    delegate.capture(to: folder.appendingPathComponent("input-native-menu-\(name).png"))
+                }
+            }
+            RunLoop.main.add(capture, forMode: .eventTracking)
+            defer { capture.invalidate() }
+            menu.popUp(positioning: nil, at: CGPoint(x: 20, y: 790), in: window.contentView)
+            withExtendedLifetime(delegate) {}
+        }
+    }
+}
+
+@MainActor @Suite(.serialized) struct DisplayInputMenuTests {
     @Test func setupKeepsSavedCodesAndOffersWorkingHelpWithoutGuessingNewCodes() throws {
         _ = NSApplication.shared
         let target = DisplayBrightnessTarget(id: 2, uuid: UUID().uuidString, name: "Generic", isBuiltIn: false)
