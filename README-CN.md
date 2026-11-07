@@ -31,12 +31,12 @@
 
 | 平台 | 版本 | 安装包文件 | 适配架构 | 说明与运行要求 |
 | :--- | :--- | :--- | :--- | :--- |
-| **macOS** | `0.22.3` | [T-Cube-0.22.3-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.3/T-Cube-0.22.3-macos-arm64.dmg) | Apple Silicon (arm64) | 需要 macOS 15+ · 采用本地 ad-hoc 签名 |
-| **Windows** | `0.22.3` | [T-Cube-0.22.3-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.3/T-Cube-0.22.3-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · 自带完整运行时 |
+| **macOS** | `0.22.4` | [T-Cube-0.22.4-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.4/T-Cube-0.22.4-macos-arm64.dmg) | Apple Silicon (arm64) | 需要 macOS 15+ · 采用本地 ad-hoc 签名 |
+| **Windows** | `0.22.4` | [T-Cube-0.22.4-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.4/T-Cube-0.22.4-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · 自带完整运行时 |
 
 > [!NOTE]
-> - 查看完整发布说明与 SHA-256 校验和：[GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.3)。
-> - 下文显示器检测与输入代码帮助的更新属于后续源码构建改动；已发布安装包仍为表中的 `0.22.3`。具体源码提交和验证边界见[本机源码构建验收记录](docs/verification/2026-11-07-input-help-installation.md)。
+> - 查看完整发布说明与 SHA-256 校验和：[GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.4)。
+> - 两个平台的 `0.22.4` 安装包均包含下文显示器检测与输入代码帮助的更新。打包源码、校验和与验证边界见[发布验证记录](docs/verification/2026-11-08-release-consistency.md)。
 > - Windows 安装包已整合所需环境，无需单独配置 Node.js。
 > - 更新版本前请先正常退出当前运行的应用，原快捷入口与外观配置会自动保留。
 
@@ -97,7 +97,7 @@
 - **全屏智能避让**：所在屏幕运行全屏应用程序时自动隐藏，并完全暂停 3D 渲染，消除背景能耗。
 - **屏幕快捷放置**：通过状态栏菜单或「外观 → 快捷位置」一键将立方体精准吸附到所在屏幕的四角或正中央，自动避让 Dock、菜单栏和任务栏区域。
 - **macOS 显示器独立亮度控制**：点击菜单栏立方体图标即可独立调节每块屏幕的实际亮度。原生支持 Apple 内建屏幕及通过 Apple Silicon DDC/CI 硬件协议控制外接显示器背光。不需要辅助功能、屏幕录制等额外高风险权限，杜绝软件遮罩蒙层。
-- **显示器输入源切换（macOS / Windows）**：源码构建自动检测已连接的显示器，按屏幕分别保存 Type-C／HDMI 映射，不再套用型号预设或猜测端口代码，已有映射保留。身份缺失、存在歧义或无法读码时禁用切换。在 macOS 对应屏幕的「设置…」内或 Windows 输入源面板打开「如何获取输入代码」，可查看实体菜单选端口 → 活动主机刷新读码 → 分别记录十进制代码 → 保存 → 验证的具体步骤。macOS 外接输入控制需要 Apple Silicon 和可用的 DDC/CI 连接；检测到屏幕不等于硬件已验证兼容。切换中禁用，仅回读确认后高亮，无后台轮询。[实现与限制](docs/verification/2026-11-07-display-input-discovery.md)。
+- **显示器输入源切换（macOS / Windows）**：`0.22.4` 自动检测已连接的显示器，按屏幕分别保存 Type-C／HDMI 映射，不再套用型号预设或猜测端口代码，已有映射保留。身份缺失、存在歧义或无法读码时禁用切换。在 macOS 对应屏幕的「设置…」内或 Windows 输入源面板打开「如何获取输入代码」，可查看实体菜单选端口 → 活动主机刷新读码 → 分别记录十进制代码 → 保存 → 验证的具体步骤。macOS 外接输入控制需要 Apple Silicon 和可用的 DDC/CI 连接；检测到屏幕不等于硬件已验证兼容。切换中禁用，仅回读确认后高亮，无后台轮询。[实现与限制](docs/verification/2026-11-07-display-input-discovery.md)。
 
 ### 📋 高效生产力：本地剪贴板与常用模板
 - **纯内存会话级剪贴板**：文字与图片历史仅保存在当前运行内存中，退出应用立即彻底销毁，绝不落盘、不进备份、不联网上传。
