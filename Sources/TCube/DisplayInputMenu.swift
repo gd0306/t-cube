@@ -118,8 +118,9 @@ import CubeCore
         }
     }
     private func showInputHelp() {
-        menu?.cancelTracking()
-        DispatchQueue.main.async { DisplayInputHelp.makeAlert().runModal() }
+        // The setup button already runs inside its modal loop. Enqueuing another
+        // main-queue block would defer help until the setup callback returns.
+        DisplayInputHelp.makeAlert().runModal()
     }
     func stop() { if let observer { NotificationCenter.default.removeObserver(observer) }; observer = nil; controller.stop(); if let menu { for item in items where menu.index(of: item) >= 0 { menu.removeItem(item) } }; items.removeAll(); views.removeAll() }
 }

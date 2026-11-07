@@ -1,0 +1,23 @@
+[
+  {
+    "activeWindowKey" : true,
+    "activeWindowVisible" : true,
+    "modalIsSetup" : true,
+    "setupVisible" : true,
+    "step" : "setup-before"
+  },
+  {
+    "activeWindowKey" : true,
+    "activeWindowVisible" : true,
+    "modalIsSetup" : false,
+    "setupVisible" : true,
+    "step" : "help-visible"
+  },
+  {
+    "activeWindowKey" : true,
+    "activeWindowVisible" : true,
+    "modalIsSetup" : true,
+    "setupVisible" : true,
+    "step" : "setup-return"
+  }
+]
