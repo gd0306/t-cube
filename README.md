@@ -36,6 +36,7 @@ Published releases provide ready-to-run installation packages:
 
 > [!NOTE]
 > - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.3).
+> - The monitor detection and input-code help updates described below are newer source-build changes; the listed `0.22.3` installers remain the published packages. See the [local source-build acceptance record](docs/verification/2026-11-07-input-help-installation.md) for the exact source commit and verification limits.
 > - The Windows installer bundles its runtime and requires no Node.js installation.
 > - Quit any running T-Cube instance before upgrading; your configuration is automatically preserved.
 

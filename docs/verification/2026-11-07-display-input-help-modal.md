@@ -44,4 +44,4 @@ CLI 测试进程以可接收焦点的原生宿主模拟前台菜单交互，焦�
 | --- | --- | --- |
 | <img src="../images/display-input-help-interaction-before.png" width="320" alt="实际设置窗口，未保存的 Type-C 23 与 HDMI 24"> | <img src="../images/display-input-help-interaction-visible.png" width="350" alt="设置保留时打开的实际帮助模态窗口，知道了按钮获得焦点"> | <img src="../images/display-input-help-interaction-return.png" width="320" alt="返回原设置，23 与 24 保留，输入字段恢复焦点"> |
 
-这是自动化原生按钮和嵌套模态回归，不是维护者手工桌面点击，也不是实体显示器兼容性或输入切换测试。本次没有修改用户 JSON、安装应用或发布安装包。安装验收仍由任务 #d4437f24 在菜单入口删减和本修复均获评审批准后统一进行。
+这是开发阶段的自动化原生按钮和嵌套模态回归，不是维护者手工桌面点击，也不是实体显示器兼容性或输入切换测试。该阶段没有修改用户 JSON、安装应用或发布安装包。两项修复获批后的集成、安装哈希、数据备份与解锁后重跑结果已记录于[本机安装验收](2026-11-07-input-help-installation.md)；该验收仍明确保留已安装应用手工鼠标流程未实测的限制。

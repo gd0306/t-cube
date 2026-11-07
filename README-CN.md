@@ -36,6 +36,7 @@
 
 > [!NOTE]
 > - 查看完整发布说明与 SHA-256 校验和：[GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.3)。
+> - 下文显示器检测与输入代码帮助的更新属于后续源码构建改动；已发布安装包仍为表中的 `0.22.3`。具体源码提交和验证边界见[本机源码构建验收记录](docs/verification/2026-11-07-input-help-installation.md)。
 > - Windows 安装包已整合所需环境，无需单独配置 Node.js。
 > - 更新版本前请先正常退出当前运行的应用，原快捷入口与外观配置会自动保留。
 

@@ -24,6 +24,8 @@ macOS 外接输入传输目前限 Apple Silicon；Intel Mac 不支持该传输�
 
 ## 自动化验证
 
+本节保留 `806c24e` 通用检测实现与 `a1fa2d9` 文案跟进时的验证结果。后续入口删减和帮助即时显示的当前检查分别见下方菜单简化记录、[模态交互回归](2026-11-07-display-input-help-modal.md)及[最新集成安装验收](2026-11-07-input-help-installation.md)。
+
 - `env TCUBE_INPUT_PREVIEWS=1 swift test --scratch-path .build/tests --no-parallel --filter DisplayInput`：18 项原生/控制器/硬件测试、3 项核心测试全部通过，包含原生截图导出。编译仍有仓库已有的警告；首次完整编译还报告测试闭包捕获可变数组的警告，不影响通过结果。
 - Swift 回归覆盖多块通用屏幕独立映射、不支持 DDC、身份缺失/重复、重连保留配置字节、替换后的过期操作、拓扑变化取消旧结果、损坏配置保护、帮助入口及保存值/空字段保留。
 - Windows 使用本机已安装的 Node `22.22.0`（默认 shell 为旧 Node 14，不能运行项目工具链）。`npm run typecheck` 通过；`npm test`：259 项中 256 通过、3 跳过、0 失败。
@@ -55,4 +57,4 @@ macOS 外接输入传输目前限 Apple Silicon；Intel Mac 不支持该传输�
 | --- | --- |
 | <img src="../images/display-input-help-windows-light.png" width="400" alt="Windows renderer 浅色帮助展开，显示校准步骤及实测代码字段"> | <img src="../images/display-input-help-windows-dark.png" width="400" alt="Windows renderer 深色帮助展开和单独选定的第二块显示器"> |
 
-本次没有主动切换任何实体显示器，也没有新增其他型号、连接路径或 Intel Mac 的硬件兼容性证据。既有 `27C1U-D` 实测记录只适用于当时的设备与连接，不能推导其他硬件兼容。最终集成、全量原生验收、备份用户 JSON、安装到 `/Applications/T-Cube.app`、核对可执行文件哈希和可用的桌面检查，由任务 #36db1fc5 单独记录；本文不宣称这些步骤已经完成，也不宣称安装包已发布。
+本次开发验证没有主动切换任何实体显示器，也没有新增其他型号、连接路径或 Intel Mac 的硬件兼容性证据。既有 `27C1U-D` 实测记录只适用于当时的设备与连接，不能推导其他硬件兼容。后续入口删减和帮助模态修复已统一集成；旧应用/用户 JSON 备份、`/Applications/T-Cube.app` 安装、可执行文件哈希及解锁后原生回归见[当前本机安装验收](2026-11-07-input-help-installation.md)。其中已安装应用的手工鼠标流程仍未实测，自动化原生证据不替代该检查，也不代表已发布新安装包。
