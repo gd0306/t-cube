@@ -12,6 +12,7 @@
 
 <p align="center">
   <a href="https://github.com/gd0306/t-cube/releases/latest"><img src="https://img.shields.io/github/v/release/gd0306/t-cube?color=brightgreen&label=release" alt="Latest Release"></a>
+  <a href="https://github.com/gd0306/t-cube/actions/workflows/windows.yml"><img src="https://img.shields.io/github/actions/workflow/status/gd0306/t-cube/windows.yml?branch=master&label=Windows%20CI&logo=githubactions&logoColor=white" alt="Windows CI status (master)"></a>
   <a href="https://developer.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-15%2B%20%7C%20Swift%206-FF5722.svg?logo=apple&logoColor=white" alt="macOS 15+"></a>
   <a href="https://www.microsoft.com/windows/"><img src="https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4.svg?logo=windows&logoColor=white" alt="Windows 10/11"></a>
   <a href="https://developer.apple.com/augmented-reality/realitykit/"><img src="https://img.shields.io/badge/Rendering-RealityKit%20%2F%20Three.js-8A2BE2.svg" alt="RealityKit & Three.js"></a>
