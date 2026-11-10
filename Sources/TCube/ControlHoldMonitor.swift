@@ -18,6 +18,7 @@ final class ControlHoldMonitor {
     }
 
     private var gesture = ControlHoldGesture()
+    var controlReserved: (Bool) -> Bool = { _ in false }
     private var previous: Snapshot?
     private let readSnapshot: () -> Snapshot
     private let resources: ControlHoldMonitoringResources
@@ -73,7 +74,9 @@ final class ControlHoldMonitor {
 
     func poll() {
         let sample = readSnapshot()
-        var interrupted = sample.otherModifierHeld
+        // Observe releases too: cube tracking can stop once the pointer leaves its window.
+        let reserved = controlReserved(sample.controlHeld)
+        var interrupted = sample.otherModifierHeld || reserved
         var pressedAt: TimeInterval?
         if sample.controlHeld {
             interrupted = interrupted || sample.mouseButtonHeld || sample.ordinaryKeyHeld

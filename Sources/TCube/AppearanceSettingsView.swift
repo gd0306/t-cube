@@ -171,7 +171,7 @@ struct AppearanceSettingsView: View {
                 Section {
                     DisclosureGroup("操作说明", isExpanded: $showsInstructions) {
                         Label("左键按住拖动调整位置；右键按住拖动旋转立方体", systemImage: "cursorarrow.motionlines")
-                        Label("按住 Ctrl 恢复原大小；Ctrl＋左键按原大小拖动", systemImage: "control")
+                        Label("立方体内按住 Ctrl 还原；Ctrl＋左键拖动\n移出立方体后长按 Ctrl 1 秒唤起剪贴板", systemImage: "control")
                         Label(expandsFacesOnClick ? "单击面立即展开；右键单击或从状态栏打开设置" : "单击图标直接打开；右键单击或从状态栏打开设置", systemImage: "square.on.square")
                         Label("触控板横向或纵向滚动，沿对应方向旋转", systemImage: "hand.draw")
                     }

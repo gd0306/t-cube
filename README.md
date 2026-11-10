@@ -39,6 +39,7 @@ Published releases provide ready-to-run installation packages:
 > - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.5).
 > - Both `0.22.5` installers include the Ctrl clipboard panel, recording on launch, and configurable default login startup. The [release verification record](docs/verification/2026-11-10-0.22.5-release.md) records the packaged source, checksums and verification limits.
 > - Both installers package the same source commit; see `SOURCE_COMMIT.txt` and `SHA256SUMS.txt` in the release.
+> - Current source version: `0.22.6`. Outside the cube, hold `Ctrl` for **1 second** to open clipboard history. Over the cube, Ctrl restores its size and reserves the entire press for cube interaction. The published `0.22.5` downloads still use the previous 2-second behavior.
 > - The Windows installer bundles its runtime and requires no Node.js installation.
 > - Quit any running T-Cube instance before upgrading; your configuration is automatically preserved.
 
@@ -105,7 +106,7 @@ A lighter glass shell lets the desktop show through. Hover to reveal icons that 
 - **In-Memory Session Clipboard**: Text and image history kept strictly in volatile memory. Cleared immediately on exit; never written to disk, included in backups, or transmitted over the network.
   - **Text History**: Retains up to 100 entries (64 KiB per entry, 2 MiB total). Supports search, multi-selection, ordered concatenation, line trimming, and repeated blank-line collapsing.
   - **Image History**: Retains up to 10 recent images (8 MiB normalized PNG per image, 32 MiB total, 16 megapixels max) with thumbnail previews and bounded detail views.
-- **Quick Clipboard Panel (macOS / Windows)**: Hold `Ctrl` alone for **2 seconds** to open a glass history list near the pointer. Release `Ctrl`, then single-click text or an image to copy it and close the panel. Edit, save, cancel, or delete text records; editing changes session history only, preserving order and capture time. Other keys, mouse buttons, or scrolling cancel the hold. Recording starts automatically with the app and can be paused for the current session; existing clipboard content is not imported at startup. macOS 26+ uses Clear Liquid Glass (system material on macOS 15); Windows 11 22H2+ uses acrylic, with a transparent fallback on Windows 10 and earlier Windows 11 builds. System accessibility preferences may reduce transparency. [Preview and verification](docs/verification/2026-11-10-clipboard-quick-panel.md).
+- **Quick Clipboard Panel (macOS / Windows)**: With the pointer outside the cube, hold `Ctrl` alone for **1 second** to open a glass history list near the pointer. Release `Ctrl`, then single-click text or an image to copy it and close the panel. Edit, save, cancel, or delete text records; editing changes session history only, preserving order and capture time. Other keys, mouse buttons, scrolling, or entering the cube cancel the hold until Ctrl is released; cube resizing and dragging take priority. Recording starts automatically with the app and can be paused for the current session; existing clipboard content is not imported at startup. macOS 26+ uses Clear Liquid Glass (system material on macOS 15); Windows 11 22H2+ uses acrylic, with a transparent fallback on Windows 10 and earlier Windows 11 builds. System accessibility preferences may reduce transparency. [Preview and verification](docs/verification/2026-11-10-clipboard-quick-panel.md).
 - **Snippet Library & Dynamic Templates**: Open the content library from the status menu or with `Command+Shift+Space` (`Ctrl+Shift+Space` on Windows). Organize reusable snippets with groups and favorites. Enable template mode to use dynamic placeholders like `{{customer_name}}`—fill variables once and preview the merged result before copying or pasting.
 - **Focus-Checked Direct Paste**: Restores previous window focus and pastes directly into the target input field when Accessibility permissions are granted.
 
@@ -127,9 +128,9 @@ A lighter glass shell lets the desktop show through. Hover to reveal icons that 
 | **Mouse wheel / Shift + wheel** | Rotate vertically / horizontally |
 | **Left-button drag** | Move and save floating position |
 | **Right-button drag** | Free-form 3D rotation; release to keep current angle |
-| **Hold `Ctrl` over cube** | Temporarily restore cube to resting size |
+| **Hold `Ctrl` over cube** | Temporarily restore cube to resting size; this press does not open clipboard history |
 | **`Ctrl` + Left-button drag** | Move at resting size (persists even if `Ctrl` is released mid-drag) |
-| **Hold `Ctrl` alone for 2 seconds** | Open clipboard history; release, then single-click a record to copy. Click outside to close; use Save / Cancel when editing |
+| **Hold `Ctrl` alone for 1 second outside the cube** | Open clipboard history; release, then single-click a record to copy. Click outside to close; use Save / Cancel when editing |
 | **Click outside / `Esc`** | Dismiss expanded 4-icon panel |
 | **Right-click / Menu Bar icon** | Open settings |
 

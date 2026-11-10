@@ -130,8 +130,8 @@ export class DesktopApplication {
             this.controlHold.update({available:true,controlHeld:false,interrupted:false},performance.now());
         },()=>{
             // Receipt of the physical make packet is a conservative origin, earlier than the next idle poll.
-            this.controlHold.update({available:true,controlHeld:true,interrupted:Boolean(this.office?.isRestoring)||Boolean(this.controlInput?.otherHeld())},performance.now());
-        });if(process.platform==='win32'&&!this.controlInput.available)throw new Error('Raw Input unavailable');}catch{this.host.reportError('Ctrl 长按快捷历史暂不可用，可从托盘打开剪贴板历史。');}
+            this.controlHold.update({available:true,controlHeld:true,interrupted:this.host.controlHoldReserved||Boolean(this.office?.isRestoring)||Boolean(this.controlInput?.otherHeld())},performance.now());
+        },()=>{if(this.host.controlHoldReserved)this.controlHold.interrupt();});if(process.platform==='win32'&&!this.controlInput.available)throw new Error('Raw Input unavailable');}catch{this.host.reportError('Ctrl 长按快捷历史暂不可用，可从托盘打开剪贴板历史。');}
         powerMonitor.on('suspend',this.resetControlHold);powerMonitor.on('resume',this.resetControlHold);
         this.widget.once('closed',()=>{this.controlInput?.dispose();this.controlInput=undefined;});
         this.whenLauncherOperationsIdle = registerIPC(ipcMain, this.host, sender => this.roles.get(sender.id) ?? null,
@@ -238,7 +238,7 @@ export class DesktopApplication {
             const now = Date.now();
             if(this.office?.isRestoring)this.controlHold.interrupt();
             if(this.controlHold.update({available:input.available&&Boolean(this.controlInput?.available),controlHeld:input.controlHeld,
-                interrupted:buttons||(input.controlHeld&&Boolean(this.controlInput?.otherHeld()))},performance.now())){
+                interrupted:this.host.controlHoldReserved||buttons||(input.controlHeld&&Boolean(this.controlInput?.otherHeld()))},performance.now())){
                 void this.office?.showClipboardQuick().catch(error=>this.host.reportError(error));
             }
             if (now - this.preferenceSample > 1000) { this.reducedMotion = readReducedMotion(); this.preferenceSample = now; }

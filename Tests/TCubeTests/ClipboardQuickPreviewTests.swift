@@ -14,7 +14,7 @@ struct ClipboardQuickPreviewTests {
         let quick = ClipboardQuickController(history: history, copyText: { _ in true }, copyImage: { _ in true }, openManager: {})
         defer { quick.stop(); history.shutdown() }
         history.enable()
-        for text in ["会议记录：周三下午三点，确认本周设计稿。", "https://github.com/gd0306/t-cube", "长按 Ctrl 2 秒，单击任意历史内容复制。", "项目说明\n可在历史中编辑、保存或删除文字。"] {
+        for text in ["会议记录：周三下午三点，确认本周设计稿。", "https://github.com/gd0306/t-cube", "长按 Ctrl 1 秒，单击任意历史内容复制。", "项目说明\n可在历史中编辑、保存或删除文字。"] {
             board.clearContents(); board.setString(text, forType: .string); history.poll()
         }
         let output = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(".build/clipboard-quick-previews")

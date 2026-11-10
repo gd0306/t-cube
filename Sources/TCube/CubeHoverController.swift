@@ -11,6 +11,7 @@ final class CubeHoverController {
     private var desiredHovered = false
     private var interactionActive = false
     private var controlHeld = false
+    private var controlHoldReserved = false
     private var controlFrame: NSRect?
     private var lastPointer: NSPoint?
     private var trackingPointer = false
@@ -24,6 +25,16 @@ final class CubeHoverController {
     var onHoverChange: ((Bool) -> Void)?
     var onRestingPositionChange: ((NSPoint) -> Void)?
     var onRestingFrameCommitted: (() -> Void)?
+
+    /// A cube operation owns the entire press, including after shrink or pointer exit.
+    func reservesControlHold(held: Bool, at point: NSPoint) -> Bool {
+        guard held else { controlHoldReserved = false; return false }
+        if !presentationSuspended,
+           interactionActive || (window?.isVisible == true && window?.frame.contains(point) == true) {
+            controlHoldReserved = true
+        }
+        return controlHoldReserved
+    }
 
     init(window: NSWindow, settings: CubeHoverSettings, screens: @escaping () -> [NSRect] = { NSScreen.screens.map(\.visibleFrame) }) {
         self.window = window
@@ -48,6 +59,7 @@ final class CubeHoverController {
         guard let window else { return }
         lastPointer = point
         desiredHovered = window.isVisible && window.frame.contains(point)
+        if controlHeld { _ = reservesControlHold(held: true, at: point) }
         if !interactionActive { applyHover() }
     }
 
@@ -55,6 +67,12 @@ final class CubeHoverController {
         guard !presentationSuspended else { return }
         if let point { lastPointer = point }
         let held = flags.contains(.control)
+        // A first Control-bearing exit event can precede the modifier timer.
+        // Consume its previous inside state here, before replacing hover geometry.
+        if held && !controlHeld && desiredHovered && window?.isVisible == true {
+            controlHoldReserved = true
+        }
+        _ = reservesControlHold(held: held, at: point ?? lastPointer ?? NSEvent.mouseLocation)
         guard held != controlHeld else { return }
         if let point, let window { desiredHovered = window.isVisible && window.frame.contains(point) }
         controlHeld = held
@@ -71,6 +89,9 @@ final class CubeHoverController {
     func setInteractionActive(_ active: Bool) {
         if active { cancelPendingEntry() }
         interactionActive = active
+        if active && controlHeld {
+            _ = reservesControlHold(held: true, at: lastPointer ?? NSEvent.mouseLocation)
+        }
         if !active { applyHover() }
         updateModifierTracking()
     }

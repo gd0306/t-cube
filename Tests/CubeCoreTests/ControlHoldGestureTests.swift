@@ -2,36 +2,34 @@ import Testing
 @testable import CubeCore
 
 struct ControlHoldGestureTests {
-    @Test func verifiedPhysicalPressReachesTwoSecondsBeforeTheNextPollingTick() {
+    @Test func verifiedPhysicalPressReachesOneSecondBeforeTheNextPollingTick() {
         var gesture = ControlHoldGesture()
         _ = gesture.update(controlHeld: false, interrupted: false, at: 0)
         #expect(gesture.update(controlHeld: true, interrupted: false, at: 0.125, pressedAt: 0.0625) == false)
-        for tick in 2...16 {
+        for tick in 2...8 {
             #expect(gesture.update(controlHeld: true, interrupted: false, at: Double(tick) / 8) == false)
         }
-        #expect(gesture.update(controlHeld: true, interrupted: false, at: 2.0624) == false)
-        #expect(gesture.update(controlHeld: true, interrupted: false, at: 2.0625) == true)
-        #expect(gesture.update(controlHeld: true, interrupted: false, at: 2.125, pressedAt: 0.0625) == false)
+        #expect(gesture.update(controlHeld: true, interrupted: false, at: 1.0624) == false)
+        #expect(gesture.update(controlHeld: true, interrupted: false, at: 1.0625) == true)
+        #expect(gesture.update(controlHeld: true, interrupted: false, at: 1.125, pressedAt: 0.0625) == false)
     }
 
-    @Test func delayedFirstSampleStillUsesThePhysicalTwoSecondDeadline() {
+    @Test func delayedFirstSampleStillUsesThePhysicalOneSecondDeadline() {
         var gesture = ControlHoldGesture()
         _ = gesture.update(controlHeld: false, interrupted: false, at: 0)
         #expect(gesture.update(controlHeld: true, interrupted: false, at: 0.925, pressedAt: 0.125) == false)
-        #expect(gesture.deadline == 2.125)
-        for tick in 8...16 {
-            #expect(gesture.update(controlHeld: true, interrupted: false, at: Double(tick) / 8) == false)
-        }
-        #expect(gesture.update(controlHeld: true, interrupted: false, at: 2.1249) == false)
-        #expect(gesture.update(controlHeld: true, interrupted: false, at: 2.125) == true)
+        #expect(gesture.deadline == 1.125)
+        #expect(gesture.update(controlHeld: true, interrupted: false, at: 1) == false)
+        #expect(gesture.update(controlHeld: true, interrupted: false, at: 1.1249) == false)
+        #expect(gesture.update(controlHeld: true, interrupted: false, at: 1.125) == true)
     }
 
-    @Test func firstSampleAfterTwoPhysicalSecondsFiresImmediatelyWhenTheOriginIsConfirmed() {
+    @Test func firstSampleAfterOnePhysicalSecondFiresImmediatelyWhenTheOriginIsConfirmed() {
         var gesture = ControlHoldGesture()
         _ = gesture.update(controlHeld: false, interrupted: false, at: 0)
-        #expect(gesture.update(controlHeld: true, interrupted: false, at: 2.25, pressedAt: 0.125) == true)
+        #expect(gesture.update(controlHeld: true, interrupted: false, at: 1.25, pressedAt: 0.125) == true)
         #expect(gesture.deadline == nil)
-        #expect(gesture.update(controlHeld: true, interrupted: false, at: 2.375) == false)
+        #expect(gesture.update(controlHeld: true, interrupted: false, at: 1.375) == false)
     }
 
     @Test func invalidAndUnconfirmedOriginsCannotAdvanceTheDeadline() {
@@ -58,19 +56,19 @@ struct ControlHoldGestureTests {
         }
     }
 
-    @Test func onlyAContinuousTwoSecondHoldFiresOnce() {
+    @Test func onlyAContinuousOneSecondHoldFiresOnce() {
         var gesture = ControlHoldGesture()
         #expect(gesture.update(controlHeld: false, interrupted: false, at: 0) == false)
         #expect(gesture.update(controlHeld: true, interrupted: false, at: 1) == false)
-        for tick in 1...19 {
+        for tick in 1...9 {
             #expect(gesture.update(controlHeld: true, interrupted: false, at: 1 + Double(tick) / 10) == false)
         }
-        #expect(gesture.update(controlHeld: true, interrupted: false, at: 3) == true)
-        #expect(gesture.update(controlHeld: true, interrupted: false, at: 3.1) == false)
-        #expect(gesture.update(controlHeld: false, interrupted: false, at: 3.2) == false)
-        #expect(gesture.update(controlHeld: true, interrupted: false, at: 4) == false)
-        for tick in 1...19 { _ = gesture.update(controlHeld: true, interrupted: false, at: 4 + Double(tick) / 10) }
-        #expect(gesture.update(controlHeld: true, interrupted: false, at: 6) == true)
+        #expect(gesture.update(controlHeld: true, interrupted: false, at: 2) == true)
+        #expect(gesture.update(controlHeld: true, interrupted: false, at: 2.1) == false)
+        #expect(gesture.update(controlHeld: false, interrupted: false, at: 2.2) == false)
+        #expect(gesture.update(controlHeld: true, interrupted: false, at: 3) == false)
+        for tick in 1...9 { _ = gesture.update(controlHeld: true, interrupted: false, at: 3 + Double(tick) / 10) }
+        #expect(gesture.update(controlHeld: true, interrupted: false, at: 4) == true)
     }
 
     @Test func combinationsAndMouseActionsRequireControlToBeReleased() {

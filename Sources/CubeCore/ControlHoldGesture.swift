@@ -2,7 +2,7 @@ import Foundation
 
 /// A standalone Control hold. Input adapters supply monotonic time and discard key contents.
 public struct ControlHoldGesture: Sendable {
-    public static let duration: TimeInterval = 2
+    public static let duration: TimeInterval = 1
     private var startedAt: TimeInterval?
     private var lastSample: TimeInterval?
     private var lastReleasedAt: TimeInterval?

@@ -34,6 +34,27 @@ export async function verifyClipboardQuickSmoke(app:ElectronApplication,widget:P
     assert.equal(initial.images?.length??0,0);
     const native=nativeInput(),user=koffi.load('user32.dll');
     const key=user.func('int16_t __stdcall GetAsyncKeyState(int key)');
+    const widgetFrame=()=>app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()
+        .find(window=>window.webContents.getURL().endsWith('/widget.html'))!.getBounds());
+    const movePointer=async(point:{x:number;y:number})=>{
+        const physical=await app.evaluate(({screen},point)=>screen.dipToScreenPoint(point),point);
+        native.move(physical.x,physical.y);
+    };
+    const moveOutside=async()=>{
+        const point=await app.evaluate(({BrowserWindow,screen})=>{
+            const frame=BrowserWindow.getAllWindows().find(window=>window.webContents.getURL().endsWith('/widget.html'))!.getBounds();
+            const candidates=screen.getAllDisplays().flatMap(display=>{
+                const r=display.workArea;
+                return [{x:r.x+2,y:r.y+2},{x:r.x+r.width-3,y:r.y+2},
+                    {x:r.x+2,y:r.y+r.height-3},{x:r.x+r.width-3,y:r.y+r.height-3}];
+            });
+            return candidates.find(p=>p.x<frame.x||p.y<frame.y||p.x>=frame.x+frame.width||p.y>=frame.y+frame.height);
+        });
+        assert.ok(point,'Native Ctrl smoke needs a pointer position outside the actual cube window');
+        await movePointer(point);
+        await until(async()=>!(await widget.evaluate(()=>window.tcube.getSnapshot())).state.hovered,'Pointer did not leave the cube');
+    };
+
     const quickState=()=>app.evaluate(({BrowserWindow})=>{
         const window=BrowserWindow.getAllWindows().find(window=>window.webContents.getURL().endsWith('/clipboard-quick.html'));
         return {exists:Boolean(window),visible:window?.isVisible()??false,loading:window?.webContents.isLoading()??false,id:window?.id};
@@ -65,6 +86,7 @@ export async function verifyClipboardQuickSmoke(app:ElectronApplication,widget:P
         // Transfer foreground from the active Electron process before hiding its library window.
         await activateOwnedReceiver();
         native.control(false);
+        await moveOutside();
         await remains(async()=>assert.equal((await quickState()).visible,false,'Quick history must be hidden before native input'),300);
 
         await stage('quick history: short Ctrl does not open');
@@ -72,19 +94,49 @@ export async function verifyClipboardQuickSmoke(app:ElectronApplication,widget:P
         await until(async()=>Boolean(key(0x11)&0x8000),'SendInput Ctrl-down was not observed in native key state');
         await remains(async()=>assert.equal((await quickState()).visible,false,'Short Ctrl opened quick history'),300);
         native.control(false);
-        await remains(async()=>assert.equal((await quickState()).visible,false,'Released short Ctrl later opened quick history'),2100);
+        await remains(async()=>assert.equal((await quickState()).visible,false,'Released short Ctrl later opened quick history'),1100);
         await record('short press stayed hidden');
 
-        await stage('quick history: native Ctrl hold opens after two seconds');
+        await stage('quick history: hover Ctrl restores size without opening history');
         await activateOwnedReceiver();
+        const resting=await widgetFrame();
+        await movePointer({x:resting.x+resting.width/2,y:resting.y+resting.height/2});
+        await until(async()=>(await widgetFrame()).width>resting.width,'Hover must enlarge before Ctrl arbitration');
+        native.control(true);
+        await until(async()=>(await widgetFrame()).width===resting.width,'Ctrl must restore the cube resting size');
+        await remains(async()=>{
+            assert.equal((await quickState()).visible,false,'Hover Ctrl opened quick history');
+            assert.equal((await widgetFrame()).width,resting.width,'Held Ctrl lost resting geometry');
+        },1200);
+        await moveOutside();
+        await remains(async()=>assert.equal((await quickState()).visible,false,'Leaving the cube rearmed the same Ctrl hold'),1200);
+        native.control(false);
+        await until(async()=>!(key(0x11)&0x8000),'Hover Ctrl did not release');
+        await record('hover Ctrl reserved through restoring size and leaving');
+
+        await stage('quick history: entering the cube cancels an outside hold');
+        native.control(true);
+        await remains(async()=>assert.equal((await quickState()).visible,false,'Outside hold opened before one second'),300);
+        const frame=await widgetFrame();
+        await movePointer({x:frame.x+frame.width/2,y:frame.y+frame.height/2});
+        await until(async()=>(await widget.evaluate(()=>window.tcube.getSnapshot())).state.hovered,'Held Ctrl did not enter the cube');
+        await moveOutside();
+        await remains(async()=>assert.equal((await quickState()).visible,false,'Entering then leaving rearmed the same Ctrl hold'),1200);
+        native.control(false);
+        await until(async()=>!(key(0x11)&0x8000),'Entering-cube Ctrl did not release');
+        await record('entering cube cancelled the whole outside hold');
+
+        await stage('quick history: fresh outside Ctrl hold opens after one second');
+        await activateOwnedReceiver();
+        await moveOutside();
         const started=performance.now();
         native.control(true);
         await until(async()=>Boolean(key(0x11)&0x8000),'Native long-press Ctrl-down was not observed');
-        await until(async()=>(await quickState()).visible,'Holding native Ctrl for two seconds did not open quick history');
+        await until(async()=>(await quickState()).visible,'Holding native Ctrl outside for one second did not open quick history');
         const elapsed=performance.now()-started;
         assert.equal((await quickState()).id,prepared.id,'The hold must reuse the already loaded quick window');
-        assert.ok(elapsed<=2250,`Warm quick history exceeded its 250 ms display budget (${Math.round(elapsed)} ms)`);
-        assert.ok(elapsed>=2000,`Quick history opened before two seconds (${Math.round(elapsed)} ms)`);
+        assert.ok(elapsed<=1250,`Warm quick history exceeded its 250 ms display budget (${Math.round(elapsed)} ms)`);
+        assert.ok(elapsed>=1000,`Quick history opened before one second (${Math.round(elapsed)} ms)`);
         native.control(false);
         await until(async()=>!(key(0x11)&0x8000),'Ctrl was not released after activation');
         await remains(async()=>assert.equal((await quickState()).visible,true,'Releasing Ctrl must retain quick history'),350);
@@ -115,7 +167,7 @@ export async function verifyClipboardQuickSmoke(app:ElectronApplication,widget:P
         },1100); // More than two 500 ms recorder intervals.
         assert.equal(readOwnedReceiver(),receiverBefore,'Quick copy must not paste or type into the owned receiver');
         await record('copied and hidden without self-recording');
-        return ['Native Windows SendInput: short Ctrl stayed hidden; a two-second Ctrl hold opened quick history and release retained it. Actual quick UI edited/saved without clipboard writes, then copied/closed without duplicate recording or receiver input. Automated desktop input, not a manual check.'];
+        return ['Native Windows SendInput: short Ctrl stayed hidden; hover Ctrl restored size without opening history, leaving or entering the cube kept that press cancelled, and a fresh outside one-second Ctrl hold opened quick history with release retention. Actual quick UI edited/saved without clipboard writes, then copied/closed without duplicate recording or receiver input. Automated desktop input, not a manual check.'];
     }catch(error){
         failure=error;
         await record('failure').catch(()=>{});

@@ -31,6 +31,7 @@ final class SnippetLibraryController {
     private var handler: EventHandlerRef?
     private var pasteTask: Task<Void, Never>?
     private var controlHold: ControlHoldMonitor?
+    var controlHoldReserved: (Bool) -> Bool = { _ in false }
     private(set) lazy var quickHistory = ClipboardQuickController(history: history,
         copyText: { [weak self] text in self?.use(text, paste: false) ?? false },
         copyImage: { [weak self] image in self?.useImage(image, paste: false) ?? false },
@@ -65,6 +66,7 @@ final class SnippetLibraryController {
             self.quickHistory.show()
         }
         self.controlHold = controlHold
+        controlHold.controlReserved = { [weak self] held in self?.controlHoldReserved(held) ?? false }
         controlHold.start()
         var event = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
         let context = Unmanaged.passUnretained(self).toOpaque()

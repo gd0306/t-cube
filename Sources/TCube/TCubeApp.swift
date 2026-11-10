@@ -122,6 +122,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         self.autoHide = autoHide
         autoHide.start()
         createMenu()
+        snippetLibrary.controlHoldReserved = { [weak hover] held in
+            hover?.reservesControlHold(held: held, at: NSEvent.mouseLocation) ?? false
+        }
         snippetLibrary.start()
         lifecycle.start()
         accessibilityObserver = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil, queue: .main) { [weak self] _ in

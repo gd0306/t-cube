@@ -39,7 +39,7 @@ interface InputWindow {
     unhookWindowMessage(message: number): void;
 }
 /** Raw Input supplements polling with brief shortcuts and wheels, without suppressing legacy input or installing hooks. */
-export function observeControlInterference(window: InputWindow, interrupt: () => void, released: () => void = () => {}, pressed: () => void = () => {}): {available: boolean; otherHeld(): boolean; baseline(): void; dispose(): void} {
+export function observeControlInterference(window: InputWindow, interrupt: () => void, released: () => void = () => {}, pressed: () => void = () => {}, pointerMoved: () => void = () => {}): {available: boolean; otherHeld(): boolean; baseline(): void; dispose(): void} {
     const inactive = {available:false,otherHeld:()=>false,baseline:()=>{},dispose:()=>{}};
     if (process.platform !== 'win32') return inactive;
     const library = koffi.load('user32.dll');
@@ -68,7 +68,11 @@ export function observeControlInterference(window: InputWindow, interrupt: () =>
             const transition=controls.update(packet,headerSize);
             if(transition==='pressed')pressed();
             if(transition==='released')released();
-            if ((controls.held||Boolean(key(0x11)&0x8000))&&rawInputInterferes(packet,headerSize)) interrupt();
+            if (controls.held||Boolean(key(0x11)&0x8000)) {
+                if (rawInputInterferes(packet,headerSize)) interrupt();
+                // Reserve a hover visit even if the pointer leaves before the next idle poll.
+                if (packet.readUInt32LE(0) === 0) pointerMoved();
+            }
         } catch { interrupt(); } finally { bytes.fill(0); } // Never retain a keyboard packet between callbacks.
 
     });

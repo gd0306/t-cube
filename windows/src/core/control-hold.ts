@@ -16,7 +16,7 @@ export class ControlHoldGesture {
         if (!input.controlHeld) { this.released = true; this.held = false; this.blocked = false; this.pendingInterruption = false; return false; }
         if (!this.held) { this.held = true; this.started = now; this.blocked = !this.released || input.interrupted || this.pendingInterruption; this.released = false; }
         if (input.interrupted) this.blocked = true;
-        if (this.blocked || now - this.started < 2000) return false;
+        if (this.blocked || now - this.started < 1000) return false;
         this.blocked = true;
         return true;
     }

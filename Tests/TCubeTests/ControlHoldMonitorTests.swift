@@ -8,7 +8,7 @@ struct ControlHoldMonitorTests {
         Timer(timeInterval: delay, repeats: false) { _ in MainActor.assumeIsolated { fire() } }
     }
 
-    @Test func verifiedPressSchedulesItsPhysicalDeadlineAndFiresOnlyAfterTwoSeconds() throws {
+    @Test func verifiedPressSchedulesItsPhysicalDeadlineAndFiresOnlyAfterOneSecond() throws {
         var sample = snapshot(at: 0, held: false, modifierCount: 0)
         var fired = 0
         var delays: [TimeInterval] = []
@@ -22,13 +22,13 @@ struct ControlHoldMonitorTests {
         defer { monitor.stop() }
         monitor.poll()
         sample = snapshot(at: 0.125, modifierAge: 0.0625); monitor.poll()
-        #expect(delays == [1.9375])
+        #expect(delays == [0.9375])
         let deadline = try #require(timers.first)
-        for tick in 2...16 { sample.time = Double(tick) / 8; monitor.poll() }
+        for tick in 2...8 { sample.time = Double(tick) / 8; monitor.poll() }
         #expect(fired == 0)
-        sample.time = 2.0624; monitor.poll()
+        sample.time = 1.0624; monitor.poll()
         #expect(fired == 0)
-        sample.time = 2.0625; deadline.fire()
+        sample.time = 1.0625; deadline.fire()
         #expect(fired == 1)
         #expect(!deadline.isValid)
         #expect(timers.count == 1)
@@ -48,15 +48,15 @@ struct ControlHoldMonitorTests {
             monitor.poll()
             sample = snapshot(at: 0.125, modifierAge: 0.0625); monitor.poll()
             let deadline = try #require(timers.first)
-            for tick in 2...16 { sample.time = Double(tick) / 8; monitor.poll() }
-            sample.time = 2.0625
+            for tick in 2...8 { sample.time = Double(tick) / 8; monitor.poll() }
+            sample.time = 1.0625
             switch interruption {
             case 0: sample.controlHeld = false
             case 1: sample.inputCounts[0] += 1
             case 2: sample.inputCounts[4] += 1
             case 3: sample.mouseButtonHeld = true
             case 4: sample.modifierCount += 2
-            default: sample.time = 2.625 // A gap after the hold began still cancels.
+            default: sample.time = 1.625 // A gap after the hold began still cancels.
             }
             deadline.fire()
             #expect(fired == 0)
@@ -108,16 +108,17 @@ struct ControlHoldMonitorTests {
         // The main thread first notices the press 0.8 seconds after its physical down event.
         sample = snapshot(at: 0.925, counts: [1, 0, 0, 0, 0], ages: [0.9, 10, 10, 10, 10], modifierAge: 0.8)
         monitor.poll()
-        #expect(delays == [1.2])
+        #expect(delays.count == 1)
+        #expect(abs(delays[0] - 0.2) < 0.000001)
         let deadline = try #require(timers.first)
-        for tick in 8...16 { sample.time = Double(tick) / 8; monitor.poll() }
+        sample.time = 1; monitor.poll()
         #expect(fired == 0)
-        sample.time = 2.125; deadline.fire()
+        sample.time = 1.125; deadline.fire()
         #expect(fired == 1)
         #expect(!deadline.isValid)
     }
 
-    @Test func verifiedFirstSamplePastTwoSecondsFiresWithoutAnotherTimerOrRelease() {
+    @Test func verifiedFirstSamplePastOneSecondFiresWithoutAnotherTimerOrRelease() {
         var sample = snapshot(at: 0, held: false, modifierCount: 0)
         var scheduled = 0
         var fired = 0
@@ -127,10 +128,10 @@ struct ControlHoldMonitorTests {
         }, action: { fired += 1 })
         defer { monitor.stop() }
         monitor.poll()
-        sample = snapshot(at: 2.25, modifierAge: 2.125); monitor.poll()
+        sample = snapshot(at: 1.25, modifierAge: 1.125); monitor.poll()
         #expect(fired == 1)
         #expect(scheduled == 0)
-        sample.time = 2.375; monitor.poll()
+        sample.time = 1.375; monitor.poll()
         #expect(fired == 1)
     }
 
@@ -247,10 +248,10 @@ struct ControlHoldMonitorTests {
                 onSuspend: { suspended += 1 }, action: { fired += 1 })
             monitor.start()
             sample = snapshot(at: 0.1); monitor.poll()
-            for tick in 2...10 { sample.time = Double(tick) / 10; monitor.poll() }
+            for tick in 2...5 { sample.time = Double(tick) / 10; monitor.poll() }
             center.post(name: name, object: nil)
             #expect(suspended == (name == NSWorkspace.willSleepNotification || name == NSWorkspace.sessionDidResignActiveNotification ? 1 : 0))
-            for tick in 11...35 { sample.time = Double(tick) / 10; monitor.poll() }
+            for tick in 6...35 { sample.time = Double(tick) / 10; monitor.poll() }
             #expect(fired == 0)
             sample = snapshot(at: 3.6, held: false, modifierCount: 2); monitor.poll()
             sample = snapshot(at: 3.7, modifierCount: 3); monitor.poll()

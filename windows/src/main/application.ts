@@ -46,6 +46,17 @@ export class LauncherHost {
     private visible = true;
     private presentationHidden = false;
     get manualVisible(): boolean { return this.visible; }
+    /** Sample before Ctrl shrinks hover geometry; callers latch this reservation until release. */
+    get controlHoldReserved(): boolean {
+        if (!this.visible || this.presentationHidden) return false;
+        if (this.gesture && !this.gesture.released) return true;
+        // A queued first Ctrl make can be consumed after the pointer has already exited.
+        // Preserve the last sampled hover until poll observes that Ctrl transition.
+        if (!this.controlHeld && this.geometry.hovered) return true;
+        const pointer = this.services.cursor(), frame = this.geometry.displayFrame;
+        return pointer.x >= frame.x && pointer.y >= frame.y
+            && pointer.x < frame.x + frame.width && pointer.y < frame.y + frame.height;
+    }
     /** Transient desktop hiding must never change tray intent or saved geometry. */
     setPresentationHidden(hidden: boolean): void {
         if (this.presentationHidden === hidden) return;

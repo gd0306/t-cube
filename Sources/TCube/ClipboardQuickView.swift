@@ -40,7 +40,7 @@ struct ClipboardQuickView: View {
             Image(systemName: "clipboard").font(.system(size: 20)).foregroundStyle(muted)
             VStack(alignment: .leading, spacing: 4) {
                 Text("剪贴板历史").font(.system(size: 17, weight: .semibold))
-                Text(controller.editingID == nil ? "单击内容复制 · 长按 Ctrl 2 秒唤起" : "编辑文字 · 保存后点选复制")
+                Text(controller.editingID == nil ? "移出立方体 · 长按 Ctrl 1 秒唤起" : "编辑文字 · 保存后点选复制")
                     .font(.system(size: 12)).foregroundStyle(muted)
             }
             Spacer(minLength: 0)

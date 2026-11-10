@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { ConfigurationStore } from '../src/core/store';
 import { LauncherHost } from '../src/main/application';
+import { ControlHoldGesture } from '../src/core/control-hold';
 import { isLocalIconPath } from '../src/main/targets';
 import type { HostServices } from '../src/main/application';
 import type { Rect } from '../src/shared/contracts';
@@ -799,4 +800,104 @@ test('transient desktop hiding stops hover and preserves manual visibility and s
         assert.equal(f.host.snapshot.state.visible,false);assert.equal(f.host.manualVisible,false);
         assert.deepEqual(f.host.geometry.restingFrame,resting);assert.deepEqual(f.store.snapshot,before);
     }finally{await f.dispose();}
+});
+
+
+test('Ctrl on the cube reserves the entire press even after restoring size and leaving', async () => {
+    const f = await fixture();
+    const hold = new ControlHoldGesture();
+    const sample = (held: boolean, now: number) => hold.update({ available: true, controlHeld: held,
+        interrupted: f.host.controlHoldReserved }, now);
+    try {
+        f.input.primaryDown = false;
+        await f.host.applyConfiguration({ ...f.store.snapshot, hover: { isEnabled: true, multiplier: 4, delaySeconds: 0 } });
+        f.host.poll();
+        assert.equal(f.host.geometry.displayFrame.width, 656);
+        const expanded = f.host.geometry.displayFrame;
+        // The outer enlarged area must reserve Ctrl before its first geometry update.
+        f.pointer(expanded.x + expanded.width - 8, expanded.y + expanded.height - 8);
+        assert.equal(f.host.controlHoldReserved, true);
+        sample(false, 0); sample(true, 10);
+        f.input.controlHeld = true; f.host.poll();
+        assert.equal(f.host.geometry.displayFrame.width, 164);
+        f.pointer(1900, 1000); f.host.poll();
+        assert.equal(f.host.controlHoldReserved, false);
+        for (let now = 210; now <= 1410; now += 200) assert.equal(sample(true, now), false);
+        f.input.controlHeld = false; sample(false, 1420); f.host.poll();
+        sample(true, 1430);
+        for (let now = 1630; now < 2430; now += 200) assert.equal(sample(true, now), false);
+        assert.equal(sample(true, 2430), true, 'A fresh outside hold must still open at one second');
+    } finally { await f.dispose(); }
+});
+
+test('moving into the cube during an outside Ctrl hold cancels it until release', async () => {
+    const f = await fixture();
+    const hold = new ControlHoldGesture();
+    const sample = (held: boolean, now: number) => hold.update({ available: true, controlHeld: held,
+        interrupted: f.host.controlHoldReserved }, now);
+    try {
+        f.input.primaryDown = false; f.pointer(1900, 1000); f.host.poll();
+        assert.equal(f.host.controlHoldReserved, false);
+        sample(false, 0); sample(true, 10);
+        f.pointer(1800, 900); assert.equal(sample(true, 210), false); // Outside movement is harmless.
+        f.pointer(180, 180); assert.equal(f.host.controlHoldReserved, true);
+        assert.equal(sample(true, 410), false);
+        f.pointer(1900, 1000);
+        for (let now = 610; now <= 1410; now += 200) assert.equal(sample(true, now), false);
+        sample(false, 1420); sample(true, 1430);
+        for (let now = 1630; now < 2430; now += 200) assert.equal(sample(true, now), false);
+        assert.equal(sample(true, 2430), true);
+    } finally { await f.dispose(); }
+});
+
+test('an active cube drag reserves Ctrl outside its frame while hidden cubes do not', async () => {
+    const f = await fixture();
+    try {
+        f.host.beginPointer(0); f.pointer(1900, 1000);
+        assert.equal(f.host.controlHoldReserved, true);
+        f.input.primaryDown = false; f.host.poll();
+        f.pointer(180, 180); f.host.setVisible(false);
+        assert.equal(f.host.controlHoldReserved, false);
+        f.host.setVisible(true); f.host.setPresentationHidden(true);
+        assert.equal(f.host.controlHoldReserved, false);
+    } finally { await f.dispose(); }
+});
+
+
+test('a delayed first Ctrl sample preserves the preceding cube hover after the pointer exits', async () => {
+    const f = await fixture();
+    const hold = new ControlHoldGesture();
+    const sample = (now: number) => hold.update({ available: true, controlHeld: f.input.controlHeld,
+        interrupted: f.host.controlHoldReserved }, now);
+    try {
+        f.input.primaryDown = false;
+        await f.host.applyConfiguration({ ...f.store.snapshot, hover: { isEnabled: true, multiplier: 4, delaySeconds: 0 } });
+        f.host.poll(); sample(0);
+        assert.equal(f.host.geometry.displayFrame.width, 656);
+        // Ctrl arrives while the pointer is inside, but the queued press is consumed after it exits.
+        f.input.controlHeld = true; f.pointer(1900, 1000); sample(10); f.host.poll();
+        assert.equal(f.host.geometry.displayFrame.width, 164);
+        for (let now = 210; now <= 1410; now += 200) assert.equal(sample(now), false,
+            'The initial cube press must remain cancelled after the first outside sample');
+        f.input.controlHeld = false; sample(1420); f.host.poll();
+        f.input.controlHeld = true; sample(1430); f.host.poll();
+        for (let now = 1630; now < 2430; now += 200) assert.equal(sample(now), false);
+        assert.equal(sample(2430), true, 'Release then a fresh outside hold must open');
+    } finally { await f.dispose(); }
+});
+
+test('a pointer exit observed before Ctrl does not reserve a later outside hold', async () => {
+    const f = await fixture();
+    const hold = new ControlHoldGesture();
+    const sample = (now: number) => hold.update({ available: true, controlHeld: f.input.controlHeld,
+        interrupted: f.host.controlHoldReserved }, now);
+    try {
+        f.input.primaryDown = false;
+        await f.host.applyConfiguration({ ...f.store.snapshot, hover: { isEnabled: true, multiplier: 4, delaySeconds: 0 } });
+        f.host.poll(); sample(0);
+        f.pointer(1900, 1000); f.host.poll(); sample(10);
+        f.input.controlHeld = true; sample(20); f.host.poll();
+        for (let now = 220; now < 1020; now += 200) assert.equal(sample(now), false);
+        assert.equal(sample(1020), true, 'An ordinary completed exit must allow the following outside hold');
+    } finally { await f.dispose(); }
 });

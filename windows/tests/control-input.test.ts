@@ -36,8 +36,8 @@ test('raw Ctrl-down starts timing between polls, repeat/second Ctrl do not resta
     gesture.update({available:true,controlHeld:true,interrupted:false},37);
     assert.equal(raw.update(packet,24),null,'Repeated make must not restart the hold');
     packet.writeUInt16LE(0xa3,30);assert.equal(raw.update(packet,24),null);
-    for(let now=80;now<2037;now+=80)assert.equal(gesture.update({available:true,controlHeld:true,interrupted:false},now),false);
-    assert.equal(gesture.update({available:true,controlHeld:true,interrupted:false},2037),true);
+    for(let now=80;now<1037;now+=80)assert.equal(gesture.update({available:true,controlHeld:true,interrupted:false},now),false);
+    assert.equal(gesture.update({available:true,controlHeld:true,interrupted:false},1037),true);
     packet.writeUInt16LE(1,26);assert.equal(raw.update(packet,24),null,'One Ctrl still held');
     packet.writeUInt16LE(0xa2,30);assert.equal(raw.update(packet,24),'released');
 });
