@@ -33,6 +33,15 @@ export class ClipboardHistory {
         while (this.entries.length > LIMITS.entries || this.bytes > LIMITS.totalBytes) this.bytes -= this.entries.pop()!.bytes;
         return true;
     }
+    edit(id: string, text: string): void {
+        const entry = this.entries.find(entry => entry.id === id);
+        if (!entry) throw new Error('此历史记录已删除或过期。');
+        const bytes = Buffer.byteLength(text, 'utf8');
+        if (!text.trim() || text.includes('\0') || bytes > LIMITS.itemBytes) throw new Error('文字不能为空，不能包含空字符，且最多 64 KiB。');
+        if (this.bytes - entry.bytes + bytes > LIMITS.totalBytes) throw new Error('历史文字合计不能超过 2 MiB，请缩短文字或删除其他记录。');
+        this.bytes += bytes - entry.bytes;
+        entry.text = text; entry.bytes = bytes;
+    }
     delete(id: string): void {
         this.images = this.images.filter(image => image.id !== id);
         const index = this.entries.findIndex(entry => entry.id === id);

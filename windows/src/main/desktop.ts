@@ -4,9 +4,12 @@ import { DisplayInputStore } from './display-input-store';
 import {bindEdgeVisibility} from './edge-visibility';
 import { DesktopPresentation, isFullscreenOnDisplay, edgeHandleWindowLayout, presentationProtection } from '../core/desktop-presentation';
 import { fullscreenFrameOnDisplay } from '../native/fullscreen';
+import { ControlHoldGesture } from '../core/control-hold';
+import { observeControlInterference } from '../native/control-input';
+import { release } from 'node:os';
 import {OfficeServices} from './office-services';
 import {DisplayPositionStore} from './display-position-store';
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, screen, shell, Tray } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, powerMonitor, screen, shell, Tray } from 'electron';
 import type { BrowserWindowConstructorOptions } from 'electron';
 import { access } from 'node:fs/promises';
 import path from 'node:path';
@@ -40,6 +43,9 @@ export class DesktopApplication {
     private previousButtons = false;
     private readonly iconCache = new IconCache();
     private readonly started = Date.now();
+    private readonly controlHold=new ControlHoldGesture();
+    private controlInput:ReturnType<typeof observeControlInterference>|undefined;
+    private readonly resetControlHold=()=>{this.controlInput?.baseline();this.controlHold.reset();};
     private office: OfficeServices | null = null;
     private whenLauncherOperationsIdle: () => Promise<void> = async () => {};
     private reducedMotion = false;
@@ -105,9 +111,26 @@ export class DesktopApplication {
         });
         this.office = new OfficeServices({host:this.host,directory:app.getPath('userData'),rendererPath:this.html('library'),
             whenLauncherOperationsIdle:()=>this.whenLauncherOperationsIdle(),historyChanged:()=>this.updateTray(),
+            createQuickWindow:()=>{
+                const supportsAcrylic=process.platform==='win32'&&Number(release().split('.')[2])>=22621;
+                const window=this.createWindow('clipboard-quick',{title:'T-Cube · 剪贴板历史',width:380,height:520,frame:false,transparent:!supportsAcrylic,backgroundMaterial:supportsAcrylic?'acrylic':undefined,backgroundColor:'#00000000',resizable:false,hasShadow:false,skipTaskbar:true,alwaysOnTop:true,thickFrame:false});
+                const material=()=>{
+                    if(!supportsAcrylic)return;
+                    const solid=nativeTheme.prefersReducedTransparency||nativeTheme.inForcedColorsMode;
+                    window.setBackgroundMaterial(solid?'none':'acrylic');
+                    // Electron's 'none' setter resets the backing color to white; restore the system-theme fallback explicitly.
+                    window.setBackgroundColor(solid?(nativeTheme.shouldUseDarkColors?'#1b222d':'#f8fafd'):'#00000000');
+                };
+                material();nativeTheme.on('updated',material);window.once('closed',()=>nativeTheme.removeListener('updated',material));return window;
+            },
             createLibraryWindow:()=>this.createWindow('library',{title:'T-Cube · 常用内容',width:940,height:680,minWidth:800,minHeight:560,backgroundColor:'#f6f8fc',autoHideMenuBar:true,alwaysOnTop:true}),
             role:id=>this.roles.get(id)??null});
         await this.office.start();
+        try{this.controlInput=observeControlInterference(this.widget,()=>this.controlHold.interrupt(),()=>{
+            this.controlHold.update({available:true,controlHeld:false,interrupted:false},performance.now());
+        });if(process.platform==='win32'&&!this.controlInput.available)throw new Error('Raw Input unavailable');}catch{this.host.reportError('Ctrl 长按快捷历史暂不可用，可从托盘打开剪贴板历史。');}
+        powerMonitor.on('suspend',this.resetControlHold);powerMonitor.on('resume',this.resetControlHold);
+        this.widget.once('closed',()=>{this.controlInput?.dispose();this.controlInput=undefined;});
         this.whenLauncherOperationsIdle = registerIPC(ipcMain, this.host, sender => this.roles.get(sender.id) ?? null,
             createApplicationCatalog(this.directory, app.getPath('userData')),()=>this.office?.isRestoring??false);
         this.widget.setAlwaysOnTop(true, 'floating');
@@ -208,6 +231,11 @@ export class DesktopApplication {
             }
             this.previousButtons = buttons;
             const now = Date.now();
+            if(this.office?.isRestoring)this.controlHold.interrupt();
+            if(this.controlHold.update({available:input.available&&Boolean(this.controlInput?.available),controlHeld:input.controlHeld,
+                interrupted:buttons||(input.controlHeld&&Boolean(this.controlInput?.otherHeld()))},performance.now())){
+                void this.office?.showClipboardQuick().catch(error=>this.host.reportError(error));
+            }
             if (now - this.preferenceSample > 1000) { this.reducedMotion = readReducedMotion(); this.preferenceSample = now; }
             this.updatePresentation(now);
             this.host.poll((now - this.started) / 1000, this.reducedMotion);
@@ -325,5 +353,5 @@ export class DesktopApplication {
             { type: 'separator' }, { label: 'Quit T-Cube', click: () => app.quit() }
         ]));
     }
-    dispose(): void { this.displayInput?.dispose(); this.displayInput = null; this.presentation.reset(); this.edgeWindow?.destroy(); this.edgeWindow = null; this.office?.dispose(); if (this.timer) clearTimeout(this.timer); this.timer = null; this.tray?.destroy(); this.tray = null; }
+    dispose(): void { this.controlInput?.dispose();this.controlInput=undefined;powerMonitor.removeListener('suspend',this.resetControlHold);powerMonitor.removeListener('resume',this.resetControlHold);this.displayInput?.dispose(); this.displayInput = null; this.presentation.reset(); this.edgeWindow?.destroy(); this.edgeWindow = null; this.office?.dispose(); if (this.timer) clearTimeout(this.timer); this.timer = null; this.tray?.destroy(); this.tray = null; }
 }

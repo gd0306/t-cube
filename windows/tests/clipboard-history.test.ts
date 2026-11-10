@@ -195,3 +195,36 @@ test('production recorder constructs with its default timer while recording rema
     assert.equal(notifications, 0);
     recorder.dispose();
 });
+
+test('editing retains identity, timestamp and order and rejects invalid UTF-8 or total budgets atomically', async () => {
+    const { ClipboardHistory } = await import('../src/core/clipboard-history');
+    const history = new ClipboardHistory(); history.add('older'); history.add('newer');
+    const before = history.snapshot(), id = before[1].id;
+    history.edit(id, ' 修改后 ');
+    assert.deepEqual(history.snapshot(), [before[0], {...before[1], text: ' 修改后 '}]);
+    assert.equal(history.totalBytes, 16);
+    for (const text of ['', '  ', 'a\0b', '界'.repeat(21846)]) assert.throws(() => history.edit(id, text));
+    assert.throws(() => history.edit('missing', 'valid'));
+    assert.equal(history.snapshot()[1].text, ' 修改后 ');
+    history.clear(); history.add('a'); const small = history.snapshot()[0];
+    for (let index = 0; index < 31; index++) history.add(`${index.toString().padStart(2, '0')}${'x'.repeat(65534)}`);
+    history.add('y'.repeat(65535));
+    assert.equal(history.totalBytes, 2097152);
+    const full = history.snapshot(); assert.throws(() => history.edit(small.id, 'aa'));
+    assert.deepEqual(history.snapshot(), full); assert.equal(history.totalBytes, 2097152);
+    history.edit(small.id, 'b'); assert.equal(history.totalBytes, 2097152);
+});
+
+test('editing operations validate in the host, publish changes and never copy or reorder the record', async () => {
+    const { ClipboardHistoryRecorder, clipboardHistoryOperations } = await import('../src/main/clipboard-history');
+    let sequence = 1, published = 0, copies = 0;
+    const recorder = new ClipboardHistoryRecorder({sequence: () => sequence, read: async () => 'original'}, () => { published++; }, () => () => {});
+    const operations = clipboardHistoryOperations(recorder, async () => { copies++; return {status:'copied'}; });
+    recorder.setEnabled(true); sequence++; await recorder.poll(); recorder.setEnabled(false);
+    const entry = recorder.state.entries[0], before = published;
+    operations.editClipboardHistoryEntry({id:entry.id, text:'edited'});
+    assert.deepEqual(recorder.state.entries, [{...entry,text:'edited'}]); assert.equal(published,before+1); assert.equal(copies,0);
+    for (const request of [{id:entry.id,text:''},{id:entry.id,text:'界'.repeat(21846)},{id:entry.id,text:'ok',paste:true},{id:'bad',text:'ok'},null]) assert.throws(() => operations.editClipboardHistoryEntry(request));
+    await operations.useClipboardHistoryEntry({id:entry.id,paste:false}); assert.equal(copies,1);
+    recorder.dispose();
+});

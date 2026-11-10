@@ -10,7 +10,7 @@ const page = await browser.newPage({viewport:{width:940,height:700}});
 const uses: unknown[] = [], drafts: string[] = [];
 await page.exposeFunction('ownedUse',(request:unknown)=>{uses.push(request);return {status:'Owned fixture copied'};});
 await page.exposeFunction('ownedMerge',(request:{ids:string[];trimLines:boolean;collapseBlankLines:boolean;paste?:boolean})=>{
-    const texts = [' second ',' first  \r\n\r\n\r\n'];
+    const texts = [' second changed ',' first  \r\n\r\n\r\n'];
     const value = mergeHistoryText(['newer','older'].filter(id=>request.ids.includes(id)).map(id=>texts[id==='newer'?0:1]),request);
     if(request.paste!==undefined)uses.push({text:value,paste:request.paste});
     return request.paste===undefined?value:{status:'Owned merge copied'};
@@ -28,6 +28,7 @@ try {
         globals.ownedState=fixture;
         globals.historyPanel=new globals.TCubeHistory.ClipboardHistoryPanel(document.querySelector('#root'),{
             getClipboardHistory:async()=>fixture,onClipboardHistoryChanged:(callback:any)=>{changed=callback;return()=>{};},
+            editClipboardHistoryEntry:async(request:{id:string;text:string})=>{const entry=fixture.entries.find(entry=>entry.id===request.id);if(!entry)throw Error('missing');entry.text=request.text;changed(fixture);},
             setClipboardHistoryEnabled:async(enabled:boolean)=>{fixture.isEnabled=enabled;changed(fixture);},
             getClipboardHistoryImage:async()=>fixture.images[0].thumbnail,
             useClipboardHistoryEntry:globals.ownedUse,useClipboardHistoryMerge:globals.ownedMerge,previewClipboardHistoryMerge:globals.ownedMerge,
@@ -37,16 +38,25 @@ try {
     });
     await page.getByRole('button',{name:'启用记录',exact:true}).click();
     assert.equal(await page.getByRole('button',{name:'暂停记录',exact:true}).count(),1);
+    await page.getByRole('button',{name:'编辑历史文字',exact:true}).click();
+    await page.getByRole('textbox',{name:'编辑历史文字',exact:true}).fill('cancelled');
+    await page.getByRole('button',{name:'取消编辑',exact:true}).click();
+    assert.equal(await page.locator('.history-detail pre').textContent(),' second ');
+    await page.getByRole('button',{name:'编辑历史文字',exact:true}).click();
+    await page.getByRole('textbox',{name:'编辑历史文字',exact:true}).fill(' second changed ');
+    await page.getByRole('button',{name:'保存历史文字',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelector('.history-detail pre')?.textContent===' second changed ');
+    assert.equal(uses.length,0);
     await page.getByRole('checkbox',{name:'选择文字 2',exact:true}).check();
     await page.getByRole('checkbox',{name:'选择文字 1',exact:true}).check();
     await page.getByRole('checkbox',{name:'去除每行首尾空白',exact:true}).check();
     await page.getByRole('checkbox',{name:'合并连续空行',exact:true}).check();
-    assert.equal(await page.locator('.history-detail pre').textContent(),'second\nfirst\n');
+    assert.equal(await page.locator('.history-detail pre').textContent(),'second changed\nfirst\n');
     await page.getByRole('button',{name:'复制合并文字',exact:true}).click();
     await page.waitForFunction(()=>document.querySelector('[role=status]')?.textContent==='Owned merge copied');
-    assert.deepEqual(uses,[{text:'second\nfirst\n',paste:false}]);
+    assert.deepEqual(uses,[{text:'second changed\nfirst\n',paste:false}]);
     await page.getByRole('button',{name:'整理为常用内容',exact:true}).click();
-    await page.waitForTimeout(50); assert.deepEqual(drafts,['second\nfirst\n']);
+    await page.waitForTimeout(50); assert.deepEqual(drafts,['second changed\nfirst\n']);
     await page.getByRole('searchbox',{name:'搜索剪贴板历史',exact:true}).fill('second');
     assert.equal(await page.getByRole('button',{name:'复制合并文字',exact:true}).count(),0,'Filtering must clear stale merge selection');
     await page.getByRole('button',{name:'图片',exact:true}).click();

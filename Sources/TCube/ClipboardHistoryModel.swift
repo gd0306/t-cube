@@ -45,6 +45,17 @@ final class ClipboardHistoryModel: ObservableObject {
     func markSelfWrite() { recorder?.markSelfWrite() }
 
     @discardableResult
+    func updateText(id: UUID, text: String) -> Bool {
+        guard history.updateText(id: id, text: text) else {
+            status = "无法保存：记录可能已删除，或文字为空、含无效字符、超过单条 64 KiB／总计 2 MiB 上限。"
+            return false
+        }
+        entries = history.entries
+        status = "已保存修改；系统剪贴板保持原样。"
+        return true
+    }
+
+    @discardableResult
     func delete(_ id: UUID) -> Bool {
         guard history.delete(id) else { return false }
         entries = history.entries

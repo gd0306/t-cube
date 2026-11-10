@@ -38,6 +38,7 @@ Published releases provide ready-to-run installation packages:
 > [!NOTE]
 > - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.4).
 > - Both `0.22.4` installers include the monitor detection and input-code help updates described below. The [release verification record](docs/verification/2026-11-08-release-consistency.md) records the packaged source, checksums and verification limits.
+> - The hold-`Ctrl` clipboard panel is available in current source builds; the published `0.22.4` installers do not include it yet.
 > - The Windows installer bundles its runtime and requires no Node.js installation.
 > - Quit any running T-Cube instance before upgrading; your configuration is automatically preserved.
 
@@ -104,6 +105,7 @@ A lighter glass shell lets the desktop show through. Hover to reveal icons that 
 - **In-Memory Session Clipboard**: Text and image history kept strictly in volatile memory. Cleared immediately on exit; never written to disk, included in backups, or transmitted over the network.
   - **Text History**: Retains up to 100 entries (64 KiB per entry, 2 MiB total). Supports search, multi-selection, ordered concatenation, line trimming, and repeated blank-line collapsing.
   - **Image History**: Retains up to 10 recent images (8 MiB normalized PNG per image, 32 MiB total, 16 megapixels max) with thumbnail previews and bounded detail views.
+- **Quick Clipboard Panel (macOS / Windows, source builds)**: Hold `Ctrl` alone for **2 seconds** to open a glass history list near the pointer. Release `Ctrl`, then single-click text or an image to copy it and close the panel. Edit, save, cancel, or delete text records; editing changes session history only, preserving order and capture time. Other keys, mouse buttons, or scrolling cancel the hold. Recording still starts paused; choose **启用记录** explicitly. macOS 26+ uses Clear Liquid Glass (system material on macOS 15); Windows 11 22H2+ uses acrylic, with a transparent fallback on Windows 10 and earlier Windows 11 builds. System accessibility preferences may reduce transparency. [Preview and verification](docs/verification/2026-11-10-clipboard-quick-panel.md).
 - **Snippet Library & Dynamic Templates**: Open the content library from the status menu or with `Command+Shift+Space` (`Ctrl+Shift+Space` on Windows). Organize reusable snippets with groups and favorites. Enable template mode to use dynamic placeholders like `{{customer_name}}`—fill variables once and preview the merged result before copying or pasting.
 - **Focus-Checked Direct Paste**: Restores previous window focus and pastes directly into the target input field when Accessibility permissions are granted.
 
@@ -126,6 +128,7 @@ A lighter glass shell lets the desktop show through. Hover to reveal icons that 
 | **Right-button drag** | Free-form 3D rotation; release to keep current angle |
 | **Hold `Ctrl` over cube** | Temporarily restore cube to resting size |
 | **`Ctrl` + Left-button drag** | Move at resting size (persists even if `Ctrl` is released mid-drag) |
+| **Hold `Ctrl` alone for 2 seconds (source builds)** | Open clipboard history; release, then single-click a record to copy. Click outside to close; use Save / Cancel when editing |
 | **Click outside / `Esc`** | Dismiss expanded 4-icon panel |
 | **Right-click / Menu Bar icon** | Open settings |
 

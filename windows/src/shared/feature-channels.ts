@@ -1,4 +1,5 @@
 export const FEATURE_CHANNELS = {
+    editClipboardHistoryEntry:'tcube:history-edit',copyClipboardQuickEntry:'tcube:history-quick-copy',dismissClipboardQuick:'tcube:history-quick-dismiss',
     getClipboardHistoryImage:'tcube:history-image',previewClipboardHistoryMerge:'tcube:history-merge-preview',useClipboardHistoryMerge:'tcube:history-merge-use',
     showClipboardHistory:'tcube:history-show',getClipboardHistory:'tcube:history-get',setClipboardHistoryEnabled:'tcube:history-enable',deleteClipboardHistoryEntry:'tcube:history-delete',clearClipboardHistory:'tcube:history-clear',useClipboardHistoryEntry:'tcube:history-use',clipboardHistoryChanged:'tcube:history-changed',showClipboardHistoryMode:'tcube:history-mode',
     showLibrary:'tcube:library-show', getLibrary:'tcube:library-get', saveSnippet:'tcube:library-save',

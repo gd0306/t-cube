@@ -21,9 +21,12 @@ import {FACES,type Face} from '../shared/contracts';
 const record=(value:unknown):Record<string,unknown>=>{if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('Invalid request');return value as Record<string,unknown>;};
 const string=(value:unknown,max=128):string=>{if(typeof value!=='string'||!value.length||value.length>max)throw new Error('Invalid text');return value;};
 const boolean=(value:unknown):boolean=>{if(typeof value!=='boolean')throw new Error('Invalid preference');return value;};
-export interface OfficeOptions {whenLauncherOperationsIdle:()=>Promise<void>;host:LauncherHost;directory:string;rendererPath:string;createLibraryWindow:()=>BrowserWindow;role:(id:number)=>WindowRole|null;historyChanged?:()=>void}
+export interface OfficeOptions {whenLauncherOperationsIdle:()=>Promise<void>;host:LauncherHost;directory:string;rendererPath:string;createLibraryWindow:()=>BrowserWindow;createQuickWindow:()=>BrowserWindow;role:(id:number)=>WindowRole|null;historyChanged?:()=>void}
 export class OfficeServices {
     libraryWindow:BrowserWindow|null=null;
+    quickWindow:BrowserWindow|null=null;
+    private quickLoad:Promise<void>|null=null;
+    private quickGeneration=0;
     readonly clipboardHistory: ClipboardHistoryRecorder;
     private readonly imageProcessor: ClipboardImageProcessor;
     readonly library:ContentLibraryService;
@@ -56,6 +59,7 @@ export class OfficeServices {
         }, state => {
             if (!state.isEnabled || (!state.entries.length && !state.images?.length)) this.imageProcessor.cancel();
             this.libraryWindow?.webContents.send(C.clipboardHistoryChanged, state);
+            this.quickWindow?.webContents.send(C.clipboardHistoryChanged, state);
             this.options.historyChanged?.();
         });
         const configurationPath=path.join(options.directory,'configuration.json'),libraryPath=path.join(options.directory,'content-library.json');
@@ -97,6 +101,24 @@ export class OfficeServices {
         await this.showLibrary();
         this.libraryWindow?.webContents.send(C.showClipboardHistoryMode);
     }
+    async showClipboardQuick() {
+        if(this.isRestoring)return;
+        const generation=++this.quickGeneration;
+        if(!this.quickWindow){
+            this.quickWindow=this.options.createQuickWindow();
+            this.quickWindow.once('closed',()=>{this.quickWindow=null;this.quickLoad=null;});
+            this.quickWindow.on('blur',()=>this.dismissClipboardQuick());
+            this.quickLoad=this.quickWindow.loadFile(path.join(path.dirname(this.options.rendererPath),'clipboard-quick.html'));
+        }
+        await this.quickLoad;
+        if(generation!==this.quickGeneration||this.isRestoring||!this.quickWindow)return;
+        const window=this.quickWindow,point=screen.getCursorScreenPoint(),area=screen.getDisplayNearestPoint(point).workArea;
+        const width=Math.min(380,area.width),height=Math.min(520,area.height);
+        window.setBounds({x:Math.round(Math.max(area.x,Math.min(point.x+12,area.x+area.width-width))),y:Math.round(Math.max(area.y,Math.min(point.y+12,area.y+area.height-height))),width,height});
+        window.webContents.send(C.clipboardHistoryChanged,this.clipboardHistory.state);
+        window.show();window.focus();
+    }
+    private dismissClipboardQuick(){this.quickGeneration++;this.quickWindow?.hide();}
     private async use(value:unknown){
         const request=record(value),text=string(request.text,262144),paste=boolean(request.paste);validateSnippetText(text);
         const generation=++this.pasteGeneration;
@@ -117,8 +139,11 @@ export class OfficeServices {
         return {status: completed ? '已粘贴到原输入位置。' : '已复制。原输入位置不可用，请手动粘贴；可先点中目标输入框，再用快捷键呼出。'};
     }
     private registerIPC(){
+        const historyOperations=clipboardHistoryOperations(this.clipboardHistory, request => this.use(request), (image, paste) => this.useImage(image, paste), (image, current) => this.imageProcessor.preview(image, current));
         const operations:Record<string,(value:unknown)=>unknown>={
-            ...clipboardHistoryOperations(this.clipboardHistory, request => this.use(request), (image, paste) => this.useImage(image, paste), (image, current) => this.imageProcessor.preview(image, current)),
+            ...historyOperations,
+            copyClipboardQuickEntry: async value=>{await historyOperations.useClipboardHistoryEntry({id:value,paste:false});this.dismissClipboardQuick();},
+            dismissClipboardQuick: value=>{if(value!==undefined)throw new Error('Invalid quick history request');this.dismissClipboardQuick();},
             showClipboardHistory: value => { if (value !== undefined) throw new Error('Invalid history request'); return this.showClipboardHistory(); },
             showLibrary:value=>this.showLibrary(value===undefined?undefined:string(value,262144)),getLibrary:()=>this.library.get(),
             saveSnippet:value=>this.library.save(value as TextSnippet),deleteSnippet:value=>this.library.delete(string(value)),
@@ -142,5 +167,5 @@ export class OfficeServices {
         }]));
         registerFeatureIPC(ipcMain,this.options.role,tracked,()=>this.isRestoring,error=>this.options.host.reportError(error));
     }
-    dispose(){this.imageProcessor.dispose();this.clipboardHistory.dispose();this.pasteGeneration++;if(this.shortcutRegistered)globalShortcut.unregister('CommandOrControl+Shift+Space');this.lifecycle?.dispose();}
+    dispose(){this.quickGeneration++;this.quickWindow?.destroy();this.quickWindow=null;this.imageProcessor.dispose();this.clipboardHistory.dispose();this.pasteGeneration++;if(this.shortcutRegistered)globalShortcut.unregister('CommandOrControl+Shift+Space');this.lifecycle?.dispose();}
 }

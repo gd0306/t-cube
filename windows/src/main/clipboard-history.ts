@@ -52,6 +52,7 @@ export class ClipboardHistoryRecorder {
         try { return await write(); }
         finally { this.ownWrites--; this.lastSequence = this.sequence(); }
     }
+    edit(id: string, text: string): void { this.history.edit(id, text); this.publish(); }
     delete(id: string): void { this.history.delete(id); this.publish(); }
     clear(): void { this.generation++; this.lastSequence = this.sequence(); this.history.clear(); this.imageNotice = undefined; this.publish(); }
     text(id: string): string {
@@ -96,6 +97,12 @@ export function clipboardHistoryOperations(recorder: ClipboardHistoryRecorder,
         previewClipboardHistoryMerge: value => recorder.merge(merge(value)),
         useClipboardHistoryMerge: value => { const request = merge(value, true); return use({text: recorder.merge(request), paste: request.paste!}); },
         getClipboardHistoryImage: value => { const selectedId=id(value),image=recorder.image(selectedId); if (!image || !imagePreview) throw new Error('Image unavailable'); const preview=imagePreview(image,()=>recorder.hasImage(selectedId)); return preview instanceof Promise ? preview.then(value=>recorder.hasImage(selectedId)?value:null) : preview; },
+        editClipboardHistoryEntry: value => {
+            if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid history edit');
+            const request = value as Record<string, unknown>;
+            if (Object.keys(request).some(key => !['id', 'text'].includes(key)) || typeof request.text !== 'string') throw new Error('Invalid history edit');
+            recorder.edit(id(request.id), request.text);
+        },
         getClipboardHistory: value => { empty(value); return recorder.state; },
         setClipboardHistoryEnabled: value => { if (typeof value !== 'boolean') throw new Error('Invalid history preference'); recorder.setEnabled(value); },
         deleteClipboardHistoryEntry: value => recorder.delete(id(value)),

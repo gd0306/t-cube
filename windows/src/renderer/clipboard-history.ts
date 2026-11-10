@@ -17,6 +17,7 @@ export class ClipboardHistoryPanel {
     private count = document.createElement('span');
     private status = document.createElement('p');
     private busy = false;
+    private editDraft: {id:string;text:string}|undefined;
     private enabledBefore = false;
     private version = 0;
     private previewVersion = 0;
@@ -51,27 +52,32 @@ export class ClipboardHistoryPanel {
         this.render();
     }
     dispose(): void { this.unsubscribe(); this.previewVersion++; this.imagePreview = undefined; this.detail.replaceChildren(); }
-    private update(state: ClipboardHistoryState): void { if(state.imageNotice)this.status.textContent=state.imageNotice;else if(this.state.imageNotice)this.status.textContent=''; if (this.imagePreview && !state.images?.some(image => image.id === this.imagePreview!.id)) this.imagePreview = undefined; this.state = state; this.enabledBefore ||= state.isEnabled; this.render(); }
+    private update(state: ClipboardHistoryState): void { if(state.imageNotice)this.status.textContent=state.imageNotice;else if(this.state.imageNotice)this.status.textContent=''; if (this.imagePreview && !state.images?.some(image => image.id === this.imagePreview!.id)) this.imagePreview = undefined; this.state = state; this.enabledBefore ||= state.isEnabled;
+        if(this.editDraft&&state.entries.some(entry=>entry.id===this.editDraft!.id))return;
+        if(this.editDraft){this.editDraft=undefined;this.status.textContent='编辑的记录已删除或过期。';}
+        this.render(); }
     private async run(action: () => Promise<unknown>): Promise<void> {
         if (this.busy) return;
+        const editor=this.detail.querySelector('textarea'),selection=editor?[editor.selectionStart,editor.selectionEnd] as const:undefined;
+        let failed=false;
         this.busy = true; this.status.textContent = ''; this.render();
-        try { await action(); } catch { this.status.textContent = '操作未完成，请重试；历史条目可能已删除。'; }
-        finally { this.busy = false; this.render(); }
+        try { await action(); } catch { failed=true;this.status.textContent = '操作未完成，请重试；历史条目可能已删除。'; }
+        finally { this.busy = false; this.render();if(failed&&this.editDraft){const input=this.detail.querySelector('textarea');input?.focus();if(input&&selection)input.setSelectionRange(...selection);} }
     }
     private button(text: string, action: () => void): HTMLButtonElement {
         const button = document.createElement('button'); button.type = 'button'; button.textContent = text;
         button.disabled = this.busy; button.onclick = () => { if (!this.busy) action(); }; return button;
     }
     private option(label: string, checked: boolean, change: (checked: boolean) => void): HTMLLabelElement {
-        const wrapper = document.createElement('label'), input = document.createElement('input'); input.type = 'checkbox'; input.checked = checked; input.disabled = this.busy;
+        const wrapper = document.createElement('label'), input = document.createElement('input'); input.type = 'checkbox'; input.checked = checked; input.disabled = this.busy || Boolean(this.editDraft);
         input.onchange = () => { change(input.checked); this.render(); }; wrapper.append(input, document.createTextNode(label)); return wrapper;
     }
     private render(): void {
         const previewVersion = ++this.previewVersion;
         this.toggle.textContent = this.state.isEnabled ? '暂停记录' : this.enabledBefore ? '恢复记录' : '启用记录';
-        this.toggle.disabled = this.busy; this.clear.disabled = this.busy || !(this.state.entries.length + (this.state.images?.length ?? 0));
-        this.search.disabled = this.category === 'images';
-        this.root.querySelectorAll<HTMLButtonElement>('[data-category]').forEach(button => { button.setAttribute('aria-pressed', String(button.dataset.category === this.category)); button.disabled = this.busy; });
+        this.toggle.disabled = this.busy || Boolean(this.editDraft); this.clear.disabled = this.busy || Boolean(this.editDraft) || !(this.state.entries.length + (this.state.images?.length ?? 0));
+        this.search.disabled = this.category === 'images' || Boolean(this.editDraft);
+        this.root.querySelectorAll<HTMLButtonElement>('[data-category]').forEach(button => { button.setAttribute('aria-pressed', String(button.dataset.category === this.category)); button.disabled = this.busy || Boolean(this.editDraft); });
         const query = this.search.value.toLocaleLowerCase();
         const entries = this.state.entries.filter(entry => entry.text.toLocaleLowerCase().includes(query));
         const images = this.state.images ?? [];
@@ -86,8 +92,10 @@ export class ClipboardHistoryPanel {
             if (!image) wrapper.append(this.option(`选择文字 ${entries.indexOf(entry) + 1}`, this.selected.has(entry.id), checked => { if (checked) this.selected.add(entry.id); else this.selected.delete(entry.id); }));
             const row = this.button(image ? `${entry.width} × ${entry.height}` : entry.text.slice(0, 160).replace(/\s+/g, ' '), () => { this.selectedId = entry.id; this.render(); });
             if (image) { const thumbnail = document.createElement('img'); thumbnail.src = entry.thumbnail; thumbnail.alt = '历史图片缩略图'; row.prepend(thumbnail); }
+            row.disabled ||= Boolean(this.editDraft);
             row.className = `item${entry.id === this.selectedId ? ' active' : ''}`; row.setAttribute('aria-pressed', String(entry.id === this.selectedId)); wrapper.append(row); this.list.append(wrapper);
         }
+        if(this.editDraft){this.renderTextEditor();return;}
         if (this.category === 'text' && this.selected.size) { this.renderMerge(entries); return; }
         const selected = visible.find(entry => entry.id === this.selectedId);
         if (!selected) {
@@ -97,7 +105,7 @@ export class ClipboardHistoryPanel {
         const actions = document.createElement('div'); actions.className = 'actions';
         const use = (paste: boolean) => { void this.run(async () => { const result = await this.bridge.useClipboardHistoryEntry({id:selected.id,paste}); this.status.textContent = result.status; }); };
         actions.append(this.button(image ? '复制历史图片' : '复制历史文字', () => use(false)), this.button(image ? '粘贴历史图片' : '粘贴历史文字', () => use(true)));
-        if (!image) actions.append(this.button('整理为常用内容', () => this.saveDraft(selected.text)));
+        if (!image) actions.append(this.button('编辑历史文字',()=>{this.editDraft={id:selected.id,text:selected.text};this.render();this.detail.querySelector('textarea')?.focus();}),this.button('整理为常用内容', () => this.saveDraft(selected.text)));
         actions.append(this.button('删除历史', () => { void this.run(() => this.bridge.deleteClipboardHistoryEntry(selected.id)); }));
         this.detail.append(heading, actions);
         if (image) {
@@ -105,6 +113,14 @@ export class ClipboardHistoryPanel {
             if (this.imagePreview?.id !== selected.id) this.imagePreview = {id: selected.id, pending: this.bridge.getClipboardHistoryImage(selected.id)};
             void this.imagePreview.pending.then(source => { if (this.previewVersion === previewVersion) { if(source)preview.src = source;else {this.imagePreview=undefined;preview.alt='图片暂不可用，请重新选择';} } }).catch(() => { if (this.previewVersion === previewVersion) preview.alt = '图片已删除或暂不可用'; });
         } else { const text = document.createElement('pre'); text.textContent = selected.text; this.detail.append(text); }
+    }
+    private renderTextEditor(): void {
+        const draft=this.editDraft!,heading=document.createElement('h2');heading.textContent='编辑历史文字';
+        const input=document.createElement('textarea');input.className='history-editor';input.value=draft.text;input.disabled=this.busy;input.setAttribute('aria-label','编辑历史文字');input.oninput=()=>{draft.text=input.value;};
+        const hint=document.createElement('p');hint.textContent='保存仅修改本次运行的历史，不会写入系统剪贴板；每条最多 64 KiB，合计最多 2 MiB。';
+        const actions=document.createElement('div');actions.className='actions';
+        actions.append(this.button('保存历史文字',()=>{void this.run(async()=>{await this.bridge.editClipboardHistoryEntry(draft);this.editDraft=undefined;this.status.textContent='已保存历史文字。';});}),this.button('取消编辑',()=>{this.editDraft=undefined;this.render();}));
+        this.detail.append(heading,input,hint,actions);
     }
     private renderMerge(entries: ClipboardHistoryState['entries']): void {
         const request: ClipboardMergeRequest = {ids:entries.filter(entry => this.selected.has(entry.id)).map(entry => entry.id),trimLines:this.trimLines,collapseBlankLines:this.collapseBlankLines};

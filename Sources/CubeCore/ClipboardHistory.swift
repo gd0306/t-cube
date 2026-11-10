@@ -129,6 +129,18 @@ public struct ClipboardHistory: Equatable, Sendable {
         return entries.filter { $0.text.range(of: query, options: [.caseInsensitive, .diacriticInsensitive]) != nil }
     }
 
+    /// Editing is session-only and never evicts an unrelated record to make room.
+    @discardableResult
+    public mutating func updateText(id: UUID, text: String) -> Bool {
+        guard Self.accepts(text), let index = entries.firstIndex(where: { $0.id == id }) else { return false }
+        let previous = entries[index]
+        let bytes = totalUTF8Bytes - previous.text.utf8.count + text.utf8.count
+        guard bytes <= Self.maximumTotalUTF8Bytes else { return false }
+        entries[index] = ClipboardHistoryEntry(id: id, text: text, capturedAt: previous.capturedAt)
+        totalUTF8Bytes = bytes
+        return true
+    }
+
     @discardableResult
     public mutating func delete(_ id: UUID) -> Bool {
         guard let index = entries.firstIndex(where: { $0.id == id }) else { return false }

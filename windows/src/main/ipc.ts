@@ -13,7 +13,7 @@ export const CHANNELS = {
     quit: 'tcube:quit', closeExpanded: 'tcube:close-expanded',
     listApplications: 'tcube:applications', applicationIcons: 'tcube:application-icons', addApplication: 'tcube:add-application'
 } as const;
-export type WindowRole = 'widget' | 'settings' | 'expanded' | 'library';
+export type WindowRole = 'widget' | 'settings' | 'expanded' | 'library' | 'clipboard-quick';
 interface Sender { id: number; mainFrame: unknown }
 interface Event { sender: Sender; senderFrame: unknown }
 interface IPCRegistrar { handle(channel: string, handler: (event: Event, payload?: unknown) => Promise<unknown>): void }

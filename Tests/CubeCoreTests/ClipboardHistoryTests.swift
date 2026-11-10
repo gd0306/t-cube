@@ -3,6 +3,37 @@ import Testing
 @testable import CubeCore
 
 struct ClipboardHistoryTests {
+    @Test func editingKeepsIdentityTimeAndOrderAndUpdatesByteAccounting() {
+        var history = ClipboardHistory()
+        history.record("first", at: Date(timeIntervalSince1970: 1))
+        history.record("second", at: Date(timeIntervalSince1970: 2))
+        let entry = history.entries[1]
+        #expect(history.updateText(id: entry.id, text: "修改后的内容") == true)
+        #expect(history.entries.map(\.text) == ["second", "修改后的内容"])
+        #expect(history.entries[1].id == entry.id)
+        #expect(history.entries[1].capturedAt == entry.capturedAt)
+        #expect(history.totalUTF8Bytes == "second修改后的内容".utf8.count)
+        let before = history
+        for invalid in ["", " \n", "bad\0text", String(repeating: "中", count: 21_846)] {
+            #expect(history.updateText(id: entry.id, text: invalid) == false)
+            #expect(history == before)
+        }
+        #expect(history.updateText(id: UUID(), text: "missing") == false)
+        #expect(history == before)
+    }
+
+    @Test func editingCannotEvictOtherEntriesToFitTheMemoryBudget() {
+        var history = ClipboardHistory()
+        for index in 0..<32 {
+            history.record(String(format: "%02d", index) + String(repeating: "x", count: 65_533))
+        }
+        history.record("a")
+        let before = history
+        let accepted = history.updateText(id: history.entries[0].id, text: String(repeating: "y", count: 65_536))
+        #expect(accepted == false)
+        #expect(history == before)
+    }
+
     @Test func exactDuplicatesPromoteExistingEntryAndKeepOriginalWhitespace() {
         var history = ClipboardHistory()
         let firstTime = Date(timeIntervalSince1970: 1)

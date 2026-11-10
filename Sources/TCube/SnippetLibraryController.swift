@@ -30,6 +30,11 @@ final class SnippetLibraryController {
     private var hotKey: EventHotKeyRef?
     private var handler: EventHandlerRef?
     private var pasteTask: Task<Void, Never>?
+    private var controlHold: ControlHoldMonitor?
+    private(set) lazy var quickHistory = ClipboardQuickController(history: history,
+        copyText: { [weak self] text in self?.use(text, paste: false) ?? false },
+        copyImage: { [weak self] image in self?.useImage(image, paste: false) ?? false },
+        openManager: { [weak self] in self?.showHistory() })
 
     init(pasteboard: NSPasteboard = .general, history: ClipboardHistoryModel? = nil, model: SnippetLibraryModel? = nil) {
         self.pasteboard = pasteboard
@@ -52,6 +57,13 @@ final class SnippetLibraryController {
     }
 
     func start() {
+        controlHold?.stop()
+        let controlHold = ControlHoldMonitor(onSuspend: { [weak self] in self?.quickHistory.dismiss() }) { [weak self] in
+            guard let self, self.panel?.attachedSheet == nil, NSApp.modalWindow == nil else { return }
+            self.quickHistory.show()
+        }
+        self.controlHold = controlHold
+        controlHold.start()
         var event = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
         let context = Unmanaged.passUnretained(self).toOpaque()
         let installed = InstallEventHandler(GetApplicationEventTarget(), { _, event, context in
@@ -70,6 +82,8 @@ final class SnippetLibraryController {
     }
 
     func stop() {
+        controlHold?.stop(); controlHold = nil
+        quickHistory.stop()
         history.shutdown()
         pasteTask?.cancel()
         if let hotKey { UnregisterEventHotKey(hotKey) }
@@ -106,6 +120,7 @@ final class SnippetLibraryController {
     }
 
     func show(preservingSheet: Bool = false) {
+        quickHistory.dismiss()
         pasteTask?.cancel()
         if panel?.isVisible != true {
             rememberExternal()
@@ -169,27 +184,27 @@ final class SnippetLibraryController {
         return element
     }
 
-    func use(_ text: String, paste: Bool) {
-        guard !text.isEmpty else { return }
-        use(paste: paste) { pasteboard.setString(text, forType: .string) }
+    @discardableResult func use(_ text: String, paste: Bool) -> Bool {
+        guard !text.isEmpty else { return false }
+        return use(paste: paste) { pasteboard.setString(text, forType: .string) }
     }
 
-    func useImage(_ image: ClipboardHistoryImage, paste: Bool) {
+    @discardableResult func useImage(_ image: ClipboardHistoryImage, paste: Bool) -> Bool {
         use(paste: paste) { pasteboard.setData(image.pngData, forType: .png) }
     }
 
     /// Text and image writes use exactly the same focus, permission and change-count gates.
-    private func use(paste: Bool, write: () -> Bool) {
+    private func use(paste: Bool, write: () -> Bool) -> Bool {
         pasteTask?.cancel()
         pasteboard.clearContents()
         let written = write()
         history.markSelfWrite()
-        guard written else { model.status = "无法写入剪贴板，请重试。"; return }
+        guard written else { model.status = "无法写入剪贴板，请重试。"; return false }
         model.status = "已复制"
-        guard paste else { return }
-        guard AXIsProcessTrusted() else { requestPasteAccess(); return }
+        guard paste else { return true }
+        guard AXIsProcessTrusted() else { requestPasteAccess(); return true }
         guard let target, !target.isTerminated, let originalField = targetField else {
-            model.status = "已复制。请先点中目标输入框，再按 ⌘⇧Space 呼出后粘贴。"; return
+            model.status = "已复制。请先点中目标输入框，再按 ⌘⇧Space 呼出后粘贴。"; return true
         }
         let changeCount = pasteboard.changeCount
         panel?.orderOut(nil)
@@ -215,5 +230,6 @@ final class SnippetLibraryController {
             guard let self, !Task.isCancelled else { return }
             self.model.status = "原输入位置已变化，内容已复制，可手动粘贴。"
         }
+        return true
     }
 }

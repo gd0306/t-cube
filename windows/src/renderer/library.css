@@ -75,3 +75,5 @@ body.dragging #detail { outline: 3px solid #4288cf; outline-offset: -6px; }
 .history-cleanup { display:flex; flex-wrap:wrap; gap:16px; margin:12px 0; }
 .history-cleanup label { display:flex; align-items:center; gap:6px; }
 .history-row input, .history-cleanup input { width:auto; }
+
+.history-editor{width:100%;min-height:240px;resize:vertical;font:inherit;line-height:1.6;padding:12px;color:inherit;background:transparent;border:1px solid #7c8999;border-radius:8px}

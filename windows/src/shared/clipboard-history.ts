@@ -2,6 +2,9 @@ export const CLIPBOARD_HISTORY_LIMITS = { entries: 100, itemBytes: 64 * 1024, to
 export interface ClipboardHistoryEntry { id: string; text: string; copiedAt: number }
 export interface ClipboardHistoryState { isEnabled: boolean; entries: ClipboardHistoryEntry[]; totalBytes: number; images?: ClipboardImageEntry[]; totalImageBytes?: number; imageNotice?: string }
 export interface ClipboardHistoryBridge {
+    editClipboardHistoryEntry(request: {id: string; text: string}): Promise<void>;
+    copyClipboardQuickEntry(id: string): Promise<void>;
+    dismissClipboardQuick(): Promise<void>;
     showClipboardHistory(): Promise<void>;
     getClipboardHistory(): Promise<ClipboardHistoryState>;
     setClipboardHistoryEnabled(enabled: boolean): Promise<void>;
