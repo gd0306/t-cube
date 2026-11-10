@@ -32,14 +32,13 @@ Published releases provide ready-to-run installation packages:
 
 | Platform | Version | Installer Package | Target Architecture | Requirements & Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| **macOS** | `0.22.5` | [T-Cube-0.22.5-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.5/T-Cube-0.22.5-macos-arm64.dmg) | Apple Silicon (arm64) | macOS 15+ · Ad-hoc signed |
-| **Windows** | `0.22.5` | [T-Cube-0.22.5-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.5/T-Cube-0.22.5-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · Standalone runtime |
+| **macOS** | `0.22.6` | [T-Cube-0.22.6-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.6/T-Cube-0.22.6-macos-arm64.dmg) | Apple Silicon (arm64) | macOS 15+ · Ad-hoc signed |
+| **Windows** | `0.22.6` | [T-Cube-0.22.6-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.6/T-Cube-0.22.6-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · Standalone runtime |
 
 > [!NOTE]
-> - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.5).
-> - Both `0.22.5` installers include the Ctrl clipboard panel, recording on launch, and configurable default login startup. The [release verification record](docs/verification/2026-11-10-0.22.5-release.md) records the packaged source, checksums and verification limits.
+> - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.6).
+> - Both `0.22.6` installers open clipboard history after 1 second outside the cube, while Ctrl resizing and dragging on the cube take priority. Recording on launch and configurable default login startup are retained. The [release verification record](docs/verification/2026-11-10-0.22.6-ctrl-context.md) records the packaged source, checksums and verification limits.
 > - Both installers package the same source commit; see `SOURCE_COMMIT.txt` and `SHA256SUMS.txt` in the release.
-> - Current source version: `0.22.6`. Outside the cube, hold `Ctrl` for **1 second** to open clipboard history. Over the cube, Ctrl restores its size and reserves the entire press for cube interaction. The published `0.22.5` downloads still use the previous 2-second behavior.
 > - The Windows installer bundles its runtime and requires no Node.js installation.
 > - Quit any running T-Cube instance before upgrading; your configuration is automatically preserved.
 

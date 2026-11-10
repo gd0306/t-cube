@@ -32,14 +32,13 @@
 
 | 平台 | 版本 | 安装包文件 | 适配架构 | 说明与运行要求 |
 | :--- | :--- | :--- | :--- | :--- |
-| **macOS** | `0.22.5` | [T-Cube-0.22.5-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.5/T-Cube-0.22.5-macos-arm64.dmg) | Apple Silicon (arm64) | 需要 macOS 15+ · 采用本地 ad-hoc 签名 |
-| **Windows** | `0.22.5` | [T-Cube-0.22.5-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.5/T-Cube-0.22.5-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · 自带完整运行时 |
+| **macOS** | `0.22.6` | [T-Cube-0.22.6-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.6/T-Cube-0.22.6-macos-arm64.dmg) | Apple Silicon (arm64) | 需要 macOS 15+ · 采用本地 ad-hoc 签名 |
+| **Windows** | `0.22.6` | [T-Cube-0.22.6-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.6/T-Cube-0.22.6-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · 自带完整运行时 |
 
 > [!NOTE]
-> - 查看完整发布说明与 SHA-256 校验和：[GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.5)。
-> - 两个平台的 `0.22.5` 安装包均包含 Ctrl 剪贴板面板、启动时自动记录与可关闭的默认开机自启。打包源码、校验和与验证边界见[发布验证记录](docs/verification/2026-11-10-0.22.5-release.md)。
+> - 查看完整发布说明与 SHA-256 校验和：[GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.6)。
+> - 两个平台的 `0.22.6` 安装包均支持立方体外长按 Ctrl 1 秒唤起历史，立方体内还原尺寸与拖动优先；保留启动时自动记录与可关闭的默认开机自启。打包源码、校验和与验证边界见[发布验证记录](docs/verification/2026-11-10-0.22.6-ctrl-context.md)。
 > - 两个平台安装包来自同一源码提交；发布附件提供 `SOURCE_COMMIT.txt` 与 `SHA256SUMS.txt`。
-> - 当前源码版本为 `0.22.6`：鼠标移出立方体后长按 `Ctrl` **1 秒**唤起剪贴板；鼠标在立方体内时，Ctrl 用于还原尺寸，本轮按住始终归立方体操作。已发布的 `0.22.5` 下载包仍采用原有 2 秒行为。
 > - Windows 安装包已整合所需环境，无需单独配置 Node.js。
 > - 更新版本前请先正常退出当前运行的应用，原快捷入口与外观配置会自动保留。
 
