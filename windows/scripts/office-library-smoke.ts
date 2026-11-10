@@ -1,3 +1,4 @@
+import {verifyClipboardQuickSmoke} from './clipboard-quick-smoke';
 import { verifyDesktopPresentationSmoke } from './desktop-presentation-smoke';
 import { verifyClipboardHistorySmoke } from './clipboard-history-smoke';
 import assert from 'node:assert/strict';
@@ -182,6 +183,11 @@ $form.Dispose()
         await until(async () => receiverText(), text => text === `${fullText}${snippet.fields[0].value}Hello Alice, Alice!`, 'Native template paste did not reach owned receiver');
         results.push('Template preview and native paste replace repeated variables in the original receiver.');
         results.push(...await verifyClipboardHistorySmoke(app, widget, library, receiverText, receiverWindow));
+        results.push(...await verifyClipboardQuickSmoke(app,widget,library,async()=>{
+            assert.ok(owns(receiverWindow)&&owns(textbox),'Quick-history native input requires the owned receiver');
+            activate(receiverWindow);
+            await until(async()=>BigInt(foreground()),value=>value===receiverWindow,'Owned receiver must have foreground before Ctrl input');
+        },receiverText,stage));
         results.push(...await verifyDesktopPresentationSmoke(app, widget, receiverWindow));
         return results;
     } catch (error) {

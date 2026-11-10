@@ -26,6 +26,7 @@ git diff --check
 - 这与[既有发布验证记录](2026-11-08-release-consistency.md)中的同一测试顺序问题一致。动画实现与断言未修改；拆分结果不能替代或改称全量绿色。
 - 拆分运行通过：跳过帮助交互类的独立进程为 14 项 XCTest（2 项可选跳过）、197 项原生 Swift Testing 和 138 项 CubeCore；帮助交互类随后在另一进程独立运行，2 项 XCTest 通过。最终相关聚焦复测为 13 项原生测试及 11 项核心测试通过。
 - Windows 使用项目要求的 Node.js 22+，`npm test` 为 269 项：266 通过、3 项 Windows 原生环境跳过；`npm run typecheck`、`npm run build` 及相关聚焦测试通过。
+- 代码提交 `c23e66847bb7c50d08bfc1fe0816f64e760765fe` 的 [Windows source CI](https://github.com/gd0306/t-cube/actions/runs/42790543103) 最终两个 runner 均通过，包括隔离安装及运行已安装应用；CI 单元测试为 267 通过、2 项跳过。Windows 2022 首次运行在既有“字段粘贴追加到自有接收器”断言失败，诊断显示两次捕获与输入批次均已发出；同一 SHA 不改代码、只重跑失败 job 后通过。首次失败不能作为新长按功能的通过证据，也未据此修改粘贴行为或放宽断言。
 - `windows/scripts/clipboard-quick-ui.ts` 在 Chromium 中运行生产渲染器和实际 Recorder 操作，验证编辑取消／保存、无效修改后的焦点、录入时草稿保留、复制失败不关闭、文字与图片复制／删除。
 - `windows/scripts/clipboard-quick-electron.ts` 在隔离临时数据目录启动生产 DesktopApplication / OfficeServices，验证暂停空态、快捷窗口 IPC 权限拒绝、Esc 隐藏、重开仍暂停和跳转完整历史。此流程不读取或写入系统剪贴板。
 - Windows 原生 Raw Input 投递、物理键鼠、实际 acrylic 和旧系统透明回退仍需要 Windows 桌面验收。本机的 Electron / Chromium 检查不能证明这些原生效果。
