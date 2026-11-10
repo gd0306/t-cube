@@ -59,7 +59,7 @@ export async function verifyClipboardQuickSmoke(app:ElectronApplication,widget:P
         await app.evaluate(async({clipboard},text)=>clipboard.writeText(text),text);
         await until(async()=>{const value=await state();return value.entries.length===1&&value.entries[0].text===text;},'Owned quick-history fixture was not recorded');
         const original=(await state()).entries[0];
-        await app.evaluate(({BrowserWindow},url)=>BrowserWindow.getAllWindows().find(window=>window.webContents.getURL()===url)?.hide(),library.url());
+        // Transfer foreground from the active Electron process before hiding its library window.
         await activateOwnedReceiver();
         native.control(false);
         await remains(async()=>assert.equal((await quickState()).visible,false,'Quick history must be hidden before native input'),300);

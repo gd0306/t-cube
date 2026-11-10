@@ -185,8 +185,26 @@ $form.Dispose()
         results.push(...await verifyClipboardHistorySmoke(app, widget, library, receiverText, receiverWindow));
         results.push(...await verifyClipboardQuickSmoke(app,widget,library,async()=>{
             assert.ok(owns(receiverWindow)&&owns(textbox),'Quick-history native input requires the owned receiver');
-            activate(receiverWindow);
+            // The runner is not the foreground process here. Let the active Electron
+            // process transfer foreground, then hide its now-inactive library window.
+            const transfer=await app.evaluate(({app},owned)=>{
+                const ffi=process.getBuiltinModule('module').createRequire(app.getAppPath()+'/package.json')('koffi') as typeof import('koffi');
+                const user=ffi.load('user32.dll');
+                const info=user.func('uint32_t __stdcall GetWindowThreadProcessId(uintptr_t window, _Out_ uint32_t *process)');
+                const child=user.func('int __stdcall IsChild(uintptr_t parent, uintptr_t child)');
+                const foreground=user.func('uintptr_t __stdcall GetForegroundWindow()');
+                const activate=user.func('int __stdcall SetForegroundWindow(uintptr_t window)');
+                const window=BigInt(owned.window),focus=BigInt(owned.focus),ids=[0],focusIds=[0];
+                const valid=Boolean(info(window,ids)&&info(focus,focusIds)&&ids[0]===owned.pid&&focusIds[0]===owned.pid&&child(window,focus));
+                const before=BigInt(foreground()),beforeIds=[0];info(before,beforeIds);
+                const accepted=valid&&(before===window||Boolean(activate(window)));
+                return {owned:valid,accepted,before:before.toString(),beforePid:beforeIds[0],callerPid:process.pid,after:BigInt(foreground()).toString(),receiverPid:ids[0]};
+            },{window:receiverWindow.toString(),focus:textbox.toString(),pid:receiver!.pid!});
+            console.log(`Quick history native foreground transfer: ${JSON.stringify(transfer)}`);
+            assert.equal(transfer.owned,true,'Electron must independently verify receiver ownership before foreground transfer');
             await until(async()=>BigInt(foreground()),value=>value===receiverWindow,'Owned receiver must have foreground before Ctrl input');
+            await app.evaluate(({BrowserWindow},url)=>BrowserWindow.getAllWindows().find(window=>window.webContents.getURL()===url)?.hide(),library!.url());
+            assert.equal(BigInt(foreground()),receiverWindow,'Hiding the inactive library must retain the owned receiver foreground');
         },receiverText,stage));
         results.push(...await verifyDesktopPresentationSmoke(app, widget, receiverWindow));
         return results;
