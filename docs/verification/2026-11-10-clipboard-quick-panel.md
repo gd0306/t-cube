@@ -26,6 +26,8 @@ git diff --check
 - 这与[既有发布验证记录](2026-11-08-release-consistency.md)中的同一测试顺序问题一致。动画实现与断言未修改；拆分结果不能替代或改称全量绿色。
 - 拆分运行通过：跳过帮助交互类的独立进程为 14 项 XCTest（2 项可选跳过）、197 项原生 Swift Testing 和 138 项 CubeCore；帮助交互类随后在另一进程独立运行，2 项 XCTest 通过。最终相关聚焦复测为 13 项原生测试及 11 项核心测试通过。
 - Windows 使用项目要求的 Node.js 22+，`npm test` 为 269 项：266 通过、3 项 Windows 原生环境跳过；`npm run typecheck`、`npm run build` 及相关聚焦测试通过。
+- 提交 `76491c8cc4117ea67e89c8049ea8d8c27a4fee3e` 的[原生功能 CI](https://github.com/gd0306/t-cube/actions/runs/42831276112) 在 Windows 2022 / 2025 均通过。`clipboard-quick-smoke.ts` 在原有自有接收器和剪贴板快照保护内使用真实 `SendInput`：短按不唤起；长按分别在 2334 / 2303 ms 后显示实际快捷窗口，释放 Ctrl 后保持显示；通过快捷 UI 编辑和保存，记录 ID／时间／顺序及系统剪贴板均保持预期；单击复制后收起，超过两轮录制周期仍未重复录入，也未向接收器输入内容。这是 Windows 系统级自动化输入验收，不是人工物理键盘验收。
+- 首次接入该原生验收时，测试 Node 进程受 Windows 前台锁限制，未能激活自有接收器；Ctrl 尚未发送便失败。修正仅涉及测试：由当前前台 Electron 主进程独立验证 PID／子窗口所有权后转移前台，再隐藏旧窗口，仍要求实际前台确认后才能输入。未增加强制线程附加、任意点击或测试后门，未改变生产功能来放宽断言。
 - 代码提交 `c23e66847bb7c50d08bfc1fe0816f64e760765fe` 的 [Windows source CI](https://github.com/gd0306/t-cube/actions/runs/42790543103) 最终两个 runner 均通过，包括隔离安装及运行已安装应用；CI 单元测试为 267 通过、2 项跳过。Windows 2022 首次运行在既有“字段粘贴追加到自有接收器”断言失败，诊断显示两次捕获与输入批次均已发出；同一 SHA 不改代码、只重跑失败 job 后通过。首次失败不能作为新长按功能的通过证据，也未据此修改粘贴行为或放宽断言。
 - `windows/scripts/clipboard-quick-ui.ts` 在 Chromium 中运行生产渲染器和实际 Recorder 操作，验证编辑取消／保存、无效修改后的焦点、录入时草稿保留、复制失败不关闭、文字与图片复制／删除。
 - `windows/scripts/clipboard-quick-electron.ts` 在隔离临时数据目录启动生产 DesktopApplication / OfficeServices，验证暂停空态、快捷窗口 IPC 权限拒绝、Esc 隐藏、重开仍暂停和跳转完整历史。此流程不读取或写入系统剪贴板。
@@ -40,6 +42,8 @@ npm run build
 node --import tsx scripts/clipboard-quick-ui.ts
 node --import tsx scripts/desktop-clipboard-ui.ts
 node --import tsx scripts/clipboard-quick-electron.ts
+# Windows 桌面或 CI：包含自有窗口中的原生 Ctrl 长按验收
+npm run smoke
 ```
 
 ## 原生预览
