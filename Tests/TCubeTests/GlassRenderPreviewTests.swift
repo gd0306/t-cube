@@ -36,7 +36,7 @@ struct GlassRenderPreviewTests {
         window.orderFrontRegardless()
         let output = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(".build/glass-previews", isDirectory: true)
         try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
-        let galleryBackground = NSColor(red: 0.065, green: 0.075, blue: 0.095, alpha: 1)
+        let galleryBackground = NSColor.clear
 
         let poses: [(String, simd_quatf, NSColor)] = [
             ("soft-body-dark", CubeRotation.snapped(to: .front), NSColor(red: 0.065, green: 0.075, blue: 0.095, alpha: 1)),
@@ -68,7 +68,7 @@ struct GlassRenderPreviewTests {
             let bitmap = try #require(NSBitmapImageRep(data: data))
             try #require(bitmap.representation(using: .png, properties: [:])).write(to: output.appendingPathComponent("soft-\(preset.rawValue).png"))
         }
-        // Documentation uses one background, viewport and pose across every
+        // Documentation uses a transparent background, viewport and pose across every
         // state. Keep the varied-background QA captures above as well.
         let gallerySize = NSSize(width: 560, height: 420)
         window.setContentSize(gallerySize)
@@ -83,6 +83,7 @@ struct GlassRenderPreviewTests {
             let image: NSImage? = await withCheckedContinuation { continuation in view.snapshot(saveToHDR: false) { continuation.resume(returning: $0) } }
             let data = try #require(image?.tiffRepresentation)
             let bitmap = try #require(NSBitmapImageRep(data: data))
+            #expect(bitmap.colorAt(x: 0, y: 0)?.alphaComponent == 0, "README previews must blend into the page background")
             try #require(bitmap.representation(using: .png, properties: [:])).write(to: output.appendingPathComponent("\(name).png"))
         }
         model.change { $0.appearance = CubeThemePreset.prism.appearance(glowIntensity: 1) }
@@ -96,6 +97,7 @@ struct GlassRenderPreviewTests {
         }
         let idleData = try #require(idle?.tiffRepresentation)
         let idleBitmap = try #require(NSBitmapImageRep(data: idleData))
+        #expect(idleBitmap.colorAt(x: 0, y: 0)?.alphaComponent == 0)
         let backgroundColor = try #require(idleBitmap.colorAt(x: 2, y: 2)?.usingColorSpace(.sRGB))
         var visibleShellSamples = 0
         for y in stride(from: 0, to: idleBitmap.pixelsHigh, by: 2) {
@@ -113,6 +115,12 @@ struct GlassRenderPreviewTests {
 
         // Check the rendered shell, rather than just its material parameters:
         // changing the backdrop must remain visible through its center.
+        view.environment.background = .color(NSColor(red: 0.065, green: 0.075, blue: 0.095, alpha: 1))
+        try await Task.sleep(for: .milliseconds(200))
+        let darkIdle: NSImage? = await withCheckedContinuation { continuation in
+            view.snapshot(saveToHDR: false) { continuation.resume(returning: $0) }
+        }
+        let darkBitmap = try #require(darkIdle?.tiffRepresentation.flatMap(NSBitmapImageRep.init(data:)))
         view.environment.background = .color(NSColor(white: 0.88, alpha: 1))
         try await Task.sleep(for: .milliseconds(200))
         let lightIdle: NSImage? = await withCheckedContinuation { continuation in
@@ -120,7 +128,7 @@ struct GlassRenderPreviewTests {
         }
         let lightData = try #require(lightIdle?.tiffRepresentation)
         let lightBitmap = try #require(NSBitmapImageRep(data: lightData))
-        let darkCenter = try #require(idleBitmap.colorAt(x: idleBitmap.pixelsWide / 2, y: idleBitmap.pixelsHigh / 2)?.usingColorSpace(.sRGB))
+        let darkCenter = try #require(darkBitmap.colorAt(x: darkBitmap.pixelsWide / 2, y: darkBitmap.pixelsHigh / 2)?.usingColorSpace(.sRGB))
         let lightCenter = try #require(lightBitmap.colorAt(x: lightBitmap.pixelsWide / 2, y: lightBitmap.pixelsHigh / 2)?.usingColorSpace(.sRGB))
         let backdropResponse = ((lightCenter.redComponent - darkCenter.redComponent) + (lightCenter.greenComponent - darkCenter.greenComponent) + (lightCenter.blueComponent - darkCenter.blueComponent)) / 3
         print("Glass center backdrop response: \(backdropResponse)")
@@ -132,9 +140,10 @@ struct GlassRenderPreviewTests {
         let startingMaterial = try #require(flow.model?.materials.first as? UnlitMaterial)
         let startingPhase = startingMaterial.textureCoordinateTransform.offset.x
         let pose = view.cube.orientation
-        let gifURL = output.appendingPathComponent("soft-body-motion.gif")
-        let destination = try #require(CGImageDestinationCreateWithURL(gifURL as CFURL, UTType.gif.identifier as CFString, 24, nil))
-        CGImageDestinationSetProperties(destination, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFLoopCount: 0]] as CFDictionary)
+        // APNG preserves the shell's partial alpha, unlike GIF's binary transparency.
+        let motionURL = output.appendingPathComponent("soft-body-motion.png")
+        let destination = try #require(CGImageDestinationCreateWithURL(motionURL as CFURL, UTType.png.identifier as CFString, 24, nil))
+        CGImageDestinationSetProperties(destination, [kCGImagePropertyPNGDictionary: [kCGImagePropertyAPNGLoopCount: 0]] as CFDictionary)
         for index in 0..<24 {
             view.setHovered(index >= 6)
             try await Task.sleep(for: .milliseconds(100))
@@ -146,10 +155,9 @@ struct GlassRenderPreviewTests {
                 let still = NSBitmapImageRep(cgImage: cgImage)
                 try #require(still.representation(using: .png, properties: [:])).write(to: output.appendingPathComponent("soft-body-motion-\(index).png"))
             }
-            CGImageDestinationAddImage(destination, cgImage, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFDelayTime: 0.1]] as CFDictionary)
+            CGImageDestinationAddImage(destination, cgImage, [kCGImagePropertyPNGDictionary: [kCGImagePropertyAPNGDelayTime: 0.1]] as CFDictionary)
         }
         #expect(CGImageDestinationFinalize(destination))
-        try Data(contentsOf: gifURL).write(to: output.appendingPathComponent("readme-motion.gif"))
         if !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
             let endingMaterial = try #require(flow.model?.materials.first as? UnlitMaterial)
             #expect(abs(endingMaterial.textureCoordinateTransform.offset.x - startingPhase) > 0.005, "The visible scene must actually advance the light")
@@ -158,10 +166,14 @@ struct GlassRenderPreviewTests {
 
         // A separate preview exercises the real idle rotation, hover pause and
         // resume. Keep README material comparisons pinned above.
+        // Match the README's displayed pixel size to limit the lossless animation's download size.
+        let animationSize = NSSize(width: 760 / window.backingScaleFactor, height: 570 / window.backingScaleFactor)
+        window.setContentSize(animationSize)
+        view.frame = NSRect(origin: .zero, size: animationSize)
         model.change { $0.autoRotatesWhenIdle = true }
-        let rotationURL = output.appendingPathComponent("idle-rotation-hover.gif")
-        let rotationGIF = try #require(CGImageDestinationCreateWithURL(rotationURL as CFURL, UTType.gif.identifier as CFString, 36, nil))
-        CGImageDestinationSetProperties(rotationGIF, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFLoopCount: 0]] as CFDictionary)
+        let rotationURL = output.appendingPathComponent("readme-motion.png")
+        let rotationAnimation = try #require(CGImageDestinationCreateWithURL(rotationURL as CFURL, UTType.png.identifier as CFString, 36, nil))
+        CGImageDestinationSetProperties(rotationAnimation, [kCGImagePropertyPNGDictionary: [kCGImagePropertyAPNGLoopCount: 0]] as CFDictionary)
         let initialRotation = view.cube.orientation
         var hoverRotation = initialRotation
         for index in 0..<36 {
@@ -175,13 +187,14 @@ struct GlassRenderPreviewTests {
                 view.snapshot(saveToHDR: false) { continuation.resume(returning: $0) }
             }
             let cgImage = try #require(frame?.cgImage(forProposedRect: nil, context: nil, hints: nil))
+            #expect(NSBitmapImageRep(cgImage: cgImage).colorAt(x: 0, y: 0)?.alphaComponent == 0)
             if [11, 23, 35].contains(index) {
                 let still = NSBitmapImageRep(cgImage: cgImage)
                 try #require(still.representation(using: .png, properties: [:])).write(to: output.appendingPathComponent("idle-rotation-\(index).png"))
             }
-            CGImageDestinationAddImage(rotationGIF, cgImage, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFDelayTime: 0.2]] as CFDictionary)
+            CGImageDestinationAddImage(rotationAnimation, cgImage, [kCGImagePropertyPNGDictionary: [kCGImagePropertyAPNGDelayTime: 0.2]] as CFDictionary)
         }
-        #expect(CGImageDestinationFinalize(rotationGIF))
+        #expect(CGImageDestinationFinalize(rotationAnimation))
         if !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
             #expect(simd_length(hoverRotation.vector - initialRotation.vector) > 0.005)
             #expect(simd_length(view.cube.orientation.vector - hoverRotation.vector) > 0.005)

@@ -41,9 +41,10 @@ struct WebsiteTitlePreviewTests {
             try #require(bitmap.representation(using: .png, properties: [:])).write(to: output.appendingPathComponent("website-cube-\(name).png"))
         }
         let renderer = ImageRenderer(content: ExpandedFaceView(model: model, face: .front, close: {})
-            .environment(\.colorScheme, .dark).background(Color(white: 0.12)))
+            .environment(\.colorScheme, .dark))
         renderer.scale = 2
         let expanded = try #require(renderer.nsImage?.tiffRepresentation.flatMap(NSBitmapImageRep.init(data:)))
+        #expect(expanded.colorAt(x: 0, y: 0)?.alphaComponent == 0, "The README example must not add a rectangular backdrop")
         try #require(expanded.representation(using: .png, properties: [:])).write(to: output.appendingPathComponent("website-expanded.png"))
         let atlas = try #require(CubeTheme.faceImage(group: config.group(for: .front), ordinal: 0))
         try #require(NSBitmapImageRep(cgImage: atlas).representation(using: .png, properties: [:])).write(to: output.appendingPathComponent("website-atlas.png"))

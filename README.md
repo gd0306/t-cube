@@ -48,7 +48,7 @@ Published releases provide ready-to-run installation packages:
 A lighter glass shell lets the desktop show through. Hover to reveal icons that follow its curved surface.
 
 <p align="center">
-  <img src="docs/images/cube-hover.png" width="760" alt="T-Cube showing app icons around a softly rounded glass body against a graphite background">
+  <img src="docs/images/cube-hover.png" width="760" alt="T-Cube showing app icons around a softly rounded glass body on a transparent background">
 </p>
 
 <table>
@@ -67,11 +67,11 @@ A lighter glass shell lets the desktop show through. Hover to reveal icons that 
 <details>
 <summary><strong>Watch idle rotation and hover response</strong></summary>
 <p align="center">
-  <img src="docs/images/cube-motion.gif" width="760" alt="The cube rotates at rest, pauses and reveals icons on hover, then resumes when the pointer leaves">
+  <img src="docs/images/cube-motion.png" width="760" alt="The cube rotates at rest, pauses and reveals icons on hover, then resumes when the pointer leaves">
 </p>
 </details>
 
-*Native app renders with sample system icons, enlarged for detail. All previews share the same graphite background, camera, and viewport.*
+*Native app renders with sample system icons, enlarged for detail. The cube previews share a transparent background, camera, and viewport so they blend into light and dark pages. The animation uses APNG to preserve the glass transparency.*
 
 ---
 
@@ -237,7 +237,7 @@ git diff --check
 Regenerate native high-resolution preview renders:
 
 ```bash
-env TCUBE_RENDER_PREVIEWS=1 swift test --scratch-path .build/tests --filter 'GlassRenderPreviewTests|IconEdgeRenderingTests'
+env TCUBE_RENDER_PREVIEWS=1 TCUBE_WEBSITE_PREVIEWS=1 swift test --scratch-path .build/tests --no-parallel --filter 'GlassRenderPreviewTests|IconEdgeRenderingTests|WebsiteTitlePreviewTests'
 ```
 
 - `Sources/CubeCore`: Reusable data models, geometry, hit testing, rotation, and theme engines (framework-independent).

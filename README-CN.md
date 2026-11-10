@@ -48,7 +48,7 @@
 通透轻盈的玻璃材质，让桌面背景自然透出；鼠标移入即刻唤醒，应用图标沿曲面优雅展示。
 
 <p align="center">
-  <img src="docs/images/cube-hover.png" width="760" alt="深石墨色背景下的 T-Cube，圆润透明玻璃体周围展示应用图标">
+  <img src="docs/images/cube-hover.png" width="760" alt="透明背景下的 T-Cube，圆润玻璃体周围展示应用图标">
 </p>
 
 <table>
@@ -67,11 +67,11 @@
 <details>
 <summary><strong>查看空闲自转与悬停响应动画</strong></summary>
 <p align="center">
-  <img src="docs/images/cube-motion.gif" width="760" alt="静置时自动旋转，悬停暂停并显示图标，移出后继续旋转">
+  <img src="docs/images/cube-motion.png" width="760" alt="静置时自动旋转，悬停暂停并显示图标，移出后继续旋转">
 </p>
 </details>
 
-*以上预览均来自应用的原生渲染并放大展示细节，采用统一的深石墨色背景、相机角度与画面尺寸。*
+*以上预览均来自应用的原生渲染并放大展示细节；立方体预览采用透明背景、统一的相机角度与画面尺寸，可融入浅色和深色页面。动图使用 APNG 格式保留玻璃的半透明效果。*
 
 ---
 
@@ -237,7 +237,7 @@ git diff --check
 重新生成原生高分辨率效果图：
 
 ```bash
-env TCUBE_RENDER_PREVIEWS=1 swift test --scratch-path .build/tests --filter 'GlassRenderPreviewTests|IconEdgeRenderingTests'
+env TCUBE_RENDER_PREVIEWS=1 TCUBE_WEBSITE_PREVIEWS=1 swift test --scratch-path .build/tests --no-parallel --filter 'GlassRenderPreviewTests|IconEdgeRenderingTests|WebsiteTitlePreviewTests'
 ```
 
 - `Sources/CubeCore`：独立于 UI 框架的跨平台核心逻辑，负责几何计算、配置解析、命中测试、旋转状态与主题引擎。
