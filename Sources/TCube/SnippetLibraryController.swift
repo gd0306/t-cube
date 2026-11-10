@@ -57,6 +57,8 @@ final class SnippetLibraryController {
     }
 
     func start() {
+        history.enable()
+        quickHistory.prepare()
         controlHold?.stop()
         let controlHold = ControlHoldMonitor(onSuspend: { [weak self] in self?.quickHistory.dismiss() }) { [weak self] in
             guard let self, self.panel?.attachedSheet == nil, NSApp.modalWindow == nil else { return }

@@ -7,7 +7,7 @@ import { fullscreenFrameOnDisplay } from '../native/fullscreen';
 import { ControlHoldGesture } from '../core/control-hold';
 import { observeControlInterference } from '../native/control-input';
 import { release } from 'node:os';
-import {OfficeServices} from './office-services';
+import {OfficeServices,type OfficeOptions} from './office-services';
 import {DisplayPositionStore} from './display-position-store';
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, powerMonitor, screen, shell, Tray } from 'electron';
 import type { BrowserWindowConstructorOptions } from 'electron';
@@ -59,7 +59,7 @@ export class DesktopApplication {
     private wasCollapsed = false;
     private edgeReady = false;
     private edgeShape: Rect | null = null;
-    constructor(readonly directory = __dirname) {}
+    constructor(readonly directory = __dirname, private readonly officeOptions: Pick<OfficeOptions,'historyReader'> = {}) {}
     async start(): Promise<void> {
         const file = path.join(app.getPath('userData'), 'configuration.json');
         const firstLaunch = await access(file).then(() => false, error => {
@@ -109,7 +109,7 @@ export class DesktopApplication {
         await this.host.initializeDisplayPositions().catch(error => {
             void dialog.showMessageBox({type:'warning',message:'显示器位置记忆暂不可用，原文件已保留。',detail:String(error),buttons:['继续']});
         });
-        this.office = new OfficeServices({host:this.host,directory:app.getPath('userData'),rendererPath:this.html('library'),
+        this.office = new OfficeServices({...this.officeOptions,host:this.host,directory:app.getPath('userData'),rendererPath:this.html('library'),
             whenLauncherOperationsIdle:()=>this.whenLauncherOperationsIdle(),historyChanged:()=>this.updateTray(),
             createQuickWindow:()=>{
                 const supportsAcrylic=process.platform==='win32'&&Number(release().split('.')[2])>=22621;
@@ -128,6 +128,9 @@ export class DesktopApplication {
         await this.office.start();
         try{this.controlInput=observeControlInterference(this.widget,()=>this.controlHold.interrupt(),()=>{
             this.controlHold.update({available:true,controlHeld:false,interrupted:false},performance.now());
+        },()=>{
+            // Receipt of the physical make packet is a conservative origin, earlier than the next idle poll.
+            this.controlHold.update({available:true,controlHeld:true,interrupted:Boolean(this.office?.isRestoring)||Boolean(this.controlInput?.otherHeld())},performance.now());
         });if(process.platform==='win32'&&!this.controlInput.available)throw new Error('Raw Input unavailable');}catch{this.host.reportError('Ctrl 长按快捷历史暂不可用，可从托盘打开剪贴板历史。');}
         powerMonitor.on('suspend',this.resetControlHold);powerMonitor.on('resume',this.resetControlHold);
         this.widget.once('closed',()=>{this.controlInput?.dispose();this.controlInput=undefined;});
@@ -223,6 +226,7 @@ export class DesktopApplication {
     private tick(): void {
         if (this.pollActive || !this.host || this.quitting) return;
         this.pollActive = true;
+        let controlHeld=false;
         try {
             const input = readInputState(), buttons = input.primaryDown || input.secondaryDown;
             if (this.expanded?.isVisible() && buttons && !this.previousButtons) {
@@ -230,6 +234,7 @@ export class DesktopApplication {
                 if (p.x < r.x || p.y < r.y || p.x >= r.x + r.width || p.y >= r.y + r.height) this.host.closeExpanded();
             }
             this.previousButtons = buttons;
+            controlHeld=input.controlHeld;
             const now = Date.now();
             if(this.office?.isRestoring)this.controlHold.interrupt();
             if(this.controlHold.update({available:input.available&&Boolean(this.controlInput?.available),controlHeld:input.controlHeld,
@@ -244,7 +249,7 @@ export class DesktopApplication {
             this.pollActive = false;
             if (!this.quitting) {
                 const state = this.host.snapshot.state;
-                const interval = state.interactionActive || state.hovered || this.expanded?.isVisible() ? 16 : state.visible ? 80 : this.wasCollapsed ? 80 : 250;
+                const interval = controlHeld || state.interactionActive || state.hovered || this.expanded?.isVisible() ? 16 : state.visible ? 80 : this.wasCollapsed ? 80 : 250;
                 this.timer = setTimeout(() => this.tick(), interval);
             }
         }

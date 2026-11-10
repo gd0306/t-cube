@@ -5,6 +5,34 @@ import Testing
 
 @MainActor
 struct ClipboardQuickPanelTests {
+    @Test func launchRecordsNewCopiesAndPreparesThePanelWithoutShowingIt() throws {
+        _ = NSApplication.shared
+        let board = NSPasteboard(name: .init("TCubeQuickTests-\(UUID().uuidString)"))
+        defer { board.releaseGlobally() }
+        board.clearContents(); board.setString("启动前的内容", forType: .string)
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let history = ClipboardHistoryModel(pasteboard: board, schedulesPolling: false)
+        let library = SnippetLibraryController(pasteboard: board, history: history,
+            model: SnippetLibraryModel(store: SnippetStore(url: directory.appendingPathComponent("content.json"))))
+        defer { library.stop() }
+        library.start()
+        #expect(history.isEnabled)
+        history.poll()
+        #expect(history.entries.isEmpty)
+        let prepared = try #require(library.quickHistory.panel)
+        #expect(!prepared.isVisible)
+        board.clearContents(); board.setString("启动后新复制的内容", forType: .string); history.poll()
+        #expect(history.entries.map(\.text) == ["启动后新复制的内容"])
+        library.quickHistory.show()
+        #expect(library.quickHistory.panel === prepared)
+        #expect(prepared.isVisible)
+        history.pause()
+        library.quickHistory.dismiss()
+        library.quickHistory.show()
+        #expect(!history.isEnabled)
+    }
+
     @Test func singleClickCopiesTheCurrentEditedTextWithoutRecordingItAgain() throws {
         _ = NSApplication.shared
         let board = NSPasteboard(name: .init("TCubeQuickTests-\(UUID().uuidString)"))

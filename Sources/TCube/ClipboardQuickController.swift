@@ -47,8 +47,8 @@ final class ClipboardQuickController: ObservableObject {
         }
     }
 
-    func show(at point: NSPoint = NSEvent.mouseLocation, visibleScreens: [NSRect] = NSScreen.screens.map(\.visibleFrame)) {
-        guard !isVisible else { return }
+    /// Build and lay out the hidden panel during launch, before the hold deadline.
+    func prepare() {
         if panel == nil {
             let window = ClipboardQuickPanel(contentRect: NSRect(x: 0, y: 0, width: 420, height: 540),
                 styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
@@ -75,7 +75,16 @@ final class ClipboardQuickController: ObservableObject {
                 window.contentView = glass
             }
             panel = window
+            isDark = window.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            hosting.frame = NSRect(origin: .zero, size: NSSize(width: 420, height: 540))
+            window.contentView?.layoutSubtreeIfNeeded()
+            hosting.layoutSubtreeIfNeeded()
         }
+    }
+
+    func show(at point: NSPoint = NSEvent.mouseLocation, visibleScreens: [NSRect] = NSScreen.screens.map(\.visibleFrame)) {
+        guard !isVisible else { return }
+        prepare()
         guard let panel, let screen = visibleScreens.first(where: { $0.contains(point) }) ?? visibleScreens.first else { return }
         let size = NSSize(width: min(420, screen.width), height: min(540, screen.height))
         let origin = NSPoint(x: max(screen.minX, min(point.x - size.width / 2, screen.maxX - size.width)),

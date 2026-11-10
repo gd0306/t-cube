@@ -1,6 +1,6 @@
 import { ClipboardImageProcessor } from './clipboard-image';
 import type { HistoryImage } from '../core/clipboard-history';
-import { ClipboardHistoryRecorder, clipboardHistoryOperations } from './clipboard-history';
+import { ClipboardHistoryRecorder, clipboardHistoryOperations, type ClipboardHistoryReader } from './clipboard-history';
 import { readHistoryClipboardContent } from './history-clipboard-reader';
 import { clipboardHistoryFormatsAllowed, clipboardHistoryImageFormatsAllowed } from '../native/clipboard-history';
 import {app,BrowserWindow,clipboard,dialog,globalShortcut,ipcMain,screen,ClipboardItem} from 'electron';
@@ -21,7 +21,7 @@ import {FACES,type Face} from '../shared/contracts';
 const record=(value:unknown):Record<string,unknown>=>{if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('Invalid request');return value as Record<string,unknown>;};
 const string=(value:unknown,max=128):string=>{if(typeof value!=='string'||!value.length||value.length>max)throw new Error('Invalid text');return value;};
 const boolean=(value:unknown):boolean=>{if(typeof value!=='boolean')throw new Error('Invalid preference');return value;};
-export interface OfficeOptions {whenLauncherOperationsIdle:()=>Promise<void>;host:LauncherHost;directory:string;rendererPath:string;createLibraryWindow:()=>BrowserWindow;createQuickWindow:()=>BrowserWindow;role:(id:number)=>WindowRole|null;historyChanged?:()=>void}
+export interface OfficeOptions {whenLauncherOperationsIdle:()=>Promise<void>;host:LauncherHost;directory:string;rendererPath:string;createLibraryWindow:()=>BrowserWindow;createQuickWindow:()=>BrowserWindow;role:(id:number)=>WindowRole|null;historyChanged?:()=>void;historyReader?:ClipboardHistoryReader}
 export class OfficeServices {
     libraryWindow:BrowserWindow|null=null;
     quickWindow:BrowserWindow|null=null;
@@ -45,7 +45,7 @@ export class OfficeServices {
     get isRestoring(){return this.quitting||this.restoreGate||this.maintenance.isRestoring;}
     constructor(private readonly options:OfficeOptions){
         this.imageProcessor = new ClipboardImageProcessor(path.dirname(options.rendererPath));
-        this.clipboardHistory = new ClipboardHistoryRecorder({
+        this.clipboardHistory = new ClipboardHistoryRecorder(options.historyReader ?? {
             sequence: clipboardSequenceNumber,
             read: async isCurrent => {
                 const allowed = () => isCurrent() && clipboardHistoryFormatsAllowed();
@@ -80,6 +80,8 @@ export class OfficeServices {
         this.shortcutRegistered=globalShortcut.register('CommandOrControl+Shift+Space',()=>{void this.showLibrary().catch(error=>this.options.host.reportError(error));});
         if(!this.shortcutRegistered)this.options.host.reportError('常用内容快捷键已被占用，可从托盘或立方体打开。');
         this.registerIPC();
+        this.clipboardHistory.setEnabled(true);
+        await this.prepareClipboardQuick().catch(error=>this.options.host.reportError(error));
     }
     async showLibrary(text?:string){
         if(text!==undefined)validateSnippetText(text);
@@ -101,16 +103,21 @@ export class OfficeServices {
         await this.showLibrary();
         this.libraryWindow?.webContents.send(C.showClipboardHistoryMode);
     }
+    private prepareClipboardQuick(): Promise<void> {
+        if(this.quickWindow)return this.quickLoad!;
+        const window=this.options.createQuickWindow();
+        this.quickWindow=window;
+        window.once('closed',()=>{if(this.quickWindow===window){this.quickWindow=null;this.quickLoad=null;}});
+        window.on('blur',()=>this.dismissClipboardQuick());
+        this.quickLoad=window.loadFile(path.join(path.dirname(this.options.rendererPath),'clipboard-quick.html')).catch(error=>{
+            if(!window.isDestroyed())window.destroy();throw error;
+        });
+        return this.quickLoad;
+    }
     async showClipboardQuick() {
         if(this.isRestoring)return;
         const generation=++this.quickGeneration;
-        if(!this.quickWindow){
-            this.quickWindow=this.options.createQuickWindow();
-            this.quickWindow.once('closed',()=>{this.quickWindow=null;this.quickLoad=null;});
-            this.quickWindow.on('blur',()=>this.dismissClipboardQuick());
-            this.quickLoad=this.quickWindow.loadFile(path.join(path.dirname(this.options.rendererPath),'clipboard-quick.html'));
-        }
-        await this.quickLoad;
+        await this.prepareClipboardQuick();
         if(generation!==this.quickGeneration||this.isRestoring||!this.quickWindow)return;
         const window=this.quickWindow,point=screen.getCursorScreenPoint(),area=screen.getDisplayNearestPoint(point).workArea;
         const width=Math.min(380,area.width),height=Math.min(520,area.height);

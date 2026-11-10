@@ -66,3 +66,17 @@ test('lifecycle mutations reject non-boolean runtime inputs before OS or prefere
     }
     assert.equal(writes, 0);
 });
+
+test('lifecycle waits for login preference writes and displays startup failures', async () => {
+    let enabled = true, finish!: () => void;
+    const controller = new LifecycleController({ platform: 'win32', packaged: true, version: '0.22.5', publishers: [],
+        getLogin: () => enabled, setLogin: async value => { await new Promise<void>(resolve => { finish = resolve; }); enabled = value; },
+        getLoginStatus: () => 'owned startup failure',
+        readAutomaticUpdates: async () => false, writeAutomaticUpdates: async () => {}, updater: () => { throw Error('unused'); },
+        confirmDownload: async () => false, confirmInstall: async () => false, openReleasePage: async () => {} });
+    let completed=false;
+    const pending = controller.setLoginEnabled(false).then(state=>{completed=true;return state;});
+    await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(completed,false,'State must not acknowledge an unfinished preference write'); finish();
+    assert.equal((await pending).loginEnabled, false); assert.match((await controller.getLifecycleState()).status, /owned startup failure/);
+});

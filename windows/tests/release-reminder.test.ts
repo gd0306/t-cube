@@ -194,3 +194,16 @@ test('far-future retry deadline uses a bounded timer instead of overflowing Node
     now += 86_400_000; timers[0].callback(); await new Promise(resolve => setImmediate(resolve));
     assert.equal(timers[1].delay, 86_400_000); assert.equal(requests, 0); controller.dispose();
 });
+
+test('unsigned release reminder waits for persisted login changes and exposes startup failure status', async () => {
+    const { ReleaseReminderController } = await import('../src/main/release-reminder');
+    let enabled=true, finish!:()=>void, completed=false;
+    const controller=new ReleaseReminderController({platform:'win32',packaged:true,version:'0.22.5',
+        store:{read:async()=>({version:1,enabled:false,lastAttempt:null,lastNotified:null,retryUntil:null}),write:async()=>{}},
+        getLogin:()=>enabled,setLogin:async value=>{await new Promise<void>(resolve=>{finish=resolve;});enabled=value;},getLoginStatus:()=> 'owned startup failure',
+        fetchRelease:async()=>{throw Error('unused');},notify:async()=>false,open:async()=>{}});
+    const pending=controller.setLoginEnabled(false).then(state=>{completed=true;return state;});
+    await new Promise(resolve=>setImmediate(resolve));assert.equal(completed,false);finish();
+    assert.equal((await pending).loginEnabled,false);assert.match((await controller.getLifecycleState()).status,/owned startup failure/);
+    controller.dispose();
+});

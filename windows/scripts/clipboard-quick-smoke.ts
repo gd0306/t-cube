@@ -29,14 +29,14 @@ export async function verifyClipboardQuickSmoke(app:ElectronApplication,widget:P
     assert.equal(path.resolve(isolation.actual),path.resolve(isolation.expected));
     const state=()=>library.evaluate(()=>window.tcube.getClipboardHistory());
     const initial=await state();
-    assert.equal(initial.isEnabled,false,'Previous owned history smoke must leave recording paused');
+    assert.equal(initial.isEnabled,true,'Session recording must remain enabled after owned history smoke');
     assert.equal(initial.entries.length,0,'Native quick-history smoke only permits its own fixture history');
     assert.equal(initial.images?.length??0,0);
     const native=nativeInput(),user=koffi.load('user32.dll');
     const key=user.func('int16_t __stdcall GetAsyncKeyState(int key)');
     const quickState=()=>app.evaluate(({BrowserWindow})=>{
         const window=BrowserWindow.getAllWindows().find(window=>window.webContents.getURL().endsWith('/clipboard-quick.html'));
-        return {exists:Boolean(window),visible:window?.isVisible()??false};
+        return {exists:Boolean(window),visible:window?.isVisible()??false,loading:window?.webContents.isLoading()??false,id:window?.id};
     });
     const diagnostics:unknown[]=[];
     const record=async(name:string,extra:Record<string,unknown>={})=>{
@@ -53,9 +53,12 @@ export async function verifyClipboardQuickSmoke(app:ElectronApplication,widget:P
     let failure:unknown;
     try{
         await stage('quick history: prepare owned fixture');
+        const prepared=await quickState();
+        assert.equal(prepared.exists,true,'Quick renderer must be prepared before the first hold');
+        assert.equal(prepared.loading,false,'The first hold must not pay a cold renderer load');
+        assert.equal(prepared.visible,false,'Prewarming must never show the panel');
         await widget.evaluate(()=>window.tcube.showClipboardHistory());
-        await library.getByRole('button',{name:/^(启用|恢复)记录$/}).click();
-        await until(async()=>(await state()).isEnabled,'History recording did not explicitly enable');
+        assert.equal((await state()).isEnabled,true,'Opening quick history must retain the startup recording default');
         await app.evaluate(async({clipboard},text)=>clipboard.writeText(text),text);
         await until(async()=>{const value=await state();return value.entries.length===1&&value.entries[0].text===text;},'Owned quick-history fixture was not recorded');
         const original=(await state()).entries[0];
@@ -79,6 +82,8 @@ export async function verifyClipboardQuickSmoke(app:ElectronApplication,widget:P
         await until(async()=>Boolean(key(0x11)&0x8000),'Native long-press Ctrl-down was not observed');
         await until(async()=>(await quickState()).visible,'Holding native Ctrl for two seconds did not open quick history');
         const elapsed=performance.now()-started;
+        assert.equal((await quickState()).id,prepared.id,'The hold must reuse the already loaded quick window');
+        assert.ok(elapsed<=2250,`Warm quick history exceeded its 250 ms display budget (${Math.round(elapsed)} ms)`);
         assert.ok(elapsed>=2000,`Quick history opened before two seconds (${Math.round(elapsed)} ms)`);
         native.control(false);
         await until(async()=>!(key(0x11)&0x8000),'Ctrl was not released after activation');

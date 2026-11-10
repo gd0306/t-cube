@@ -99,7 +99,7 @@ struct ClipboardHistoryView: View {
                         .font(.callout).foregroundStyle(.secondary)
                     DisclosureGroup("记录说明", isExpanded: $showsRecordingDetails) {
                         VStack(alignment: .leading, spacing: 5) {
-                            Text("每次启动默认暂停；启用后仅在内存中保存新内容，不包含在备份中。")
+                            Text("每次启动默认记录，可随时暂停；仅在内存中保存新内容，不包含在备份中。")
                             Text("文字最多 100 条 / 2 MiB；图片保留最近 10 张 / 32 MiB。")
                             Text("会尽力跳过敏感、临时和文件拖放内容，无法保证识别所有敏感信息。")
                             Text("单条文字及合并输出最多 64 KiB。")

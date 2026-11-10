@@ -2,6 +2,7 @@ import AppKit
 import Combine
 import CubeCore
 import ServiceManagement
+import OSLog
 import Sparkle
 
 @MainActor
@@ -15,7 +16,15 @@ final class LifecycleController: NSObject, ObservableObject {
     let reminder: ReleaseReminderModel
     private var reminderObserver: AnyCancellable?
 
-    init(reminder: ReleaseReminderModel? = nil) {
+    init(reminder: ReleaseReminderModel? = nil,
+         loginService: (any LoginItemServicing)? = nil,
+         loginDefaults: UserDefaults = .standard,
+         isInstalledApplication: Bool? = nil) {
+        self.loginService = loginService ?? SMAppService.mainApp
+        self.loginStartupPolicy = LoginItemStartupPolicy(defaults: loginDefaults)
+        self.isInstalledApplication = isInstalledApplication ?? LoginItemStartupPolicy.isInstalledApplication(
+            bundleURL: Bundle.main.bundleURL, bundleIdentifier: Bundle.main.bundleIdentifier,
+            executableURL: Bundle.main.executableURL)
         if let reminder { self.reminder = reminder }
         else {
             let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
@@ -37,7 +46,9 @@ final class LifecycleController: NSObject, ObservableObject {
 
     private var updaterController: SPUStandardUpdaterController?
     private var activationObserver: NSObjectProtocol?
-    private let loginService = SMAppService.mainApp
+    private let loginService: any LoginItemServicing
+    private let loginStartupPolicy: LoginItemStartupPolicy
+    private let isInstalledApplication: Bool
 
     var loginEnabled: Bool { loginStatus == .enabled || loginStatus == .requiresApproval }
     var updatesAvailable: Bool { updaterController != nil && updateIssue == nil }
@@ -54,6 +65,9 @@ final class LifecycleController: NSObject, ObservableObject {
 
     func start() {
         refreshLoginStatus()
+        if isInstalledApplication, loginStartupPolicy.shouldEnableByDefault(status: loginStatus) {
+            updateLoginRegistration(true)
+        }
         if activationObserver == nil {
             activationObserver = NotificationCenter.default.addObserver(
                 forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main
@@ -84,9 +98,23 @@ final class LifecycleController: NSObject, ObservableObject {
 
     func refreshLoginStatus() {
         loginStatus = loginService.status
+        if isInstalledApplication {
+            Logger(subsystem: "local.tcube.launcher", category: "LoginStartup")
+                .notice("Login item status: \(self.loginStatus.rawValue)")
+        }
     }
 
     func setLoginEnabled(_ enabled: Bool) {
+        guard isInstalledApplication else {
+            loginError = "请先将 T-Cube 安装到 /Applications 后再更改登录项。"
+            refreshLoginStatus()
+            return
+        }
+        loginStartupPolicy.recordExplicitPreference(enabled)
+        updateLoginRegistration(enabled)
+    }
+
+    private func updateLoginRegistration(_ enabled: Bool) {
         loginError = nil
         do {
             if enabled {
@@ -96,6 +124,8 @@ final class LifecycleController: NSObject, ObservableObject {
             }
         } catch {
             loginError = "无法更改登录项：\(error.localizedDescription)"
+            Logger(subsystem: "local.tcube.launcher", category: "LoginStartup")
+                .error("Login item registration failed: \(error.localizedDescription, privacy: .public)")
         }
         refreshLoginStatus()
     }

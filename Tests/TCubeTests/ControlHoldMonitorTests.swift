@@ -4,6 +4,172 @@ import Testing
 
 @MainActor
 struct ControlHoldMonitorTests {
+    private func timer(after delay: TimeInterval, fire: @escaping @MainActor () -> Void) -> Timer {
+        Timer(timeInterval: delay, repeats: false) { _ in MainActor.assumeIsolated { fire() } }
+    }
+
+    @Test func verifiedPressSchedulesItsPhysicalDeadlineAndFiresOnlyAfterTwoSeconds() throws {
+        var sample = snapshot(at: 0, held: false, modifierCount: 0)
+        var fired = 0
+        var delays: [TimeInterval] = []
+        var timers: [Timer] = []
+        let monitor = ControlHoldMonitor(readSnapshot: { sample }, scheduleDeadline: { delay, fire in
+            delays.append(delay)
+            let timer = timer(after: delay, fire: fire)
+            timers.append(timer)
+            return timer
+        }, action: { fired += 1 })
+        defer { monitor.stop() }
+        monitor.poll()
+        sample = snapshot(at: 0.125, modifierAge: 0.0625); monitor.poll()
+        #expect(delays == [1.9375])
+        let deadline = try #require(timers.first)
+        for tick in 2...16 { sample.time = Double(tick) / 8; monitor.poll() }
+        #expect(fired == 0)
+        sample.time = 2.0624; monitor.poll()
+        #expect(fired == 0)
+        sample.time = 2.0625; deadline.fire()
+        #expect(fired == 1)
+        #expect(!deadline.isValid)
+        #expect(timers.count == 1)
+    }
+
+    @Test func deadlineReadsFreshInputInsteadOfUnconditionallyOpening() throws {
+        for interruption in 0..<6 {
+            var sample = snapshot(at: 0, held: false, modifierCount: 0)
+            var fired = 0
+            var timers: [Timer] = []
+            let monitor = ControlHoldMonitor(readSnapshot: { sample }, scheduleDeadline: { delay, fire in
+                let timer = timer(after: delay, fire: fire)
+                timers.append(timer)
+                return timer
+            }, action: { fired += 1 })
+            defer { monitor.stop() }
+            monitor.poll()
+            sample = snapshot(at: 0.125, modifierAge: 0.0625); monitor.poll()
+            let deadline = try #require(timers.first)
+            for tick in 2...16 { sample.time = Double(tick) / 8; monitor.poll() }
+            sample.time = 2.0625
+            switch interruption {
+            case 0: sample.controlHeld = false
+            case 1: sample.inputCounts[0] += 1
+            case 2: sample.inputCounts[4] += 1
+            case 3: sample.mouseButtonHeld = true
+            case 4: sample.modifierCount += 2
+            default: sample.time = 2.625 // A gap after the hold began still cancels.
+            }
+            deadline.fire()
+            #expect(fired == 0)
+            #expect(!deadline.isValid)
+        }
+    }
+
+    @Test func releaseStopAndSessionTransitionsInvalidatePendingDeadlines() throws {
+        let center = NotificationCenter()
+        for cancellation in 0..<6 {
+            var sample = snapshot(at: 0, held: false, modifierCount: 0)
+            var timers: [Timer] = []
+            let monitor = ControlHoldMonitor(readSnapshot: { sample }, notificationCenter: center,
+                scheduleDeadline: { delay, fire in
+                    let timer = timer(after: delay, fire: fire)
+                    timers.append(timer)
+                    return timer
+                }, action: {})
+            defer { monitor.stop() }
+            monitor.start()
+            sample = snapshot(at: 0.125, modifierAge: 0.0625); monitor.poll()
+            let deadline = try #require(timers.first)
+            #expect(deadline.isValid)
+            switch cancellation {
+            case 0: sample = snapshot(at: 0.25, held: false, modifierCount: 2); monitor.poll()
+            case 1: monitor.stop()
+            default:
+                let names = [NSWorkspace.willSleepNotification, NSWorkspace.didWakeNotification,
+                             NSWorkspace.sessionDidResignActiveNotification, NSWorkspace.sessionDidBecomeActiveNotification]
+                center.post(name: names[cancellation - 2], object: nil)
+            }
+            #expect(!deadline.isValid)
+        }
+    }
+
+    @Test func delayedFirstSampleSchedulesOnlyTheRemainingPhysicalHoldTime() throws {
+        var sample = snapshot(at: 0, held: false, modifierCount: 0)
+        var delays: [TimeInterval] = []
+        var timers: [Timer] = []
+        var fired = 0
+        let monitor = ControlHoldMonitor(readSnapshot: { sample }, scheduleDeadline: { delay, fire in
+            delays.append(delay)
+            let timer = timer(after: delay, fire: fire)
+            timers.append(timer)
+            return timer
+        }, action: { fired += 1 })
+        defer { monitor.stop() }
+        monitor.poll()
+        // The main thread first notices the press 0.8 seconds after its physical down event.
+        sample = snapshot(at: 0.925, counts: [1, 0, 0, 0, 0], ages: [0.9, 10, 10, 10, 10], modifierAge: 0.8)
+        monitor.poll()
+        #expect(delays == [1.2])
+        let deadline = try #require(timers.first)
+        for tick in 8...16 { sample.time = Double(tick) / 8; monitor.poll() }
+        #expect(fired == 0)
+        sample.time = 2.125; deadline.fire()
+        #expect(fired == 1)
+        #expect(!deadline.isValid)
+    }
+
+    @Test func verifiedFirstSamplePastTwoSecondsFiresWithoutAnotherTimerOrRelease() {
+        var sample = snapshot(at: 0, held: false, modifierCount: 0)
+        var scheduled = 0
+        var fired = 0
+        let monitor = ControlHoldMonitor(readSnapshot: { sample }, scheduleDeadline: { delay, fire in
+            scheduled += 1
+            return timer(after: delay, fire: fire)
+        }, action: { fired += 1 })
+        defer { monitor.stop() }
+        monitor.poll()
+        sample = snapshot(at: 2.25, modifierAge: 2.125); monitor.poll()
+        #expect(fired == 1)
+        #expect(scheduled == 0)
+        sample.time = 2.375; monitor.poll()
+        #expect(fired == 1)
+    }
+
+    @Test func sessionResetRejectsAPreviouslyConfirmedButUnobservedPress() {
+        let center = NotificationCenter()
+        var sample = snapshot(at: 0, held: false, modifierCount: 0)
+        var scheduled = 0
+        var fired = 0
+        let monitor = ControlHoldMonitor(readSnapshot: { sample }, notificationCenter: center,
+            scheduleDeadline: { delay, fire in
+                scheduled += 1
+                return timer(after: delay, fire: fire)
+            }, action: { fired += 1 })
+        defer { monitor.stop() }
+        monitor.start()
+        center.post(name: NSWorkspace.didWakeNotification, object: nil)
+        sample = snapshot(at: 2.25, modifierAge: 2.125); monitor.poll()
+        #expect(fired == 0)
+        #expect(scheduled == 0)
+    }
+
+    @Test func invalidAndPreReleaseModifierAgesDoNotScheduleAnEarlyDeadline() {
+        for age in [Double.nan, .infinity, -0.1, 0.125, 0.5, 1] {
+            var sample = snapshot(at: 0, held: false, modifierCount: 0)
+            var scheduled = 0
+            var fired = 0
+            let monitor = ControlHoldMonitor(readSnapshot: { sample }, scheduleDeadline: { delay, fire in
+                scheduled += 1
+                return timer(after: delay, fire: fire)
+            }, action: { fired += 1 })
+            defer { monitor.stop() }
+            monitor.poll()
+            sample = snapshot(at: 0.125, modifierAge: age); monitor.poll()
+            for tick in 2...30 { sample.time = Double(tick) / 8; monitor.poll() }
+            #expect(scheduled == 0)
+            #expect(fired == 0)
+        }
+    }
+
     private func snapshot(at time: TimeInterval, held: Bool = true, counts: [UInt32] = [0, 0, 0, 0, 0],
                           ages: [TimeInterval] = [10, 10, 10, 10, 10], modifierCount: UInt32 = 1,
                           modifierAge: TimeInterval = 0.05) -> ControlHoldMonitor.Snapshot {

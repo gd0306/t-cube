@@ -96,6 +96,8 @@ export async function verifyLibrarySmoke(app: ElectronApplication, widget: Page)
         await stage('create library fixture');
         library = await showLibrary();
         library.setDefaultTimeout(15000);
+        assert.equal((await library.evaluate(()=>window.tcube.getClipboardHistory())).isEnabled,true,'Production startup must enable session history');
+        await library.evaluate(async()=>{await window.tcube.setClipboardHistoryEnabled(false);await window.tcube.clearClipboardHistory();});
         await library.evaluate(item => window.tcube.saveSnippet(item), snippet);
         fixtureSaved = true;
         // Reload through the actual capture/show path, then select the stored fixture.
@@ -182,6 +184,7 @@ $form.Dispose()
         await library.getByRole('button', { name: '粘贴', exact: true }).click();
         await until(async () => receiverText(), text => text === `${fullText}${snippet.fields[0].value}Hello Alice, Alice!`, 'Native template paste did not reach owned receiver');
         results.push('Template preview and native paste replace repeated variables in the original receiver.');
+        await library.evaluate(async()=>{await window.tcube.clearClipboardHistory();await window.tcube.setClipboardHistoryEnabled(true);});
         results.push(...await verifyClipboardHistorySmoke(app, widget, library, receiverText, receiverWindow));
         results.push(...await verifyClipboardQuickSmoke(app,widget,library,async()=>{
             assert.ok(owns(receiverWindow)&&owns(textbox),'Quick-history native input requires the owned receiver');

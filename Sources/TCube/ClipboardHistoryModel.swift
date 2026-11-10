@@ -8,7 +8,7 @@ final class ClipboardHistoryModel: ObservableObject {
     @Published private(set) var images: [ClipboardHistoryImage] = []
     @Published private(set) var isEnabled = false
     @Published var query = ""
-    @Published var status = "剪贴板历史默认关闭；启用后只记录新复制的文本和图片。"
+    @Published var status = "应用启动后自动记录新复制的文本和图片；可随时暂停。"
     private var history = ClipboardHistory()
     private var recorder: ClipboardHistoryRecorder?
 

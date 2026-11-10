@@ -470,6 +470,22 @@ try {
     assert.equal(lifecycle.automaticUpdates, false, 'Fresh unsigned installations must leave reminder checks off');
     assert.equal(lifecycle.updateReady, false);
     await settings.getByRole('button', {name:'启动与更新',exact:true}).click();
+    const loginCheckbox = settings.getByLabel('登录 Windows 时启动');
+    assert.equal(await loginCheckbox.isChecked(),reminderSupported,'Installed Windows startup must default to enabled');
+    assert.equal(await loginCheckbox.isEnabled(),reminderSupported);
+    if(reminderSupported){
+        const nativeLogin=()=>app!.evaluate(({app})=>app.getLoginItemSettings({path:process.execPath}));
+        const nativeBefore=await nativeLogin();
+        assert.equal(nativeBefore.openAtLogin,false,'Isolated installed smoke must never register a real login item');
+        await loginCheckbox.uncheck();
+        await until(()=>settings.evaluate(()=>window.tcube.getLifecycleState()),state=>!state.loginEnabled,'Explicit login opt-out did not persist');
+        assert.equal(JSON.parse(await readFile(path.join(data,'login-startup.json'),'utf8')).enabled,false);
+        await settings.reload();
+        await settings.getByRole('button',{name:'启动与更新',exact:true}).click();
+        assert.equal(await settings.getByLabel('登录 Windows 时启动').isChecked(),false);
+        assert.deepEqual(await nativeLogin(),nativeBefore,'Owned login-item UI mutations must not modify Windows login items');
+        results.push('Installed startup defaults enabled in the owned login adapter; UI opt-out is saved without changing real Windows login items.');
+    }
     const reminderCheckbox = settings.getByLabel('自动检查新版本（仅提醒）');
     assert.equal(await reminderCheckbox.isChecked(), false);
     assert.equal(await reminderCheckbox.isEnabled(), reminderSupported);

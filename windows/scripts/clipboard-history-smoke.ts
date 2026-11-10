@@ -16,7 +16,7 @@ export async function verifyClipboardHistorySmoke(app: ElectronApplication, widg
     const isolated = await app.evaluate(({ app }) => ({ actual: app.getPath('userData'), expected: process.env.TCUBE_USER_DATA_DIR }));
     assert.ok(isolated.expected); assert.equal(path.resolve(isolated.actual), path.resolve(isolated.expected));
     const state = () => library.evaluate(() => window.tcube.getClipboardHistory());
-    const initial = await state(); assert.equal(initial.isEnabled, false); assert.equal(initial.entries.length, 0);
+    const initial = await state(); assert.equal(initial.isEnabled, true); assert.equal(initial.entries.length, 0);
     const marker = `T-Cube owned history ${randomUUID()}`, text = ` ${marker}\nsecond line `, other = `${marker} other`;
     const user = koffi.load('user32.dll');
     const foreground = user.func('uintptr_t __stdcall GetForegroundWindow()');
@@ -44,8 +44,9 @@ export async function verifyClipboardHistorySmoke(app: ElectronApplication, widg
         await library.getByRole('textbox', { name: '标题', exact: true }).fill('Owned unsaved history smoke');
         await library.getByRole('textbox', { name: '正文', exact: true }).fill('Owned draft remains while browsing history');
         await library.getByRole('button', { name: '剪贴板历史', exact: true }).click();
+        await library.getByRole('button', { name: '暂停记录', exact: true }).click();
         await app.evaluate(async ({ clipboard }, text) => { await clipboard.writeText(text); }, `${marker} baseline`);
-        await library.getByRole('button', { name: '启用记录', exact: true }).click();
+        await library.getByRole('button', { name: /^(启用|恢复)记录$/ }).click();
         await new Promise(resolve => setTimeout(resolve, 700));
         assert.equal((await state()).entries.length, 0, 'Enabling must skip the existing clipboard');
         await app.evaluate(async ({ clipboard }, text) => { await clipboard.writeText(text); }, text);
@@ -141,7 +142,7 @@ export async function verifyClipboardHistorySmoke(app: ElectronApplication, widg
             const globals = window as unknown as Record<string, { original: typeof window.confirm }>;
             if (globals[key]) { window.confirm = globals[key].original; delete globals[key]; }
         }, confirmationKey);
-        await library.evaluate(() => window.tcube.setClipboardHistoryEnabled(false));
+        await library.evaluate(enabled => window.tcube.setClipboardHistoryEnabled(enabled), initial.isEnabled);
         await library.evaluate(() => window.tcube.clearClipboardHistory());
         if (savedId) await library.evaluate(id => window.tcube.deleteSnippet(id), savedId);
     }

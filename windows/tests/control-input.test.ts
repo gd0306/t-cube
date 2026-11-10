@@ -25,3 +25,29 @@ test('physical Ctrl release is observed even when release/repress occur between 
     packet.writeUInt16LE(1,26);assert.equal(rawControlReleased(packet,24),true);
     packet.writeUInt16LE(0x43,30);assert.equal(rawControlReleased(packet,24),false);
 });
+
+test('raw Ctrl-down starts timing between polls, repeat/second Ctrl do not restart it and last release rearms', async () => {
+    const { RawControlState } = await import('../src/native/control-input');
+    const { ControlHoldGesture } = await import('../src/core/control-hold');
+    const raw = new RawControlState(false, false), gesture = new ControlHoldGesture();
+    gesture.update({available:true,controlHeld:false,interrupted:false},0);
+    const packet=Buffer.alloc(48);packet.writeUInt32LE(1,0);packet.writeUInt16LE(0xa2,30);
+    assert.equal(raw.update(packet,24),'pressed');
+    gesture.update({available:true,controlHeld:true,interrupted:false},37);
+    assert.equal(raw.update(packet,24),null,'Repeated make must not restart the hold');
+    packet.writeUInt16LE(0xa3,30);assert.equal(raw.update(packet,24),null);
+    for(let now=80;now<2037;now+=80)assert.equal(gesture.update({available:true,controlHeld:true,interrupted:false},now),false);
+    assert.equal(gesture.update({available:true,controlHeld:true,interrupted:false},2037),true);
+    packet.writeUInt16LE(1,26);assert.equal(raw.update(packet,24),null,'One Ctrl still held');
+    packet.writeUInt16LE(0xa2,30);assert.equal(raw.update(packet,24),'released');
+});
+
+test('raw state baselines held Ctrl without starting a gesture after startup or resume', async () => {
+    const { RawControlState } = await import('../src/native/control-input');
+    const raw=new RawControlState(true,false),packet=Buffer.alloc(48);
+    packet.writeUInt32LE(1,0);packet.writeUInt16LE(0xa2,30);
+    assert.equal(raw.update(packet,24),null,'Startup autorepeat cannot start a new press');
+    packet.writeUInt16LE(1,26);assert.equal(raw.update(packet,24),'released');
+    packet.writeUInt16LE(0,26);assert.equal(raw.update(packet,24),'pressed');
+    raw.baseline(true,false);assert.equal(raw.update(packet,24),null,'Resume must baseline existing physical state');
+});

@@ -26,7 +26,7 @@ export class ClipboardHistoryPanel {
     constructor(private readonly root: HTMLElement, private readonly bridge: DesktopBridge, private readonly saveDraft: (text: string) => void) {
         root.className = 'clipboard-history';
         const privacy = document.createElement('p'); privacy.className = 'history-privacy';
-        privacy.textContent = '默认关闭，启用后记录新复制的文字和图片；暂停后停止读取。历史仅保存在本次运行的内存中，退出即清空，不进入备份。文字最多 100 条，每条 64 KiB、合计 2 MiB；图片最多 10 张，每张 8 MiB、合计 32 MiB，最大 1600 万像素。会尽力跳过应用标记的敏感内容和文件，请按需暂停。';
+        privacy.textContent = '每次启动自动记录新复制的文字和图片；暂停后停止读取。启用或恢复时从下一次复制开始，之前的剪贴板内容不会补录。历史仅保存在本次运行的内存中，退出即清空，不进入备份。文字最多 100 条，每条 64 KiB、合计 2 MiB；图片最多 10 张，每张 8 MiB、合计 32 MiB，最大 1600 万像素。会尽力跳过应用标记的敏感内容和文件，请按需暂停。';
         const controls = document.createElement('div'); controls.className = 'history-controls';
         this.toggle.type = this.clear.type = 'button'; this.clear.textContent = '清空历史';
         this.toggle.onclick = () => { void this.run(() => bridge.setClipboardHistoryEnabled(!this.state.isEnabled)); };

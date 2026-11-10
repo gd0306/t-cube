@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { LoginStartupController, LoginPreferenceStore, type LoginItemAdapter } from './login-startup';
 import type { LifecycleBridge, LifecycleState } from '../shared/maintenance';
 import { atomicWrite } from '../core/configuration-archive';
 import { ReleaseReminderController, ReminderStore, fetchLatestRelease } from './release-reminder';
@@ -30,7 +31,7 @@ interface Updater {
 }
 export interface LifecycleOptions {
     platform: string; packaged: boolean; version: string; publishers: string[];
-    getLogin(): boolean; setLogin(enabled: boolean): void;
+    getLogin(): boolean; setLogin(enabled: boolean): void | Promise<void>; getLoginStatus?(): string;
     readAutomaticUpdates(): Promise<boolean>; writeAutomaticUpdates(enabled: boolean): Promise<void>;
     updater(): Promise<Updater> | Updater;
     confirmDownload(version: string): Promise<boolean>; confirmInstall(): Promise<boolean>;
@@ -50,12 +51,12 @@ export class LifecycleController implements LifecycleBridge {
     async getLifecycleState(): Promise<LifecycleState> {
         await this.load();
         return { loginEnabled: this.options.platform === 'win32' && this.options.packaged ? this.options.getLogin() : false, loginSupported: this.options.platform === 'win32' && this.options.packaged,
-            automaticUpdates: this.automatic && this.policy.enabled, updatesEnabled: this.policy.enabled, status: this.status, version: this.options.version, updateReady: this.ready, releaseURL: RELEASE_URL };
+            automaticUpdates: this.automatic && this.policy.enabled, updatesEnabled: this.policy.enabled, status: [this.options.getLoginStatus?.(), this.status].filter(Boolean).join(' '), version: this.options.version, updateReady: this.ready, releaseURL: RELEASE_URL };
     }
     async setLoginEnabled(enabled: boolean) {
         if (typeof enabled !== 'boolean') throw new Error('Invalid login preference');
         if (this.options.platform !== 'win32' || !this.options.packaged) throw new Error('登录启动仅支持 Windows 安装版。');
-        this.options.setLogin(enabled); return this.getLifecycleState();
+        await this.options.setLogin(enabled); return this.getLifecycleState();
     }
     async setAutomaticUpdates(enabled: boolean) {
         if (typeof enabled !== 'boolean') throw new Error('Invalid update preference');
@@ -102,8 +103,25 @@ export class LifecycleController implements LifecycleBridge {
 }
 /** Electron is loaded here, leaving policy and preferences testable without a desktop session. */
 export type LifecycleService = LifecycleController | ReleaseReminderController;
-export async function createLifecycleService(): Promise<LifecycleService> {
+export async function createLifecycleService(loginAdapter?: LoginItemAdapter): Promise<LifecycleService> {
     const { app, dialog, shell, powerMonitor } = await import('electron');
+    const loginStore = new LoginPreferenceStore(join(app.getPath('userData'), 'login-startup.json'));
+    const isolated = !!process.env.TCUBE_USER_DATA_DIR && resolve(process.env.TCUBE_USER_DATA_DIR) === resolve(app.getPath('userData'));
+    if (!loginAdapter && isolated) {
+        // Packaged CI also uses this owned adapter; never register its executable in the machine's login items.
+        let enabled = await loginStore.read().catch(() => false) ?? false;
+        loginAdapter = { get: () => ({ registered: enabled, enabled, blocked: false }), set: value => { enabled = value; } };
+    }
+    loginAdapter ??= {
+        get: () => {
+            const state = app.getLoginItemSettings({ path: process.execPath });
+            return { registered: state.openAtLogin, enabled: state.executableWillLaunchAtLogin,
+                blocked: (state.openAtLogin && !state.executableWillLaunchAtLogin) || state.launchItems.some(item => item.path.toLowerCase() === process.execPath.toLowerCase() && !item.enabled) };
+        },
+        set: enabled => app.setLoginItemSettings({ openAtLogin: enabled, enabled, path: process.execPath }),
+    };
+    const login = new LoginStartupController(loginAdapter, loginStore);
+    if (process.platform === 'win32' && app.isPackaged) await login.start();
     let publisher = '';
     try { const metadata = JSON.parse(await readFile(join(app.getAppPath(), 'package.json'), 'utf8')); if (typeof metadata.tcubeUpdatePublisher === 'string') publisher = metadata.tcubeUpdatePublisher.trim(); } catch { /* Absence safely disables signed installation. */ }
     if (!publisher) {
@@ -111,8 +129,7 @@ export async function createLifecycleService(): Promise<LifecycleService> {
         const resume = () => { void controller.resume().catch(() => controller.pause()); };
         const controller = new ReleaseReminderController({ platform: process.platform, packaged: app.isPackaged, version: app.getVersion(),
             store: new ReminderStore(join(app.getPath('userData'), 'release-reminder.json')),
-            getLogin: () => app.getLoginItemSettings({ path: process.execPath }).openAtLogin,
-            setLogin: enabled => app.setLoginItemSettings({ openAtLogin: enabled, path: process.execPath }),
+            getLogin: () => login.enabled, setLogin: enabled => login.setEnabled(enabled), getLoginStatus: () => login.status,
             fetchRelease: fetchLatestRelease,
             notify: async release => (await dialog.showMessageBox({ type: 'info', title: 'T-Cube 新版本', message: `发现新版本 ${release.version}`, detail: '可前往 GitHub 发布页查看说明并手动下载。', buttons: ['查看发布页', '稍后'], defaultId: 1, cancelId: 1 })).response === 0,
             open: url => shell.openExternal(url),
@@ -124,8 +141,7 @@ export async function createLifecycleService(): Promise<LifecycleService> {
     }
     const preferencePath = join(app.getPath('userData'), 'lifecycle-preferences.json');
     const controller = new LifecycleController({ platform: process.platform, packaged: app.isPackaged, version: app.getVersion(), publishers: publisher ? [publisher] : [],
-        getLogin: () => app.getLoginItemSettings({ path: process.execPath }).openAtLogin,
-        setLogin: enabled => app.setLoginItemSettings({ openAtLogin: enabled, path: process.execPath }),
+        getLogin: () => login.enabled, setLogin: enabled => login.setEnabled(enabled), getLoginStatus: () => login.status,
         readAutomaticUpdates: async () => {
             try { const value = JSON.parse(await readFile(preferencePath, 'utf8')); return value.version === 1 && value.automaticUpdates === true; }
             catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false; return false; }

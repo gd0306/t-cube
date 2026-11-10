@@ -113,7 +113,7 @@ export async function fetchLatestRelease(signal: AbortSignal, transport: Release
 export interface ReminderOptions {
     platform: string; packaged: boolean; version: string;
     store: { read(): Promise<ReminderPreferences>; write(value: ReminderPreferences): Promise<void> };
-    getLogin(): boolean; setLogin(enabled: boolean): void;
+    getLogin(): boolean; setLogin(enabled: boolean): void | Promise<void>; getLoginStatus?(): string;
     fetchRelease(signal: AbortSignal): Promise<unknown>;
     notify(release: ReminderRelease): Promise<boolean>;
     open(url: string): Promise<void>;
@@ -160,12 +160,12 @@ export class ReleaseReminderController implements LifecycleBridge {
         await this.load();
         return { loginEnabled: this.supported ? this.options.getLogin() : false, loginSupported: this.supported, automaticUpdates: this.preferences.enabled && this.supported && !this.blocked,
             updatesEnabled: false, updateReady: false, updateMode: 'reminder', checksSupported: this.supported && !this.blocked, latestVersion: this.latest?.version, isChecking: !!this.flight,
-            status: this.supported ? this.status : '发布提醒仅支持 Windows 安装版。请从发布页面手动下载。', version: this.options.version, releaseURL: RELEASES };
+            status: this.supported ? [this.options.getLoginStatus?.(), this.status].filter(Boolean).join(' ') : '发布提醒仅支持 Windows 安装版。请从发布页面手动下载。', version: this.options.version, releaseURL: RELEASES };
     }
     async setLoginEnabled(enabled: boolean) {
         if (typeof enabled !== 'boolean') throw new Error('Invalid login preference');
         if (!this.supported) throw new Error('登录启动仅支持 Windows 安装版。');
-        this.options.setLogin(enabled); return this.getLifecycleState();
+        await this.options.setLogin(enabled); return this.getLifecycleState();
     }
     async setAutomaticUpdates(enabled: boolean) {
         if (typeof enabled !== 'boolean') throw new Error('Invalid update preference');
