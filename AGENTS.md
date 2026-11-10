@@ -56,3 +56,7 @@ User data lives at `~/Library/Application Support/T-Cube/configuration.json`. Ne
 ## Local Version Acceptance
 
 When working on the maintainer's Mac, install each completed new version into `/Applications/T-Cube.app` and verify it locally before reporting completion. Quit the running app normally, preserve the previous application under ignored `build/`, and back up the existing user JSON files alongside it without replacing them with fixtures. Verify the installed executable matches the built version and distinguish manual desktop checks from automated tests.
+
+## Release Acceptance
+
+When delivering a maintainer-requested published version, a source push and local installation are intermediate steps. Do not report the release complete until both platform installers have been built from the same full commit SHA, the actual packaged apps have been verified, GitHub latest points to the new stable release, and both root READMEs plus `windows/README.md` link to the published files. Verify remote asset sizes and SHA-256 values, `SOURCE_COMMIT.txt`, the release tag, and unauthenticated public downloads. Preserve prior releases and report any incomplete platform or verification limit explicitly. Follow [docs/releasing.md](docs/releasing.md).

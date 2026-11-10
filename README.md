@@ -32,13 +32,13 @@ Published releases provide ready-to-run installation packages:
 
 | Platform | Version | Installer Package | Target Architecture | Requirements & Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| **macOS** | `0.22.4` | [T-Cube-0.22.4-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.4/T-Cube-0.22.4-macos-arm64.dmg) | Apple Silicon (arm64) | macOS 15+ · Ad-hoc signed |
-| **Windows** | `0.22.4` | [T-Cube-0.22.4-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.4/T-Cube-0.22.4-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · Standalone runtime |
+| **macOS** | `0.22.5` | [T-Cube-0.22.5-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.5/T-Cube-0.22.5-macos-arm64.dmg) | Apple Silicon (arm64) | macOS 15+ · Ad-hoc signed |
+| **Windows** | `0.22.5` | [T-Cube-0.22.5-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.5/T-Cube-0.22.5-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · Standalone runtime |
 
 > [!NOTE]
-> - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.4).
-> - Both `0.22.4` installers include the monitor detection and input-code help updates described below. The [release verification record](docs/verification/2026-11-08-release-consistency.md) records the packaged source, checksums and verification limits.
-> - Current source version: `0.22.5`, including the hold-`Ctrl` clipboard panel, clipboard recording on launch, and login startup enabled by default with a remembered opt-out. The published `0.22.4` installers do not include these changes yet.
+> - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.5).
+> - Both `0.22.5` installers include the Ctrl clipboard panel, recording on launch, and configurable default login startup. The [release verification record](docs/verification/2026-11-10-0.22.5-release.md) records the packaged source, checksums and verification limits.
+> - Both installers package the same source commit; see `SOURCE_COMMIT.txt` and `SHA256SUMS.txt` in the release.
 > - The Windows installer bundles its runtime and requires no Node.js installation.
 > - Quit any running T-Cube instance before upgrading; your configuration is automatically preserved.
 
@@ -99,13 +99,13 @@ A lighter glass shell lets the desktop show through. Hover to reveal icons that 
 - **Fullscreen Auto-Hide**: Automatically hides on the active display when a fullscreen application is focused, pausing 3D rendering to eliminate background GPU overhead.
 - **Quick Screen Placement**: Instantly snap the cube to any screen corner or display center from the menu bar or **Appearance → Quick Placement** (automatically accounts for Dock, menu bar, and taskbar insets).
 - **Independent Display Brightness (macOS)**: Adjust individual monitor brightness directly from the menu-bar cube. Supports native Apple displays and external monitor hardware backlight control over DDC/CI on Apple Silicon connections. Requires no extra utilities, administrator rights, Accessibility, or Screen Recording permissions.
-- **Monitor Input Switching (macOS / Windows)**: Version `0.22.4` automatically detects connected monitors and keeps each screen’s Type-C / HDMI mapping separate. No model preset or guessed port codes; saved mappings are preserved. Unidentified, ambiguous, or unreadable targets cannot switch. Open **How to obtain input codes** from the monitor’s **Settings…** on macOS, or in the Windows input panel, for the physical-menu → active-host Refresh → record both decimal codes → save → verify procedure. macOS external input control requires Apple Silicon and a usable DDC/CI connection; detection alone does not guarantee hardware compatibility. Controls lock while busy and highlight confirmed input only, without background polling. [Implementation and limits](docs/verification/2026-11-07-display-input-discovery.md).
+- **Monitor Input Switching (macOS / Windows)**: Automatically detects connected monitors and keeps each screen’s Type-C / HDMI mapping separate. No model preset or guessed port codes; saved mappings are preserved. Unidentified, ambiguous, or unreadable targets cannot switch. Open **How to obtain input codes** from the monitor’s **Settings…** on macOS, or in the Windows input panel, for the physical-menu → active-host Refresh → record both decimal codes → save → verify procedure. macOS external input control requires Apple Silicon and a usable DDC/CI connection; detection alone does not guarantee hardware compatibility. Controls lock while busy and highlight confirmed input only, without background polling. [Implementation and limits](docs/verification/2026-11-07-display-input-discovery.md).
 
 ### 📋 Productivity Suite: Clipboard & Reusable Content
 - **In-Memory Session Clipboard**: Text and image history kept strictly in volatile memory. Cleared immediately on exit; never written to disk, included in backups, or transmitted over the network.
   - **Text History**: Retains up to 100 entries (64 KiB per entry, 2 MiB total). Supports search, multi-selection, ordered concatenation, line trimming, and repeated blank-line collapsing.
   - **Image History**: Retains up to 10 recent images (8 MiB normalized PNG per image, 32 MiB total, 16 megapixels max) with thumbnail previews and bounded detail views.
-- **Quick Clipboard Panel (macOS / Windows, source builds)**: Hold `Ctrl` alone for **2 seconds** to open a glass history list near the pointer. Release `Ctrl`, then single-click text or an image to copy it and close the panel. Edit, save, cancel, or delete text records; editing changes session history only, preserving order and capture time. Other keys, mouse buttons, or scrolling cancel the hold. Recording starts automatically with the app and can be paused for the current session; existing clipboard content is not imported at startup. macOS 26+ uses Clear Liquid Glass (system material on macOS 15); Windows 11 22H2+ uses acrylic, with a transparent fallback on Windows 10 and earlier Windows 11 builds. System accessibility preferences may reduce transparency. [Preview and verification](docs/verification/2026-11-10-clipboard-quick-panel.md).
+- **Quick Clipboard Panel (macOS / Windows)**: Hold `Ctrl` alone for **2 seconds** to open a glass history list near the pointer. Release `Ctrl`, then single-click text or an image to copy it and close the panel. Edit, save, cancel, or delete text records; editing changes session history only, preserving order and capture time. Other keys, mouse buttons, or scrolling cancel the hold. Recording starts automatically with the app and can be paused for the current session; existing clipboard content is not imported at startup. macOS 26+ uses Clear Liquid Glass (system material on macOS 15); Windows 11 22H2+ uses acrylic, with a transparent fallback on Windows 10 and earlier Windows 11 builds. System accessibility preferences may reduce transparency. [Preview and verification](docs/verification/2026-11-10-clipboard-quick-panel.md).
 - **Snippet Library & Dynamic Templates**: Open the content library from the status menu or with `Command+Shift+Space` (`Ctrl+Shift+Space` on Windows). Organize reusable snippets with groups and favorites. Enable template mode to use dynamic placeholders like `{{customer_name}}`—fill variables once and preview the merged result before copying or pasting.
 - **Focus-Checked Direct Paste**: Restores previous window focus and pastes directly into the target input field when Accessibility permissions are granted.
 
@@ -114,7 +114,7 @@ A lighter glass shell lets the desktop show through. Hover to reveal icons that 
 - **Resource Reuse**: Unchanged textures are cached across refreshes, empty faces allocate no texture atlases, and Windows application-picker icon retention is strictly bounded.
 - **Refined Modular Settings**: Appearance, Desktop & Performance, Shortcut Groups, Maintenance, and Lifecycle are organized into clear tabs with instant-save feedback.
 - **Lightweight Release Reminders**: Anonymous 6-hour check for GitHub Releases (opt-in, default off) with manual check cooldown, opening the release page for manual download.
-- **Login Startup (source builds)**: Enabled by default when the installed app first starts. Turn it off in settings; the choice is remembered across restarts. System approval requirements and disabled login items are respected.
+- **Login Startup**: Enabled by default when the installed app first starts. Turn it off in settings; the choice is remembered across restarts. System approval requirements and disabled login items are respected.
 
 ---
 
@@ -129,7 +129,7 @@ A lighter glass shell lets the desktop show through. Hover to reveal icons that 
 | **Right-button drag** | Free-form 3D rotation; release to keep current angle |
 | **Hold `Ctrl` over cube** | Temporarily restore cube to resting size |
 | **`Ctrl` + Left-button drag** | Move at resting size (persists even if `Ctrl` is released mid-drag) |
-| **Hold `Ctrl` alone for 2 seconds (source builds)** | Open clipboard history; release, then single-click a record to copy. Click outside to close; use Save / Cancel when editing |
+| **Hold `Ctrl` alone for 2 seconds** | Open clipboard history; release, then single-click a record to copy. Click outside to close; use Save / Cancel when editing |
 | **Click outside / `Esc`** | Dismiss expanded 4-icon panel |
 | **Right-click / Menu Bar icon** | Open settings |
 
@@ -248,4 +248,4 @@ env TCUBE_RENDER_PREVIEWS=1 TCUBE_WEBSITE_PREVIEWS=1 swift test --scratch-path .
 - `Sources/TCube`: macOS application lifecycle, RealityKit 3D rendering, floating windows, display brightness bridges, and SwiftUI settings.
 - `windows/src/`: Windows Electron main process, Win32 native bridge, and Three.js rendering pipelines.
 
-Refer to [AGENTS.md](AGENTS.md) for contribution conventions and [docs/verification/](docs/verification/) for test records and hardware validation boundaries.
+Refer to [AGENTS.md](AGENTS.md) for contribution conventions, [the release checklist](docs/releasing.md) for delivery requirements, and [docs/verification/](docs/verification/) for test records and hardware validation boundaries.

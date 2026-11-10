@@ -1,10 +1,10 @@
 # T-Cube for Windows
 
-Source version **0.22.5** targets Windows 10 22H2 / Windows 11, x64. This client uses Electron and Three.js; the repository's macOS client remains native Swift. The published installer below remains at **0.22.4** and does not include the new hold-Ctrl clipboard panel yet.
+Source version **0.22.5** targets Windows 10 22H2 / Windows 11, x64. This client uses Electron and Three.js; the repository's macOS client remains native Swift. The **0.22.5** installer below includes the hold-Ctrl clipboard panel, recording on launch, and configurable default login startup.
 
 ## Installer
 
-Download [T-Cube 0.22.4 for Windows x64](https://github.com/gd0306/t-cube/releases/download/v0.22.4/T-Cube-0.22.4-windows-x64-setup.exe) from [Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.4). It installs per user, includes Electron/native dependencies, creates shortcuts and an uninstall entry, and requires neither Node.js nor administrator privileges. Quit the previous version before updating. Existing `%APPDATA%\\T-Cube` configuration is retained. The installer is not Authenticode signed.
+Download [T-Cube 0.22.5 for Windows x64](https://github.com/gd0306/t-cube/releases/download/v0.22.5/T-Cube-0.22.5-windows-x64-setup.exe) from [Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.5). It installs per user, includes Electron/native dependencies, creates shortcuts and an uninstall entry, and requires neither Node.js nor administrator privileges. Quit the previous version before updating. Existing `%APPDATA%\\T-Cube` configuration is retained. The installer is not Authenticode signed.
 
 Under **外观与主题 → 材质**, choose **玻璃** or **史莱姆**. All nine themes, custom colors and automatic cycling work with either material. Glass is the default. Slime follows the mouse with lag and elastic rebound while launcher icons remain rigid; Windows animation preferences disable its motion.
 
@@ -15,7 +15,7 @@ Under **交互与位置**, **靠边自动收起** and **全屏应用时隐藏** 
 
 Version `0.22.0` adds **显示器输入源…** to the tray context menu; left-click still shows or hides the cube. The panel switches a DDC/CI-capable monitor between **Type-C** on the left and **HDMI** on the right through a two-segment switch. Click a port or use the keyboard arrow keys; controls lock while busy, retain the last confirmed selection during a request, and clear selection when readback is unknown. Opening or refreshing reads hardware; there is no background display polling, startup source restoration, volume control or network relay.
 
-Version `0.22.4` automatically enumerates connected displays without model-specific presets; previously saved mappings remain unchanged. Monitors that relied on the automatic preset without a saved mapping need calibration once. Select the intended monitor by name and its `DISPLAY` number. Targets with ambiguous identity, missing physical DDC transport, or unavailable input readback remain visible with switching disabled. Detection refreshes on display changes and panel reopen; a disconnected selection does not silently move to another monitor.
+The input panel automatically enumerates connected displays without model-specific presets; previously saved mappings remain unchanged. Monitors that relied on the automatic preset without a saved mapping need calibration once. Select the intended monitor by name and its `DISPLAY` number. Targets with ambiguous identity, missing physical DDC transport, or unavailable input readback remain visible with switching disabled. Detection refreshes on display changes and panel reopen; a disconnected selection does not silently move to another monitor.
 
 Open **如何获取输入代码？** in the input panel for the full procedure. Enable DDC/CI in the monitor’s physical menu if offered, connect and wake both hosts, then physically select Type-C. On the host now shown, select that monitor in T-Cube and click **刷新**; expand **设置输入源代码** and record **当前代码**. Physically select the intended HDMI port and repeat on its active host. Save the two distinct decimal values in `0–65535` on each host separately. Saving only stores the mapping; it sends no switch command. The app reads current input via VCP `0x60` (a feature number, not a port value) and does not discover all supported input values. A non-continuous VCP's reported maximum is not a valid code range.
 
