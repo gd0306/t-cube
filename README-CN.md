@@ -32,14 +32,13 @@
 
 | 平台 | 版本 | 安装包文件 | 适配架构 | 说明与运行要求 |
 | :--- | :--- | :--- | :--- | :--- |
-| **macOS** | `0.22.6` | [T-Cube-0.22.6-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.6/T-Cube-0.22.6-macos-arm64.dmg) | Apple Silicon (arm64) | 需要 macOS 15+ · 采用本地 ad-hoc 签名 |
-| **Windows** | `0.22.6` | [T-Cube-0.22.6-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.6/T-Cube-0.22.6-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · 自带完整运行时 |
+| **macOS** | `0.22.7` | [T-Cube-0.22.7-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.7/T-Cube-0.22.7-macos-arm64.dmg) | Apple Silicon (arm64) | 需要 macOS 15+ · 采用本地 ad-hoc 签名 |
+| **Windows** | `0.22.7` | [T-Cube-0.22.7-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.7/T-Cube-0.22.7-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · 自带完整运行时 |
 
 > [!NOTE]
-> - 查看完整发布说明与 SHA-256 校验和：[GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.6)。
-> - 两个平台的 `0.22.6` 安装包均支持立方体外长按 Ctrl 1 秒唤起历史，立方体内还原尺寸与拖动优先；保留启动时自动记录与可关闭的默认开机自启。打包源码、校验和与验证边界见[发布验证记录](docs/verification/2026-11-10-0.22.6-ctrl-context.md)。
+> - 查看完整发布说明与 SHA-256 校验和：[GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.7)。
+> - macOS `0.22.7` 换用与应用图标一致的圆角分面菜单栏图标；两个平台保留 Ctrl 一秒唤起、立方体操作优先、默认剪贴板记录与可关闭的开机自启。打包源码、校验和与验证边界见[发布验证记录](docs/verification/2026-11-11-status-item-icon.md)。
 > - 两个平台安装包来自同一源码提交；发布附件提供 `SOURCE_COMMIT.txt` 与 `SHA256SUMS.txt`。
-> - 当前源码版本为 `0.22.7`，macOS 菜单栏采用基于应用圆角立方体标志的新图标；已发布的 `0.22.6` 安装包仍使用原符号。
 > - Windows 安装包已整合所需环境，无需单独配置 Node.js。
 > - 更新版本前请先正常退出当前运行的应用，原快捷入口与外观配置会自动保留。
 
