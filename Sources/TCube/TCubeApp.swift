@@ -167,10 +167,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func createMenu() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         statusItem.autosaveName = "T-Cube.StatusItem"
-        let icon = NSImage(systemSymbolName: "cube.transparent", accessibilityDescription: "T-Cube") ?? NSImage(systemSymbolName: "cube", accessibilityDescription: "T-Cube")
-        icon?.isTemplate = true
-        icon?.size = NSSize(width: 18, height: 18)
-        statusItem.button?.image = icon
+        statusItem.button?.image = StatusItemIcon.make()
         statusItem.button?.setAccessibilityLabel("T-Cube 菜单")
         statusItem.button?.toolTip = "T-Cube · 桌面立方体启动器"
         let menu = StatusMenuLayout.make(target: self, actions: .init(

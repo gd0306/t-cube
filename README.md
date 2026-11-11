@@ -39,6 +39,7 @@ Published releases provide ready-to-run installation packages:
 > - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.6).
 > - Both `0.22.6` installers open clipboard history after 1 second outside the cube, while Ctrl resizing and dragging on the cube take priority. Recording on launch and configurable default login startup are retained. The [release verification record](docs/verification/2026-11-10-0.22.6-ctrl-context.md) records the packaged source, checksums and verification limits.
 > - Both installers package the same source commit; see `SOURCE_COMMIT.txt` and `SHA256SUMS.txt` in the release.
+> - Current source version: `0.22.7`, with a custom macOS menu-bar icon derived from the app’s rounded cube mark. The published `0.22.6` installers still use the previous symbol.
 > - The Windows installer bundles its runtime and requires no Node.js installation.
 > - Quit any running T-Cube instance before upgrading; your configuration is automatically preserved.
 

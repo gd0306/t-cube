@@ -1,6 +1,6 @@
 # T-Cube for Windows
 
-Source version **0.22.6** targets Windows 10 22H2 / Windows 11, x64. This client uses Electron and Three.js; the repository's macOS client remains native Swift. The **0.22.6** installer below includes one-second Ctrl clipboard access outside the cube, cube-control priority, recording on launch, and configurable default login startup.
+Source version **0.22.7** targets Windows 10 22H2 / Windows 11, x64. This client uses Electron and Three.js; the repository's macOS client remains native Swift. The **0.22.6** installer below includes one-second Ctrl clipboard access outside the cube, cube-control priority, recording on launch, and configurable default login startup.
 
 ## Installer
 
