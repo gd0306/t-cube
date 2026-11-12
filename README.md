@@ -32,12 +32,12 @@ Published releases provide ready-to-run installation packages:
 
 | Platform | Version | Installer Package | Target Architecture | Requirements & Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| **macOS** | `0.22.7` | [T-Cube-0.22.7-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.7/T-Cube-0.22.7-macos-arm64.dmg) | Apple Silicon (arm64) | macOS 15+ · Ad-hoc signed |
-| **Windows** | `0.22.7` | [T-Cube-0.22.7-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.7/T-Cube-0.22.7-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · Standalone runtime |
+| **macOS** | `0.22.8` | [T-Cube-0.22.8-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.8/T-Cube-0.22.8-macos-arm64.dmg) | Apple Silicon (arm64) | macOS 15+ · Ad-hoc signed |
+| **Windows** | `0.22.8` | [T-Cube-0.22.8-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.8/T-Cube-0.22.8-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · Standalone runtime |
 
 > [!NOTE]
-> - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.7).
-> - macOS `0.22.7` introduces a rounded, three-face menu-bar mark based on the app icon. Both clients retain one-second clipboard activation, cube-control priority, recording on launch, and configurable login startup. The [release verification record](docs/verification/2026-11-11-status-item-icon.md) records the packaged source, checksums and verification limits.
+> - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.8).
+> - `0.22.8` redesigns settings on both platforms with sidebar navigation and native frosted materials where supported. Appearance changes save immediately with scoped default restoration; Windows gets a blue/cyan tray icon. The [release verification record](docs/verification/2026-11-12-settings-release.md) records source, checksums and verification limits.
 > - Both installers package the same source commit; see `SOURCE_COMMIT.txt` and `SHA256SUMS.txt` in the release.
 > - The Windows installer bundles its runtime and requires no Node.js installation.
 > - Quit any running T-Cube instance before upgrading; your configuration is automatically preserved.
@@ -95,6 +95,7 @@ A lighter glass shell lets the desktop show through. Hover to reveal icons that 
 ## Core Features
 
 ### 🧊 3D Aesthetics & Material Physics
+- **Frosted Settings**: Sidebar navigation and immediate appearance saving, with a page-scoped default reset. macOS uses native frosted backgrounds; Windows 11 22H2+ uses Acrylic, while older Windows versions and reduced-transparency/high-contrast modes use solid fallbacks. Windows also has a blue/cyan cube tray icon.
 - **Clear Liquid Glass & Slime Materials**: Soft corners, shallow curved faces, and subtle reflections. On macOS 26+, content utilizes native Clear Liquid Glass (with frosted glass fallback on earlier systems). Switch to **Slime** material for an elastic jelly body that trails cursor motion and springs back gracefully.
 - **Wandering Idle Rotation**: Slowly drifts through shifting 3D angles at rest. Hovering stops rotation instantly; leaving resumes it. Automatically paused when macOS "Reduce Motion" is enabled, or toggle it off under **Appearance → Dynamic Rotation**.
 - **Hover Zoom**: Smoothly expands when hovered (customizable from 1.1× to 4.0×) and snaps back to resting size when the pointer leaves.
@@ -157,7 +158,7 @@ Settings open automatically on first launch, or reopen them anytime by right-cli
 
 1. **Cube Entries**: Assign apps, folders, files, websites, or system settings to each face. Drag-and-drop from Finder / Explorer is fully supported.
 2. **Appearance**: Choose materials (**Glass** or **Slime**), color themes, hover zoom scale, and theme cycling intervals. Changes take effect and save immediately; **Restore Default Appearance** resets only the appearance page.
-3. **Launch Behavior**: Under **Launch Behavior**, toggle **Expand faces on click** on or off depending on whether you prefer panel expansion or direct launching.
+3. **Launch Behavior**: On macOS, open **Appearance → Interaction & Animation**; on Windows, open **Interaction & Placement**. Toggle **Expand faces on click** to choose panel expansion or direct launching.
 4. **Desktop & Placement**: Configure **Edge Auto-Collapse**, **Fullscreen Auto-Hide**, or use **Quick Placement** to position the cube at screen corners or center.
 5. **Display Input**: Open the input controls from the macOS status menu or Windows tray menu, then identify the intended monitor by name and displayed ID. On macOS, open the monitor’s **Settings…** and choose **How to obtain input codes**; on Windows, expand that help in the input panel. Follow these steps: enable DDC/CI, physically activate Type-C and HDMI in turn, and refresh T-Cube on each active host to record its current decimal code. Save two distinct codes locally on each host; saving does not switch inputs. If you previously relied on the automatic preset without saving a mapping, calibrate once using this procedure. Reconnection refreshes detection without transferring mappings to a different screen. If switching loses readback, selection clears and the result remains unconfirmed; use the active host or the monitor’s physical menu to switch back.
 

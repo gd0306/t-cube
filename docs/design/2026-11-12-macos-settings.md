@@ -13,9 +13,9 @@
 - 开启轮换时至少保留两种主题；关闭时可以预选主题，少于两种时无法启用轮换。
 - 导入或恢复配置后同步外观页，防止陈旧控件覆盖已恢复的配置。
 
-本次不更改发布版本或远程安装包；根 README 区分 macOS 即时保存和 Windows 当前的应用按钮。
+首次 macOS 本机预览未更改发布版本；随后与 Windows 设置和托盘图标优化统一发布为 `0.22.8`，根 README 已同步两平台的即时保存行为。
 
-## 本机验证记录
+## 初版本机验证记录（正式发布前）
 
 - `bash scripts/build-app.sh --debug` 构建成功；`codesign --verify --deep --strict /Applications/T-Cube.app` 通过。
 - 已正常退出旧应用，旧 app 和用户 JSON 备份至 `build/install-backups/glass-settings/20261112-221120/` 后安装新 app。
@@ -27,4 +27,4 @@
 - 随后单独执行 `swift test --scratch-path .build/tests --no-parallel --filter 'EdgeDockAnimationTests|AppearanceSettingsValuesTests'`：6 项 XCTest（1 项跳过）及新增 2 项外观回归均通过。单独通过不能替代完整测试通过结论。
 - 更早一轮测试与桌面操作并行时，显示器帮助焦点测试曾失败；最新完整测试中该组已通过。
 - `git diff --check` 通过；设计检测器对修改的 SwiftUI 文件输出空列表。
-- 未逐项手动验证浅色模式、减少透明度切换及不同桌面背景的模糊效果；Windows 尚未改动，未发布远程安装包。
+- 未逐项手动验证浅色模式、减少透明度切换及不同桌面背景的模糊效果；当时 Windows 尚未改动、未发布远程安装包；最终发布验收以关联的 `0.22.8` 记录为准。
