@@ -32,14 +32,13 @@
 
 | 平台 | 版本 | 安装包文件 | 适配架构 | 说明与运行要求 |
 | :--- | :--- | :--- | :--- | :--- |
-| **macOS** | `0.22.8` | [T-Cube-0.22.8-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.8/T-Cube-0.22.8-macos-arm64.dmg) | Apple Silicon (arm64) | 需要 macOS 15+ · 采用本地 ad-hoc 签名 |
-| **Windows** | `0.22.8` | [T-Cube-0.22.8-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.8/T-Cube-0.22.8-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · 自带完整运行时 |
+| **macOS** | `0.22.9` | [T-Cube-0.22.9-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.9/T-Cube-0.22.9-macos-arm64.dmg) | Apple Silicon (arm64) | 需要 macOS 15+ · 采用本地 ad-hoc 签名 |
+| **Windows** | `0.22.9` | [T-Cube-0.22.9-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.9/T-Cube-0.22.9-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · 自带完整运行时 |
 
 > [!NOTE]
-> - 查看完整发布说明与 SHA-256 校验和：[GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.8)。
-> - `0.22.8` 为两个平台重做侧栏设置与系统支持下的原生磨砂材质；外观即时保存并可单独恢复默认值，Windows 托盘换用蓝青色立方体图标。打包源码、校验和与验证边界见[发布验证记录](docs/verification/2026-11-12-settings-release.md)。
+> - 查看完整发布说明与 SHA-256 校验和：[GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.9)。
+> - `0.22.9` 新增逐条剪贴板文字处理预览与校验提示，快捷面板采用可拖动的磨砂界面，每次 Ctrl 唤起回到历史列表。详见[发布验证记录](docs/verification/2026-11-13-clipboard-release.md)。
 > - 两个平台安装包来自同一源码提交；发布附件提供 `SOURCE_COMMIT.txt` 与 `SHA256SUMS.txt`。
-> - 逐条剪贴板文字处理目前为开发源码功能，尚未包含在上方的 `0.22.8` 安装包中。
 > - Windows 安装包已整合所需环境，无需单独配置 Node.js。
 > - 更新版本前请先正常退出当前运行的应用，原快捷入口与外观配置会自动保留。
 
@@ -124,7 +123,7 @@
   - **文本历史**：上限 100 条（单条 64 KiB，总计 2 MiB 限制）。支持多选、按顺序合并、批量清理首尾空格、压缩连续空行，预览无误后复制或粘贴。
   - **图片历史**：保留最近 10 张图片（单张 8 MiB PNG，总计 32 MiB，最高支持 1600 万像素），提供安全缩略图与自适应预览。
 - **剪贴板快捷面板（macOS / Windows）**：鼠标移出立方体后，单独长按 `Ctrl` **1 秒**，在鼠标附近唤起玻璃历史列表；松开按键后，单击任意文字或图片即可复制并收起。文字支持编辑、保存、取消和删除；编辑仅修改会话历史，保留原顺序与记录时间。按其他键、鼠标按钮、滚动或移入立方体会取消本轮长按，直到松开 Ctrl；立方体还原与拖动优先。每次启动自动记录，可暂停当前会话；不会导入启动前的旧剪贴板内容。macOS 使用原生磨砂材质；Windows 11 22H2+ 使用亚克力玻璃，Windows 10 和较早的 Windows 11 使用实色回退；系统辅助功能偏好可降低透明度。可拖动标题移动面板，每次唤起都返回列表。[预览与验证](docs/verification/2026-11-10-clipboard-quick-panel.md)。
-- **逐条文字处理（开发源码）**：从文字记录右侧的处理菜单预览纯文本、空白整理、大小写转换、JSON 格式化／压缩及 URL 参数值编解码；可直接复制，或编辑结果后再复制／明确保存到本条会话记录。全部本地处理，预览不覆盖历史。[预览与验证](docs/verification/2026-11-13-clipboard-text-tools.md)。
+- **逐条文字处理**：从文字记录右侧的处理菜单预览纯文本、空白整理、大小写转换、JSON 格式化／压缩及 URL 参数值编解码；可直接复制，或编辑结果后再复制／明确保存到本条会话记录。全部本地处理，预览不覆盖历史。[预览与验证](docs/verification/2026-11-13-clipboard-text-tools.md)。
 - **常用内容库与动态模板**：通过菜单栏／托盘或全局快捷键（macOS `⌘⇧Space`，Windows `Ctrl+Shift+Space`）调出。支持分组管理与常用收藏。在内容中启用「作为模板使用」并嵌入 `{{客户姓名}}` 等动态占位符，一处填入即可自动完成全文变量替换与预览。
 - **焦点感知自动粘贴**：获得系统辅助功能授权后，可一键激活并自动粘贴至唤出前的工作窗口。
 

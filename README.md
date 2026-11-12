@@ -32,14 +32,13 @@ Published releases provide ready-to-run installation packages:
 
 | Platform | Version | Installer Package | Target Architecture | Requirements & Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| **macOS** | `0.22.8` | [T-Cube-0.22.8-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.8/T-Cube-0.22.8-macos-arm64.dmg) | Apple Silicon (arm64) | macOS 15+ · Ad-hoc signed |
-| **Windows** | `0.22.8` | [T-Cube-0.22.8-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.8/T-Cube-0.22.8-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · Standalone runtime |
+| **macOS** | `0.22.9` | [T-Cube-0.22.9-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.9/T-Cube-0.22.9-macos-arm64.dmg) | Apple Silicon (arm64) | macOS 15+ · Ad-hoc signed |
+| **Windows** | `0.22.9` | [T-Cube-0.22.9-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.9/T-Cube-0.22.9-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · Standalone runtime |
 
 > [!NOTE]
-> - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.8).
-> - `0.22.8` redesigns settings on both platforms with sidebar navigation and native frosted materials where supported. Appearance changes save immediately with scoped default restoration; Windows gets a blue/cyan tray icon. The [release verification record](docs/verification/2026-11-12-settings-release.md) records source, checksums and verification limits.
+> - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.9).
+> - `0.22.9` adds per-entry clipboard text previews, validation hints, frosted draggable quick panels and a fresh history list on every Ctrl invocation. See the [release verification record](docs/verification/2026-11-13-clipboard-release.md).
 > - Both installers package the same source commit; see `SOURCE_COMMIT.txt` and `SHA256SUMS.txt` in the release.
-> - Per-entry clipboard text tools are currently a development-source feature and are not included in the `0.22.8` installers above.
 > - The Windows installer bundles its runtime and requires no Node.js installation.
 > - Quit any running T-Cube instance before upgrading; your configuration is automatically preserved.
 
@@ -124,7 +123,7 @@ A lighter glass shell lets the desktop show through. Hover to reveal icons that 
   - **Text History**: Retains up to 100 entries (64 KiB per entry, 2 MiB total). Supports search, multi-selection, ordered concatenation, line trimming, and repeated blank-line collapsing.
   - **Image History**: Retains up to 10 recent images (8 MiB normalized PNG per image, 32 MiB total, 16 megapixels max) with thumbnail previews and bounded detail views.
 - **Quick Clipboard Panel (macOS / Windows)**: With the pointer outside the cube, hold `Ctrl` alone for **1 second** to open a glass history list near the pointer. Release `Ctrl`, then single-click text or an image to copy it and close the panel. Edit, save, cancel, or delete text records; editing changes session history only, preserving order and capture time. Other keys, mouse buttons, scrolling, or entering the cube cancel the hold until Ctrl is released; cube resizing and dragging take priority. Recording starts automatically with the app and can be paused for the current session; existing clipboard content is not imported at startup. macOS uses a native frosted material; Windows 11 22H2+ uses acrylic, with a solid fallback on Windows 10 and earlier Windows 11 builds. Drag the title to move the panel; every fresh invocation returns to the history list. System accessibility preferences may reduce transparency. [Preview and verification](docs/verification/2026-11-10-clipboard-quick-panel.md).
-- **Per-entry Text Tools (development source)**: Open the processing menu beside a text record to preview plain text, whitespace cleanup, case conversion, JSON formatting/minification or URL component encoding/decoding. Copy the result, or edit it before copying or explicitly saving to that session record. Processing stays local; previews do not overwrite history. [Preview and verification](docs/verification/2026-11-13-clipboard-text-tools.md).
+- **Per-entry Text Tools**: Open the processing menu beside a text record to preview plain text, whitespace cleanup, case conversion, JSON formatting/minification or URL component encoding/decoding. Copy the result, or edit it before copying or explicitly saving to that session record. Processing stays local; previews do not overwrite history. [Preview and verification](docs/verification/2026-11-13-clipboard-text-tools.md).
 - **Snippet Library & Dynamic Templates**: Open the content library from the status menu or with `Command+Shift+Space` (`Ctrl+Shift+Space` on Windows). Organize reusable snippets with groups and favorites. Enable template mode to use dynamic placeholders like `{{customer_name}}`—fill variables once and preview the merged result before copying or pasting.
 - **Focus-Checked Direct Paste**: Restores previous window focus and pastes directly into the target input field when Accessibility permissions are granted.
 

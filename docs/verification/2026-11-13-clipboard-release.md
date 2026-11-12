@@ -21,4 +21,12 @@
 
 ## 发布验收
 
-后续补入同提交的双平台产物、实际安装及公开下载验证结果。macOS 继续采用 ad-hoc 签名且未公证；Windows 继续未 Authenticode 签名，本次不改变系统开发者身份提示的边界。
+- 双平台打包源码：`358c2c8612e50ceb72eb28b83dd27323b8b52eb0`，版本 `0.22.9`，macOS build `52`。后续文档提交不改变包内源码。
+- [Windows 源码双系统矩阵](https://github.com/gd0306/t-cube/actions/runs/43288183076)与[正式安装包验收](https://github.com/gd0306/t-cube/actions/runs/43288185114)均成功；已检查实际安装应用的 28 项烟测结果，以及原生拖动／预览后再次 Ctrl 回列表的断言。
+- macOS 正式构建、DMG 校验和、只读挂载、应用签名、安装链接检查通过；正常退出旧版后备份至 `build/install-backups/0.22.9/20261113-031805/`，保存旧应用与四份 JSON；偏好导出在新版首次启动后按实际 bundle ID `local.tcube.launcher` 补存（初次使用错误 domain 的导出不作为旧偏好备份证据）。安装至 `/Applications/T-Cube.app`，核对版本与 build、深度签名及可执行文件 SHA-256 `3dd71f1983f6e01a4f22b72ee5d6b89edb534bb00e4682759dbec3b5cba45774`，四份 JSON 字节保持一致。正式应用已通过桌面自动化启动并观察到立方体。
+- 本机电脑工具不支持仅按住修饰键，未完成人工 Ctrl 唤起及拖动；macOS 对应行为由定向原生回归覆盖，Windows 由实际 SendInput 验证，不能等同于两平台人工验收。
+- GitHub 最新稳定版为 [`v0.22.9`](https://github.com/gd0306/t-cube/releases/tag/v0.22.9)，标签直接指向打包 SHA。四个附件均用未认证公开下载核对大小与 SHA-256，和本地产物及 GitHub asset digest 一致：DMG 4,175,372 B、Windows 安装器 125,856,160 B、源码标记 41 B、校验清单 282 B。历史 Release 保留，三个 README 下载入口同步。
+- macOS DMG SHA-256：`ffb890263476c7012633dda57c606eb6801008e95c6957042059a9a2e8eb2248`。
+- Windows 安装器 SHA-256：`d9b4afa5e3ccb4fa82c8ef293e9456c71d62a155802046846f2bb28643b63587`。
+
+macOS 继续采用 ad-hoc 签名且未公证；Windows 继续未 Authenticode 签名，本次不改变系统开发者身份提示的边界。
