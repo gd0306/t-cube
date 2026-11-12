@@ -280,19 +280,20 @@ try {
     assert.deepEqual(afterAppearance.hover, beforeAppearance.hover);
     assert.equal(afterAppearance.scale, beforeAppearance.scale);
     assert.deepEqual(afterAppearance.appearance, defaultConfiguration().appearance);
-    const tray = await app.evaluate(async ({ app, nativeImage }) => {
-        const path = await import('node:path'), fs = await import('node:fs/promises');
-        const assets = path.join(app.getAppPath(), 'dist', 'assets');
-        const header = await fs.readFile(path.join(assets, 'tray.ico'));
-        const image = nativeImage.createFromPath(path.join(assets, 'tray.png'));
+    const installedAssets = path.join(launchContext.appPath, 'dist', 'assets');
+    const trayHeader = await readFile(path.join(installedAssets, 'tray.ico'));
+    assert.equal(trayHeader.readUInt16LE(2), 1);
+    assert.ok(trayHeader.readUInt16LE(4) >= 5);
+    const tray = await app.evaluate(({ nativeImage }, assets) => {
+        const image = nativeImage.createFromPath(assets + '/tray.png');
         const bitmap = image.toBitmap();
         let colored = 0;
         for (let i = 0; i < bitmap.length; i += 4) {
             if (bitmap[i + 3] > 200 && Math.max(bitmap[i], bitmap[i + 1], bitmap[i + 2]) - Math.min(bitmap[i], bitmap[i + 1], bitmap[i + 2]) > 30) colored++;
         }
-        return { ico: header.readUInt16LE(2), frames: header.readUInt16LE(4), size: image.getSize(), colored };
-    });
-    assert.equal(tray.ico, 1); assert.ok(tray.frames >= 5); assert.equal(tray.size.width, 128); assert.ok(tray.colored > 1000);
+        return { size: image.getSize(), colored };
+    }, installedAssets);
+    assert.equal(tray.size.width, 128); assert.ok(tray.colored > 1000);
     results.push('Glass settings sidebar, immediate material saving, scoped appearance defaults and packaged multiresolution colored tray artwork passed.');
     await settings.locator('nav [data-page="groups"]').click();
     const nameInput = settings.locator('#group-name');
