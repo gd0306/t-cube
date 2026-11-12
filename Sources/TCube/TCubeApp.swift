@@ -276,9 +276,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func showEditor() {
         faceExpansion?.close()
         if editor == nil {
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 800, height: 580), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1020, height: 728), styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
             window.title = "T-Cube · 设置"
-            window.minSize = NSSize(width: 760, height: 540)
+            window.minSize = NSSize(width: 960, height: 628)
+            window.titlebarAppearsTransparent = true
+            window.isOpaque = false
+            window.backgroundColor = .clear
             window.contentView = NSHostingView(rootView: EditorView(model: model, lifecycle: lifecycle, performance: performanceSettings, desktop: desktopSettings))
             window.isReleasedWhenClosed = false
             window.center()

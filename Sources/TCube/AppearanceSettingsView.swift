@@ -4,6 +4,7 @@ import CubeCore
 
 struct AppearanceSettingsView: View {
     @ObservedObject var model: AppModel
+    @State private var lastSavedValues: AppearanceSettingsValues?
     @State private var showsCustomAppearance = false
     @State private var showsThemeCycle = false
     @State private var showsInteraction = false
@@ -45,13 +46,11 @@ struct AppearanceSettingsView: View {
         CubeHoverSettings(isEnabled: hoverEnabled, multiplier: hoverMultiplier, delaySeconds: hoverDelay)
     }
 
-    private var validCycleSelection: Bool { !cycleEnabled || cycleThemes.count >= 2 }
-
-    private var hasChanges: Bool {
-        stagedAppearance != model.configuration.appearance || abs(scale - model.configuration.scale) > 0.001 ||
-        stagedCycle != model.configuration.themeCycle || stagedHover != model.configuration.hover ||
-        expandsFacesOnClick != model.configuration.expandsFacesOnClick ||
-        autoRotatesWhenIdle != model.configuration.autoRotatesWhenIdle
+    private var values: AppearanceSettingsValues {
+        AppearanceSettingsValues(appearance: stagedAppearance, scale: scale, themeID: selectedPreset,
+                                 cycle: stagedCycle, hover: stagedHover,
+                                 expandsFacesOnClick: expandsFacesOnClick,
+                                 autoRotatesWhenIdle: autoRotatesWhenIdle)
     }
 
     var body: some View {
@@ -111,6 +110,7 @@ struct AppearanceSettingsView: View {
                 Section {
                     DisclosureGroup(cycleEnabled ? "主题轮换 · 已开启" : "主题轮换", isExpanded: $showsThemeCycle) {
                         Toggle("自动轮换主题", isOn: $cycleEnabled)
+                            .disabled(!cycleEnabled && cycleThemes.count < 2)
                         if model.configuration.themeCycle.isEnabled, let activeTheme = model.activeTheme {
                             LabeledContent("当前主题", value: activeTheme.name)
                         }
@@ -123,7 +123,6 @@ struct AppearanceSettingsView: View {
                             }
                             .frame(width: 330)
                         }
-                        .disabled(!cycleEnabled)
                         Picker("轮换间隔", selection: $cycleInterval) {
                             Text("10 秒").tag(10)
                             Text("20 秒").tag(20)
@@ -131,10 +130,10 @@ struct AppearanceSettingsView: View {
                         .pickerStyle(.segmented)
                         .disabled(!cycleEnabled)
 
-                        Text("按勾选顺序轮换，应用后从第一种主题开始。")
+                        Text("按勾选顺序轮换，修改后立即从第一种主题开始。开启时至少保留两种主题。")
                             .font(InterfaceTypography.detail).foregroundStyle(.secondary)
                     }
-                    if !validCycleSelection {
+                    if cycleThemes.count < 2 {
                         Label("请至少选择两种轮换主题。", systemImage: "info.circle")
                             .foregroundStyle(.secondary)
                     }
@@ -179,18 +178,34 @@ struct AppearanceSettingsView: View {
                 }
             }
             .formStyle(.grouped)
-            Divider()
+            .scrollContentBackground(.hidden)
             HStack {
-                Text(!validCycleSelection ? "轮换至少需要两种主题" : hasChanges ? "本页有未应用的更改" : "本页设置已保存")
+                Text("修改后立即生效并保存。")
                     .font(.callout).foregroundStyle(.secondary)
                 Spacer()
-                Button("还原本页更改") { loadAppearance() }.disabled(!hasChanges)
-                Button("应用本页更改") { applyAppearance() }
-                    .buttonStyle(.borderedProminent).disabled(!hasChanges || !validCycleSelection)
+                Button("恢复默认外观") {
+                    let defaults = CubeConfiguration()
+                    model.change { AppearanceSettingsValues(configuration: defaults).apply(to: &$0) }
+                    loadAppearance(from: model.configuration)
+                    lastSavedValues = values
+                }
+                    .help("恢复本页默认值，保留入口、内容库与其他设置")
             }
             .padding(.horizontal, 24).padding(.vertical, 16)
         }
-        .onAppear { loadAppearance() }
+        .onAppear {
+            loadAppearance(from: model.configuration)
+            lastSavedValues = values
+        }
+        .onChange(of: values) { _, updated in
+            guard let lastSavedValues, updated != lastSavedValues else { return }
+            model.change { updated.apply(to: &$0) }
+            self.lastSavedValues = updated
+        }
+        .onChange(of: AppearanceSettingsValues(configuration: model.configuration)) { _, _ in
+            loadAppearance(from: model.configuration)
+            lastSavedValues = values
+        }
     }
 
     private func presetButton(_ preset: CubeThemePreset) -> some View {
@@ -221,43 +236,28 @@ struct AppearanceSettingsView: View {
             if selected {
                 if !cycleThemes.contains(preset) { cycleThemes.append(preset) }
             } else {
+                guard !cycleEnabled || cycleThemes.count > 2 else { return }
                 cycleThemes.removeAll { $0 == preset }
             }
         }
     }
 
-    private func loadAppearance() {
-        let appearance = model.configuration.appearance
+    private func loadAppearance(from configuration: CubeConfiguration) {
+        let appearance = configuration.appearance
         primary = Color(nsColor: NSColor(hexRGB: appearance.primaryHex) ?? .cyan)
         secondary = Color(nsColor: NSColor(hexRGB: appearance.secondaryHex) ?? .purple)
         glowIntensity = appearance.glowIntensity
         surfaceStyle = appearance.surfaceStyle
         material = appearance.material
-        scale = model.configuration.scale
-        cycleEnabled = model.configuration.themeCycle.isEnabled
-        cycleThemes = model.configuration.themeCycle.themes
-        cycleInterval = model.configuration.themeCycle.intervalSeconds
-        hoverEnabled = model.configuration.hover.isEnabled
-        hoverMultiplier = model.configuration.hover.multiplier
-        hoverDelay = model.configuration.hover.delaySeconds
-        expandsFacesOnClick = model.configuration.expandsFacesOnClick
-        autoRotatesWhenIdle = model.configuration.autoRotatesWhenIdle
+        scale = configuration.scale
+        cycleEnabled = configuration.themeCycle.isEnabled
+        cycleThemes = configuration.themeCycle.themes
+        cycleInterval = configuration.themeCycle.intervalSeconds
+        hoverEnabled = configuration.hover.isEnabled
+        hoverMultiplier = configuration.hover.multiplier
+        hoverDelay = configuration.hover.delaySeconds
+        expandsFacesOnClick = configuration.expandsFacesOnClick
+        autoRotatesWhenIdle = configuration.autoRotatesWhenIdle
     }
 
-    private func applyAppearance() {
-        guard validCycleSelection else { return }
-        let appearance = stagedAppearance
-        let themeID = selectedPreset
-        let cycle = stagedCycle
-        let hover = stagedHover
-        model.change {
-            $0.appearance = appearance
-            $0.scale = scale
-            $0.themeID = themeID
-            $0.themeCycle = cycle
-            $0.hover = hover
-            $0.expandsFacesOnClick = expandsFacesOnClick
-            $0.autoRotatesWhenIdle = autoRotatesWhenIdle
-        }
-    }
 }

@@ -32,6 +32,7 @@ struct DesktopSettingsView: View {
                 if let performance { PerformanceSettingsSection(settings: performance) }
             }
             .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
         }
     }
 }

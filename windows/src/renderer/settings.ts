@@ -1,7 +1,7 @@
 import { openURLTargetPicker } from './url-target-picker';
 import { renderMaintenance } from './maintenance';
 import { renderLifecycle } from './lifecycle';
-import { THEMES } from '../core/configuration';
+import { defaultConfiguration, THEMES } from '../core/configuration';
 import {
     FACES,
     type Configuration,
@@ -106,7 +106,7 @@ function range(
     return [el, out] as const;
 }
 function renderGroups(data: Snapshot) {
-    heading('应用分组', '为六个面安排应用、文件夹、文件、网站或系统设置。');
+    heading('立方体入口', '为六个面安排应用、文件夹、文件、网站或系统设置。');
     const tabs = element('div', undefined, 'tabs');
     FACES.forEach((f) => {
         const b = button(
@@ -206,7 +206,13 @@ function renderGroups(data: Snapshot) {
 }
 function renderAppearance(data: Snapshot) {
     const config = data.state.configuration;
-    heading('外观与主题', '玻璃与史莱姆共用所有主题、配色和光效。');
+    heading('外观与主题', '选择材质、颜色与动效。修改后立即生效并保存。');
+    const reset = button('恢复默认外观', () => save(c => {
+        c.appearance = structuredClone(defaultConfiguration().appearance);
+        c.themeCycle = structuredClone(defaultConfiguration().themeCycle);
+    }), 'restore-defaults');
+    reset.title = '恢复本页的材质、颜色、光效和轮换设置，保留入口与其他设置';
+    content.append(reset);
     content.append(element('h3', '立方体材质'));
     const material = element('select');
     for (const [value, title] of [['glass', '玻璃'], ['slime', '史莱姆']]) {
@@ -436,13 +442,29 @@ function render() {
     else if(page === 'maintenance') renderMaintenance(content);
     else if(page === 'lifecycle') renderLifecycle(content);
     else renderPerformance();
+    if (page === 'appearance' || page === 'behavior') {
+        let group: HTMLElement | undefined;
+        for (const child of Array.from(content.children)) {
+            if (child.tagName === 'H3') {
+                group = element('div', undefined, 'settings-group');
+                content.insertBefore(group, child);
+            }
+            if (group && child !== group) group.append(child);
+        }
+    }
 }
+
 document.querySelectorAll<HTMLButtonElement>('nav button').forEach((b) => {
     b.onclick = () => {
         page = b.dataset.page!;
         document
             .querySelectorAll('nav button')
-            .forEach((el) => el.classList.toggle('active', el === b));
+            .forEach((el) => {
+                el.classList.toggle('active', el === b);
+                if (el === b) el.setAttribute('aria-current', 'page');
+                else el.removeAttribute('aria-current');
+            });
+        document.querySelector('.detail')!.scrollTop = 0;
         render();
     };
 });

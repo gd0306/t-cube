@@ -267,6 +267,34 @@ try {
     await until(() => settings.locator('body').innerText(), value => value.includes('T-Cube'), 'Settings not rendered');
     await until(() => settings.locator('.slot').count(), count => count === 4, 'Settings slots not rendered');
     await sendPreviewIcons();
+    assert.equal(await settings.locator('nav svg').count(), 6);
+    assert.equal(await settings.locator('nav [aria-current="page"]').count(), 1);
+    const beforeAppearance = structuredClone((await snapshot()).state.configuration);
+    await settings.locator('nav [data-page="appearance"]').click();
+    await settings.getByLabel('材质', { exact: true }).selectOption('slime');
+    await until(snapshot, value => value.state.configuration.appearance.material === 'slime', 'Appearance did not save immediately');
+    await settings.getByRole('button', { name: '恢复默认外观', exact: true }).click();
+    await until(snapshot, value => value.state.configuration.appearance.material === 'glass', 'Appearance defaults did not save');
+    const afterAppearance = (await snapshot()).state.configuration;
+    assert.deepEqual(afterAppearance.groups, beforeAppearance.groups);
+    assert.deepEqual(afterAppearance.hover, beforeAppearance.hover);
+    assert.equal(afterAppearance.scale, beforeAppearance.scale);
+    assert.deepEqual(afterAppearance.appearance, defaultConfiguration().appearance);
+    const tray = await app.evaluate(async ({ app, nativeImage }) => {
+        const path = await import('node:path'), fs = await import('node:fs/promises');
+        const assets = path.join(app.getAppPath(), 'dist', 'assets');
+        const header = await fs.readFile(path.join(assets, 'tray.ico'));
+        const image = nativeImage.createFromPath(path.join(assets, 'tray.png'));
+        const bitmap = image.toBitmap();
+        let colored = 0;
+        for (let i = 0; i < bitmap.length; i += 4) {
+            if (bitmap[i + 3] > 200 && Math.max(bitmap[i], bitmap[i + 1], bitmap[i + 2]) - Math.min(bitmap[i], bitmap[i + 1], bitmap[i + 2]) > 30) colored++;
+        }
+        return { ico: header.readUInt16LE(2), frames: header.readUInt16LE(4), size: image.getSize(), colored };
+    });
+    assert.equal(tray.ico, 1); assert.ok(tray.frames >= 5); assert.equal(tray.size.width, 128); assert.ok(tray.colored > 1000);
+    results.push('Glass settings sidebar, immediate material saving, scoped appearance defaults and packaged multiresolution colored tray artwork passed.');
+    await settings.locator('nav [data-page="groups"]').click();
     const nameInput = settings.locator('#group-name');
     await nameInput.fill('Edited group');
     const tab = settings.getByRole('button', { name: '开发', exact: true });

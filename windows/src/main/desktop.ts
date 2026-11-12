@@ -139,7 +139,9 @@ export class DesktopApplication {
         this.widget.setAlwaysOnTop(true, 'floating');
         await this.widget.loadFile(this.html('widget'));
         this.widget.show();
-        const trayImage = nativeImage.createFromPath(path.join(this.directory, 'assets', 'tray.png')).resize({ width: 20, height: 20 });
+        const trayImage = process.platform === 'win32'
+            ? path.join(this.directory, 'assets', 'tray.ico')
+            : nativeImage.createFromPath(path.join(this.directory, 'assets', 'tray.png')).resize({ width: 24, height: 24 });
         this.tray = new Tray(trayImage);
         this.displayInput = new DisplayInputPanel(this.directory, new DisplayInputService(this.directory, new DisplayInputStore(path.join(app.getPath('userData'), 'display-inputs.json'))));
         this.tray.setToolTip('T-Cube'); this.updateTray();
@@ -319,8 +321,19 @@ export class DesktopApplication {
     }
     showSettings(): void {
         if (!this.settings) {
-            this.settings = this.createWindow('settings', { title: 'T-Cube Settings', width: 1020, height: 780, minWidth: 760, minHeight: 580,
-                backgroundColor: '#11151d', autoHideMenuBar: true });
+            const supportsAcrylic = process.platform === 'win32' && Number(release().split('.')[2]) >= 22621;
+            this.settings = this.createWindow('settings', { title: 'T-Cube · 设置', width: 1060, height: 780, minWidth: 800, minHeight: 580,
+                backgroundColor: nativeTheme.shouldUseDarkColors ? '#20252d' : '#eef2f7',
+                backgroundMaterial: supportsAcrylic ? 'acrylic' : undefined, autoHideMenuBar: true });
+            const window = this.settings;
+            const updateMaterial = () => {
+                const solid = nativeTheme.prefersReducedTransparency || nativeTheme.inForcedColorsMode;
+                if (supportsAcrylic) window.setBackgroundMaterial(solid ? 'none' : 'acrylic');
+                window.setBackgroundColor(supportsAcrylic && !solid ? '#00000000' : nativeTheme.shouldUseDarkColors ? '#20252d' : '#eef2f7');
+            };
+            updateMaterial();
+            nativeTheme.on('updated', updateMaterial);
+            window.once('closed', () => nativeTheme.removeListener('updated', updateMaterial));
             void this.settings.loadFile(this.html('settings')).then(() => { this.settings?.show(); this.settings?.focus(); })
                 .catch(error => this.host.reportError(error));
         } else { this.settings.show(); this.settings.focus(); }

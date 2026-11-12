@@ -40,6 +40,7 @@ struct LifecycleSettingsView: View {
             }
         }
         .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
         .onAppear { controller.start() }
     }
 }

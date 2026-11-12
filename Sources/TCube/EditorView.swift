@@ -8,36 +8,155 @@ struct EditorView: View {
     var performance: PerformanceSettings? = nil
     var desktop: DesktopAutoHideSettings? = nil
 
+    @State private var selection: SettingsPage = .launchers
+
     var body: some View {
-        VStack(spacing: 0) {
-            TabView {
-                FaceSettingsView(model: model)
-                    .tabItem { Label("立方体入口", systemImage: "cube") }
-                AppearanceSettingsView(model: model)
-                    .tabItem { Label("外观", systemImage: "paintpalette") }
-                if desktop != nil || performance != nil {
-                    DesktopSettingsView(model: model, desktop: desktop, performance: performance)
-                        .tabItem { Label("桌面与性能", systemImage: "desktopcomputer") }
-                }
-                MaintenanceSettingsView(model: model)
-                    .tabItem { Label("配置与备份", systemImage: "externaldrive") }
-                if let lifecycle {
-                    LifecycleSettingsView(controller: lifecycle)
-                        .tabItem { Label("启动与更新", systemImage: "arrow.triangle.2.circlepath") }
-                }
-            }
-            .padding(16)
+        HStack(spacing: 0) {
+            sidebar
             Divider()
-            HStack {
-                Text("左键拖动位置 · 右键拖动旋转")
-                    .font(InterfaceTypography.detail).foregroundStyle(.secondary)
-                Spacer()
-                Button("退出 T-Cube", systemImage: "power") { NSApp.terminate(nil) }
-                    .help("退出应用并移除悬浮立方体")
+            VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(selection.title).font(.system(size: 28, weight: .semibold))
+                    Text(selection.subtitle).font(.callout).foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 28).padding(.top, 26).padding(.bottom, 18)
+
+                // Keep page navigation from resetting disclosures and local editing state.
+                ZStack {
+                    page(.launchers) { FaceSettingsView(model: model) }
+                    page(.appearance) { AppearanceSettingsView(model: model) }
+                    if desktop != nil || performance != nil {
+                        page(.desktop) { DesktopSettingsView(model: model, desktop: desktop, performance: performance) }
+                    }
+                    page(.maintenance) { MaintenanceSettingsView(model: model) }
+                    if let lifecycle {
+                        page(.lifecycle) { LifecycleSettingsView(controller: lifecycle) }
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .padding(.horizontal, 24).padding(.vertical, 12)
+            .background(SettingsGlass(material: .underWindowBackground))
         }
-        .frame(minWidth: 760, idealWidth: 800, minHeight: 520, idealHeight: 580)
+        .background(SettingsGlass(material: .sidebar).ignoresSafeArea())
+        .frame(minWidth: 960, idealWidth: 1020, minHeight: 600, idealHeight: 700)
+    }
+
+    private var sidebar: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            HStack(spacing: 12) {
+                Image(nsImage: NSApplication.shared.applicationIconImage)
+                    .resizable().frame(width: 42, height: 42)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("T-Cube").font(.system(size: 19, weight: .semibold))
+                    Text("让常用，触手可及").font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 10).padding(.top, 10)
+            VStack(spacing: 5) {
+                ForEach(SettingsPage.allCases) { item in
+                    if isAvailable(item) {
+                        Button { selection = item } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: item.symbol)
+                                    .font(.system(size: 17, weight: .medium)).frame(width: 24)
+                                    .foregroundStyle(selection == item ? Color.accentColor : Color.secondary)
+                                Text(item.title).font(.system(size: 13, weight: selection == item ? .semibold : .medium))
+                                Spacer(minLength: 0)
+                            }
+                            .padding(.horizontal, 12).padding(.vertical, 13)
+                            .background(selection == item ? Color.accentColor.opacity(0.14) : .clear,
+                                        in: RoundedRectangle(cornerRadius: 10))
+                            .contentShape(RoundedRectangle(cornerRadius: 10))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(selection == item ? .isSelected : [])
+                    }
+                }
+            }
+            Spacer()
+            VStack(alignment: .leading, spacing: 14) {
+                Text("左键拖动位置 · 右键拖动旋转")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("退出 T-Cube", systemImage: "power") { NSApp.terminate(nil) }
+                    .buttonStyle(.plain).foregroundStyle(.secondary)
+                    .help("退出应用并移除悬浮立方体")
+            }.padding(10)
+        }
+        .padding(14).frame(width: 210)
+    }
+
+    private func isAvailable(_ page: SettingsPage) -> Bool {
+        switch page {
+        case .desktop: desktop != nil || performance != nil
+        case .lifecycle: lifecycle != nil
+        default: true
+        }
+    }
+
+    private func page<Content: View>(_ page: SettingsPage, @ViewBuilder content: () -> Content) -> some View {
+        content()
+            .scrollContentBackground(.hidden)
+            .opacity(selection == page ? 1 : 0)
+            .allowsHitTesting(selection == page)
+            .disabled(selection != page)
+            .accessibilityHidden(selection != page)
+    }
+}
+
+private enum SettingsPage: String, CaseIterable, Identifiable {
+    case launchers, appearance, desktop, maintenance, lifecycle
+    var id: Self { self }
+    var title: String {
+        switch self {
+        case .launchers: "立方体入口"
+        case .appearance: "外观"
+        case .desktop: "桌面与性能"
+        case .maintenance: "配置与备份"
+        case .lifecycle: "启动与更新"
+        }
+    }
+    var subtitle: String {
+        switch self {
+        case .launchers: "把常用的应用、文件与网页，放到顺手的一面。"
+        case .appearance: "选择材质、颜色与动效，打造你的桌面立方体。"
+        case .desktop: "让立方体融入桌面，兼顾流畅与节能。"
+        case .maintenance: "备份你的设置，管理与修复本地入口。"
+        case .lifecycle: "管理登录启动，获取 T-Cube 的新版本。"
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .launchers: "cube"
+        case .appearance: "paintpalette"
+        case .desktop: "desktopcomputer"
+        case .maintenance: "externaldrive"
+        case .lifecycle: "arrow.triangle.2.circlepath"
+        }
+    }
+}
+
+/// Native desktop blur follows system appearance and accessibility preferences.
+struct SettingsGlass: NSViewRepresentable {
+    var material: NSVisualEffectView.Material
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.blendingMode = .behindWindow
+        view.state = .followsWindowActiveState
+        configure(view)
+        return view
+    }
+
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {
+        configure(view)
+    }
+
+    private func configure(_ view: NSVisualEffectView) {
+        view.material = material
+        view.wantsLayer = true
+        view.layer?.backgroundColor = reduceTransparency ? NSColor.windowBackgroundColor.cgColor : nil
     }
 }
 

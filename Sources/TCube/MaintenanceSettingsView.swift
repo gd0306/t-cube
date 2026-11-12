@@ -95,6 +95,7 @@ struct MaintenanceSettingsView: View {
                     .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
             }.padding(24)
         }
+        .groupBoxStyle(SettingsGroupBoxStyle())
         .onAppear { maintenance.refreshBackups(); maintenance.scanLaunchers() }
         .sheet(isPresented: Binding(get: { maintenance.pendingImport != nil },
                                     set: { if !$0 { maintenance.cancelImport() } })) {
@@ -122,6 +123,7 @@ struct MaintenanceSettingsView: View {
                 Button("备份当前数据并恢复", role: .destructive) { maintenance.confirmImport() }
             }
         }.padding(24).frame(width: 460)
+            .background(.regularMaterial)
     }
 
     private func faceName(_ face: CubeFace) -> String {
@@ -133,5 +135,17 @@ struct MaintenanceSettingsView: View {
         case .top: "顶面"
         case .bottom: "底面"
         }
+    }
+}
+
+private struct SettingsGroupBoxStyle: GroupBoxStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            configuration.label.font(.headline)
+            configuration.content
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
     }
 }

@@ -11,21 +11,27 @@
         <title>T-Cube 设置</title>
     </head>
     <body>
-        <header>
-            <div>
-                <small>桌面启动器</small>
-                <h1>T-Cube</h1>
-            </div>
-            <button id="quit" class="quiet">退出 T-Cube</button>
-        </header>
-        <div id="error" role="alert"></div>
         <main>
-            <nav aria-label="设置页面">
-                <button data-page="groups" class="active">应用分组</button
-                ><button data-page="appearance">外观与主题</button
-                ><button data-page="behavior">交互与位置</button><button data-page="performance">性能</button><button data-page="maintenance">配置与备份</button><button data-page="lifecycle">启动与更新</button>
-            </nav>
-            <section id="content"></section>
+            <aside class="sidebar">
+                <header class="brand">
+                    <img src="../assets/icon.png" width="42" height="42" alt="" />
+                    <div><h1>T-Cube</h1><p>让常用，触手可及</p></div>
+                </header>
+                <nav aria-label="设置页面"><button data-page="groups" class="active" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5v8l-9 5-9-5V8Z M3 8l9 5 9-5 M12 13v8"/></svg><span>立方体入口</span></button>
+<button data-page="appearance"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18h2a2 2 0 0 0 1-3.7 1.5 1.5 0 0 1 1-2.8h2a3 3 0 0 0 3-3A8.5 8.5 0 0 0 12 3Z"/><circle cx="7.5" cy="10" r=".8"/><circle cx="11" cy="7" r=".8"/><circle cx="16" cy="8" r=".8"/></svg><span>外观与主题</span></button>
+<button data-page="behavior"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8 M12 17v4"/></svg><span>交互与位置</span></button>
+<button data-page="performance"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17a9 9 0 1 1 16 0 M12 13l5-5 M5 19h14"/><circle cx="12" cy="13" r="1.5"/></svg><span>性能</span></button>
+<button data-page="maintenance"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 4-3 10v5a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-5L19 4Z M2 14h20 M16 17h2"/></svg><span>配置与备份</span></button>
+<button data-page="lifecycle"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 8a8 8 0 0 0-14-3L3 8 M3 3v5h5 M4 16a8 8 0 0 0 14 3l3-3 M16 16h5v5"/></svg><span>启动与更新</span></button></nav>
+                <footer class="sidebar-footer">
+                    <p>左键拖动位置 · 右键拖动旋转</p>
+                    <button id="quit" class="quiet">退出 T-Cube</button>
+                </footer>
+            </aside>
+            <div class="detail">
+                <div id="error" role="alert"></div>
+                <section id="content" aria-label="设置内容"></section>
+            </div>
         </main>
         <script type="module" src="settings.js"></script>
     </body>
