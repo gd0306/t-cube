@@ -122,6 +122,7 @@ export class OfficeServices {
         const window=this.quickWindow,point=screen.getCursorScreenPoint(),area=screen.getDisplayNearestPoint(point).workArea;
         const width=Math.min(380,area.width),height=Math.min(520,area.height);
         window.setBounds({x:Math.round(Math.max(area.x,Math.min(point.x+12,area.x+area.width-width))),y:Math.round(Math.max(area.y,Math.min(point.y+12,area.y+area.height-height))),width,height});
+        window.webContents.send(C.clipboardQuickShown);
         window.webContents.send(C.clipboardHistoryChanged,this.clipboardHistory.state);
         window.show();window.focus();
     }
@@ -149,7 +150,16 @@ export class OfficeServices {
         const historyOperations=clipboardHistoryOperations(this.clipboardHistory, request => this.use(request), (image, paste) => this.useImage(image, paste), (image, current) => this.imageProcessor.preview(image, current));
         const operations:Record<string,(value:unknown)=>unknown>={
             ...historyOperations,
-            copyClipboardQuickEntry: async value=>{await historyOperations.useClipboardHistoryEntry({id:value,paste:false});this.dismissClipboardQuick();},
+            copyClipboardQuickEntry: async value=>{
+                const generation=this.quickGeneration;
+                if (typeof value === 'string') await historyOperations.useClipboardHistoryEntry({id:value,paste:false});
+                else {
+                    const request=record(value);
+                    if(Object.keys(request).some(key=>!['id','action','sourceText','editedText'].includes(key)))throw new Error('Invalid quick processing request');
+                    await historyOperations.useClipboardHistoryText({...request,paste:false});
+                }
+                if(generation===this.quickGeneration)this.dismissClipboardQuick();
+            },
             dismissClipboardQuick: value=>{if(value!==undefined)throw new Error('Invalid quick history request');this.dismissClipboardQuick();},
             showClipboardHistory: value => { if (value !== undefined) throw new Error('Invalid history request'); return this.showClipboardHistory(); },
             showLibrary:value=>this.showLibrary(value===undefined?undefined:string(value,262144)),getLibrary:()=>this.library.get(),

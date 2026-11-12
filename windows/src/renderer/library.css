@@ -77,3 +77,5 @@ body.dragging #detail { outline: 3px solid #4288cf; outline-offset: -6px; }
 .history-row input, .history-cleanup input { width:auto; }
 
 .history-editor{width:100%;min-height:240px;resize:vertical;font:inherit;line-height:1.6;padding:12px;color:inherit;background:transparent;border:1px solid #7c8999;border-radius:8px}
+.history-row .clipboard-text-tools{flex:0 0 76px;width:76px;font:inherit;font-size:12px;padding:6px;border:1px solid #cbd5e0;border-radius:6px;background:white;color:#26394e}
+.history-row .clipboard-text-tools:focus-visible{outline:2px solid #4288cf;outline-offset:2px}

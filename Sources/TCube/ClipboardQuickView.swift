@@ -23,13 +23,17 @@ struct ClipboardQuickView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header.padding(18)
+            header.overlay {
+                ClipboardQuickDragRegion().padding(.trailing, 40)
+            }.padding(18)
             Divider().padding(.horizontal, 18)
-            if controller.editingID != nil { editor }
+            if controller.processingID != nil { processingPreview }
+            else if controller.editingID != nil { editor }
             else { list }
             Divider().padding(.horizontal, 18)
             footer.padding(.horizontal, 18).padding(.vertical, 12)
         }
+        .background(Color(nsColor: .windowBackgroundColor).opacity(0.14))
         .foregroundStyle(ink)
         .environment(\.colorScheme, controller.isDark ? .dark : .light)
         .onExitCommand { controller.handleEscape() }
@@ -40,7 +44,7 @@ struct ClipboardQuickView: View {
             Image(systemName: "clipboard").font(.system(size: 20)).foregroundStyle(muted)
             VStack(alignment: .leading, spacing: 4) {
                 Text("剪贴板历史").font(.system(size: 17, weight: .semibold))
-                Text(controller.editingID == nil ? "移出立方体 · 长按 Ctrl 1 秒唤起" : "编辑文字 · 保存后点选复制")
+                Text(controller.processingID != nil ? "快捷处理 · 原记录保持不变" : controller.editingID == nil ? "单击复制 · 拖动标题移动 · 退出清空" : "编辑文字 · 保存后点选复制")
                     .font(.system(size: 12)).foregroundStyle(muted)
             }
             Spacer(minLength: 0)
@@ -111,6 +115,12 @@ struct ClipboardQuickView: View {
                 .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading).contentShape(Rectangle())
             }.buttonStyle(ClipboardRowButtonStyle()).help("复制这条历史并收起面板")
             if case .text(let entry) = row {
+                Menu {
+                    ForEach(ClipboardTextAction.allCases) { action in
+                        Button(action.title) { controller.beginProcessing(entry.id, action: action) }
+                    }
+                } label: { Image(systemName: "text.badge.checkmark").frame(width: 24, height: 32) }
+                .menuStyle(.borderlessButton).fixedSize().help("快捷处理文字").accessibilityLabel("快捷处理文字")
                 Button { controller.beginEditing(entry.id) } label: { Image(systemName: "pencil").frame(width: 28, height: 32) }
                     .buttonStyle(.plain).help("编辑这条文字").accessibilityLabel("编辑这条文字")
             }
@@ -119,6 +129,51 @@ struct ClipboardQuickView: View {
             } label: { Image(systemName: "trash").frame(width: 28, height: 32) }
                 .buttonStyle(.plain).foregroundStyle(muted).help("删除这条历史").accessibilityLabel("删除这条历史")
         }.padding(.trailing, 4)
+    }
+
+    private var processingPreview: some View {
+        let result = controller.processingResult
+        let output = try? result?.get()
+        return VStack(alignment: .leading, spacing: 12) {
+            Text(controller.textAction.title + " · 预览").font(.headline)
+            Text("复制不改动历史；修改记录不写入剪贴板。URL 编码用于单个参数值，解码保留 +。")
+                .font(.system(size: 12)).foregroundStyle(muted).fixedSize(horizontal: false, vertical: true)
+            if case .failure(let error) = result {
+                Text(error.localizedDescription).font(.system(size: 12)).foregroundStyle(muted)
+            }
+            Group {
+                if controller.isEditingProcessing {
+                    TextEditor(text: $controller.processingDraft)
+                        .font(.system(size: 13, design: .monospaced)).scrollContentBackground(.hidden)
+                        .accessibilityLabel("编辑处理结果")
+                } else {
+                    ScrollView {
+                        Text(output ?? controller.processingDraft)
+                            .font(.system(size: 13, design: .monospaced)).textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }
+            .padding(10).background(.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+            .frame(maxHeight: .infinity)
+            HStack {
+                Button("返回列表") { controller.cancelProcessing() }
+                    .buttonStyle(.plain).padding(.horizontal, 10).padding(.vertical, 7)
+                    .background(muted.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+                Spacer()
+                if controller.isEditingProcessing {
+                    Button("保存到本条记录") { controller.saveProcessed() }.disabled(output == nil)
+                        .buttonStyle(.plain).padding(.horizontal, 10).padding(.vertical, 7)
+                        .background(muted.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+                } else {
+                    Button("编辑结果") { controller.isEditingProcessing = true }
+                        .buttonStyle(.plain).padding(.horizontal, 10).padding(.vertical, 7)
+                        .background(muted.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+                }
+                Button("复制处理结果") { controller.copyProcessed() }
+                    .buttonStyle(.borderedProminent).disabled(output == nil)
+            }
+        }.padding(18).frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var editor: some View {

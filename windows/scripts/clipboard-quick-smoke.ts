@@ -1,6 +1,7 @@
 /** Windows CI only: real SendInput Ctrl hold and production quick UI, inside the outer owned clipboard snapshot. */
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
+import {release as osRelease} from 'node:os';
 import {mkdir,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import koffi from 'koffi';
@@ -143,6 +144,55 @@ export async function verifyClipboardQuickSmoke(app:ElectronApplication,widget:P
         await record('long press opened and release retained',{elapsedMilliseconds:Math.round(elapsed)});
         const quick=app.windows().find(page=>page.url().endsWith('/clipboard-quick.html'));
         assert.ok(quick,'Native Ctrl must create the actual production quick-history page');
+        await stage('quick history: native title drag and frosted backing');
+        const beforeDrag=await app.evaluate(({BrowserWindow})=>{
+            const window=BrowserWindow.getAllWindows().find(window=>window.webContents.getURL().endsWith('/clipboard-quick.html'))!;
+            return {bounds:window.getBounds(),movable:window.isMovable(),background:window.getBackgroundColor()};
+        });
+        assert.equal(beforeDrag.movable,true);
+        const title=await quick.locator('header h1').boundingBox();assert.ok(title);
+        const area=await app.evaluate(({screen},bounds)=>screen.getDisplayMatching(bounds).workArea,beforeDrag.bounds);
+        const dx=beforeDrag.bounds.x+beforeDrag.bounds.width+80<area.x+area.width?80:-80;
+        const dy=beforeDrag.bounds.y+beforeDrag.bounds.height+40<area.y+area.height?40:-40;
+        const start={x:beforeDrag.bounds.x+title.x+title.width/2,y:beforeDrag.bounds.y+title.y+title.height/2};
+        await movePointer(start);native.button(0,true);
+        try {
+            for(let step=1;step<=8;step++){
+                await movePointer({x:start.x+dx*step/8,y:start.y+dy*step/8});
+                await new Promise(resolve=>setTimeout(resolve,25));
+            }
+        } finally {native.button(0,false);}
+        await until(async()=>{
+            const frame=await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(window=>window.webContents.getURL().endsWith('/clipboard-quick.html'))!.getBounds());
+            return Math.abs(frame.x-beforeDrag.bounds.x)>=40;
+        },'Dragging the actual quick-window title did not move the native window');
+        assert.equal((await quickState()).visible,true,'Title dragging must not dismiss the quick panel');
+        const build=Number(osRelease().split('.')[2]);
+        if(build<22621)assert.notEqual(beforeDrag.background.toLowerCase(),'#00000000','Older Windows must have a solid fallback rather than a transparent desktop window');
+        await record('native title drag moved panel',{before:beforeDrag.bounds});
+        await stage('quick history: per-record preview and explicit result editing');
+        const textTools=quick.getByRole('combobox',{name:'快捷处理文字',exact:true});
+        await textTools.click();await quick.keyboard.press('Home');
+        for(let step=0;step<4;step++)await quick.keyboard.press('ArrowDown');
+        await quick.keyboard.press('Enter');
+        await quick.getByText('转为大写 · 预览',{exact:true}).waitFor();
+        assert.equal((await quickState()).visible,true,'Native processing menu must not dismiss the panel');
+        await activateOwnedReceiver();
+        await moveOutside();native.control(false);native.control(true);
+        await until(async()=>(await quickState()).visible,'Fresh Ctrl hold did not reopen quick history');
+        native.control(false);
+        await until(async()=>await textTools.count()===1,'A fresh hold must show the list, not the previous preview');
+        assert.equal(await quick.getByText('转为大写 · 预览',{exact:true}).count(),0);
+        await textTools.selectOption('uppercase');
+        await quick.getByText('转为大写 · 预览',{exact:true}).waitFor();
+        assert.deepEqual((await state()).entries,[original],'Generating a preview must preserve the original record');
+        assert.equal(await app.evaluate(async({clipboard})=>clipboard.readText()),text,'Generating a preview must not write the clipboard');
+        await quick.getByRole('button',{name:'编辑结果',exact:true}).click();
+        await quick.getByRole('textbox',{name:'编辑处理结果',exact:true}).fill('Edited processing preview');
+        await quick.getByRole('button',{name:'保存到本条记录',exact:true}).click();
+        await until(async()=>(await state()).entries[0]?.text==='Edited processing preview','Explicit result save did not update the record');
+        assert.equal((await state()).entries[0].copiedAt,original.copiedAt);
+        assert.equal(await app.evaluate(async({clipboard})=>clipboard.readText()),text,'Saving a processing result must not write the clipboard');
         await quick.getByRole('button',{name:'编辑文字',exact:true}).click();
         await quick.getByRole('textbox',{name:'编辑历史文字',exact:true}).fill(edited);
         await stage('quick history: edit and save through quick UI');
@@ -167,7 +217,7 @@ export async function verifyClipboardQuickSmoke(app:ElectronApplication,widget:P
         },1100); // More than two 500 ms recorder intervals.
         assert.equal(readOwnedReceiver(),receiverBefore,'Quick copy must not paste or type into the owned receiver');
         await record('copied and hidden without self-recording');
-        return ['Native Windows SendInput: short Ctrl stayed hidden; hover Ctrl restored size without opening history, leaving or entering the cube kept that press cancelled, and a fresh outside one-second Ctrl hold opened quick history with release retention. Actual quick UI edited/saved without clipboard writes, then copied/closed without duplicate recording or receiver input. Automated desktop input, not a manual check.'];
+        return ['Native Windows SendInput: short Ctrl stayed hidden; hover Ctrl restored size without opening history, leaving or entering the cube kept that press cancelled, and a fresh outside one-second Ctrl hold opened quick history with release retention. Native title dragging moved the frosted panel; per-record processing preview and explicit editing preserved clipboard and timestamps. Actual quick UI edited/saved without clipboard writes, then copied/closed without duplicate recording or receiver input. Automated desktop input, not a manual check.'];
     }catch(error){
         failure=error;
         await record('failure').catch(()=>{});

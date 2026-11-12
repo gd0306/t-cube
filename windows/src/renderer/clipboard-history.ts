@@ -1,3 +1,5 @@
+import { clipboardTextTools } from './clipboard-text-tools';
+import { CLIPBOARD_TEXT_ACTIONS, processClipboardText, clipboardTextNotice, type ClipboardTextAction } from '../shared/clipboard-text-processing';
 import type { DesktopBridge } from '../shared/contracts';
 import { mergeHistoryText, type ClipboardHistoryState, type ClipboardMergeRequest } from '../shared/clipboard-history';
 
@@ -16,6 +18,7 @@ export class ClipboardHistoryPanel {
     private clear = document.createElement('button');
     private count = document.createElement('span');
     private status = document.createElement('p');
+    private processing: {id: string; action: ClipboardTextAction; source: string; text: string; editing: boolean} | undefined;
     private busy = false;
     private editDraft: {id:string;text:string}|undefined;
     private enabledBefore = false;
@@ -34,13 +37,13 @@ export class ClipboardHistoryPanel {
         controls.append(this.toggle, this.clear, this.count);
         const tabs = document.createElement('div'); tabs.className = 'history-controls'; tabs.setAttribute('aria-label', '历史分类');
         for (const [label, category] of [['文字', 'text'], ['图片', 'images']] as const) {
-            const button = this.button(label, () => { this.category = category; this.imagePreview = undefined; this.selected.clear(); this.selectedId = undefined; this.search.value = ''; this.render(); });
+            const button = this.button(label, () => { this.category = category; this.processing = undefined; this.imagePreview = undefined; this.selected.clear(); this.selectedId = undefined; this.search.value = ''; this.render(); });
             button.dataset.category = category; tabs.append(button);
         }
         const columns = document.createElement('div'); columns.className = 'history-columns';
         const aside = document.createElement('aside');
         this.search.type = 'search'; this.search.placeholder = '搜索剪贴板历史'; this.search.setAttribute('aria-label', '搜索剪贴板历史');
-        this.search.oninput = () => { this.selected.clear(); this.selectedId = undefined; this.render(); };
+        this.search.oninput = () => { this.processing = undefined; this.selected.clear(); this.selectedId = undefined; this.render(); };
         this.list.className = 'history-list'; this.list.setAttribute('aria-label', '剪贴板历史列表');
         this.detail.className = 'history-detail'; this.detail.setAttribute('aria-label', '历史详情');
         aside.append(this.search, this.list); columns.append(aside, this.detail);
@@ -53,6 +56,9 @@ export class ClipboardHistoryPanel {
     }
     dispose(): void { this.unsubscribe(); this.previewVersion++; this.imagePreview = undefined; this.detail.replaceChildren(); }
     private update(state: ClipboardHistoryState): void { if(state.imageNotice)this.status.textContent=state.imageNotice;else if(this.state.imageNotice)this.status.textContent=''; if (this.imagePreview && !state.images?.some(image => image.id === this.imagePreview!.id)) this.imagePreview = undefined; this.state = state; this.enabledBefore ||= state.isEnabled;
+        if (this.processing && state.entries.find(entry => entry.id === this.processing!.id)?.text !== this.processing.source) {
+            this.processing = undefined; this.status.textContent = '原记录已修改或删除，请重新选择处理。';
+        }
         if(this.editDraft&&state.entries.some(entry=>entry.id===this.editDraft!.id))return;
         if(this.editDraft){this.editDraft=undefined;this.status.textContent='编辑的记录已删除或过期。';}
         this.render(); }
@@ -62,7 +68,7 @@ export class ClipboardHistoryPanel {
         let failed=false;
         this.busy = true; this.status.textContent = ''; this.render();
         try { await action(); } catch { failed=true;this.status.textContent = '操作未完成，请重试；历史条目可能已删除。'; }
-        finally { this.busy = false; this.render();if(failed&&this.editDraft){const input=this.detail.querySelector('textarea');input?.focus();if(input&&selection)input.setSelectionRange(...selection);} }
+        finally { this.busy = false; this.render();if(failed&&(this.editDraft||this.processing?.editing)){const input=this.detail.querySelector('textarea');input?.focus();if(input&&selection)input.setSelectionRange(...selection);} }
     }
     private button(text: string, action: () => void): HTMLButtonElement {
         const button = document.createElement('button'); button.type = 'button'; button.textContent = text;
@@ -89,12 +95,15 @@ export class ClipboardHistoryPanel {
         for (const entry of visible) {
             const wrapper = document.createElement('div'); wrapper.className = 'history-row';
             const image = 'thumbnail' in entry;
-            if (!image) wrapper.append(this.option(`选择文字 ${entries.indexOf(entry) + 1}`, this.selected.has(entry.id), checked => { if (checked) this.selected.add(entry.id); else this.selected.delete(entry.id); }));
-            const row = this.button(image ? `${entry.width} × ${entry.height}` : entry.text.slice(0, 160).replace(/\s+/g, ' '), () => { this.selectedId = entry.id; this.render(); });
+            if (!image) wrapper.append(this.option(`选择文字 ${entries.indexOf(entry) + 1}`, this.selected.has(entry.id), checked => { this.processing = undefined; if (checked) this.selected.add(entry.id); else this.selected.delete(entry.id); }));
+            const row = this.button(image ? `${entry.width} × ${entry.height}` : entry.text.slice(0, 160).replace(/\s+/g, ' '), () => { this.processing = undefined; this.selectedId = entry.id; this.render(); });
             if (image) { const thumbnail = document.createElement('img'); thumbnail.src = entry.thumbnail; thumbnail.alt = '历史图片缩略图'; row.prepend(thumbnail); }
             row.disabled ||= Boolean(this.editDraft);
-            row.className = `item${entry.id === this.selectedId ? ' active' : ''}`; row.setAttribute('aria-pressed', String(entry.id === this.selectedId)); wrapper.append(row); this.list.append(wrapper);
+            row.className = `item${entry.id === this.selectedId ? ' active' : ''}`; row.setAttribute('aria-pressed', String(entry.id === this.selectedId)); wrapper.append(row);
+            if (!image) wrapper.append(clipboardTextTools(this.busy || Boolean(this.editDraft), action => this.beginProcessing(entry.id, action)));
+            this.list.append(wrapper);
         }
+        if(this.processing){this.renderProcessing();return;}
         if(this.editDraft){this.renderTextEditor();return;}
         if (this.category === 'text' && this.selected.size) { this.renderMerge(entries); return; }
         const selected = visible.find(entry => entry.id === this.selectedId);
@@ -113,6 +122,54 @@ export class ClipboardHistoryPanel {
             if (this.imagePreview?.id !== selected.id) this.imagePreview = {id: selected.id, pending: this.bridge.getClipboardHistoryImage(selected.id)};
             void this.imagePreview.pending.then(source => { if (this.previewVersion === previewVersion) { if(source)preview.src = source;else {this.imagePreview=undefined;preview.alt='图片暂不可用，请重新选择';} } }).catch(() => { if (this.previewVersion === previewVersion) preview.alt = '图片已删除或暂不可用'; });
         } else { const text = document.createElement('pre'); text.textContent = selected.text; this.detail.append(text); }
+    }
+    private beginProcessing(id: string, action: ClipboardTextAction): void {
+        const entry = this.state.entries.find(entry => entry.id === id);
+        if (!entry) return;
+        this.processing = undefined;
+        try {
+            const text = processClipboardText(entry.text, action);
+            this.processing = {id, action, source: entry.text, text, editing: false};
+            this.selected.clear(); this.selectedId = id;
+            this.status.textContent = clipboardTextNotice(entry.text, action, text) ?? '已生成预览，原记录保持不变。';
+        } catch (error) { this.status.textContent = (error as Error).message; }
+        this.render();
+    }
+    private renderProcessing(): void {
+        const draft = this.processing!, heading = document.createElement('h2');
+        heading.textContent = CLIPBOARD_TEXT_ACTIONS[draft.action] + ' · 预览'; this.detail.append(heading);
+        let valid = true;
+        try { processClipboardText(draft.text, 'original'); }
+        catch (error) { valid = false; this.status.textContent = (error as Error).message; }
+        const actions = document.createElement('div'); actions.className = 'actions';
+        const copy = this.button('复制处理结果', () => { void this.run(async () => {
+            const result = await this.bridge.useClipboardHistoryText({id: draft.id, action: draft.action, sourceText: draft.source, ...(draft.editing ? {editedText: draft.text} : {}), paste: false});
+            this.status.textContent = result.status;
+        }); });
+        copy.disabled ||= !valid; copy.dataset.processingOutput = '';
+        const edit = draft.editing ? this.button('保存到本条记录', () => { void this.run(async () => {
+            await this.bridge.editClipboardHistoryEntry({id: draft.id, text: draft.text, expectedText: draft.source});
+            this.processing = undefined; this.status.textContent = '已修改本条记录；系统剪贴板保持原样。';
+        }); }) : this.button('编辑结果', () => { draft.editing = true; this.status.textContent = ''; this.render(); this.detail.querySelector('textarea')?.focus(); });
+        if (draft.editing) { edit.disabled ||= !valid; edit.dataset.processingOutput = ''; }
+        actions.append(copy, edit, this.button('取消处理', () => { this.processing = undefined; this.status.textContent = ''; this.render(); }));
+        const hint = document.createElement('p'); hint.textContent = '复制不改动历史；保存仅修改本条记录，不写入剪贴板。URL 编码用于单个参数值，解码保留 +。最多 64 KiB。';
+        this.detail.append(actions, hint);
+        if (draft.editing) {
+            const input = document.createElement('textarea'); input.className = 'history-editor'; input.value = draft.text; input.disabled = this.busy;
+            input.setAttribute('aria-label', '编辑处理结果');
+            input.oninput = () => {
+                draft.text = input.value;
+                let issue = '';
+                try { processClipboardText(draft.text, 'original'); } catch (error) { issue = (error as Error).message; }
+                this.detail.querySelectorAll<HTMLButtonElement>('[data-processing-output]').forEach(button => { button.disabled = this.busy || Boolean(issue); });
+                this.status.textContent = issue;
+            };
+            this.detail.append(input);
+        } else {
+            const preview = document.createElement('pre'); preview.textContent = draft.text;
+            preview.setAttribute('aria-label', valid ? '处理结果预览' : '原文（处理失败）'); this.detail.append(preview);
+        }
     }
     private renderTextEditor(): void {
         const draft=this.editDraft!,heading=document.createElement('h2');heading.textContent='编辑历史文字';

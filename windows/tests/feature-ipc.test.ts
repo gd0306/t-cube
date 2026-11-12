@@ -30,7 +30,7 @@ test('clipboard history reads and mutations are library-only and reject child fr
     const operations = Object.fromEntries(Object.keys(FEATURE_ROLES).map(name => [name, () => { calls++; }]));
     registerFeatureIPC({ handle: (channel, operation) => handlers.set(channel, operation) }, () => role, operations, () => false, () => {});
     const frame = {}, event = { sender: { id: 1, mainFrame: frame }, senderFrame: frame };
-    for (const channel of [C.getClipboardHistory, C.setClipboardHistoryEnabled, C.deleteClipboardHistoryEntry, C.clearClipboardHistory, C.useClipboardHistoryEntry, C.getClipboardHistoryImage, C.previewClipboardHistoryMerge, C.useClipboardHistoryMerge]) {
+    for (const channel of [C.useClipboardHistoryText, C.getClipboardHistory, C.setClipboardHistoryEnabled, C.deleteClipboardHistoryEntry, C.clearClipboardHistory, C.useClipboardHistoryEntry, C.getClipboardHistoryImage, C.previewClipboardHistoryMerge, C.useClipboardHistoryMerge]) {
         assert.ok(handlers.has(channel));
         await assert.rejects(handlers.get(channel)!(event), /authorized/);
         role = 'library'; await assert.rejects(handlers.get(channel)!({ ...event, senderFrame: {} }), /authorized/);
@@ -50,6 +50,6 @@ test('quick history can edit/copy session entries but cannot access snippets, pa
         await assert.rejects(handlers.get(channel)!({...event,senderFrame:{}}),/authorized/);
     }
     assert.equal(calls,7);
-    for(const channel of [C.getLibrary,C.saveSnippet,C.useClipboardHistoryEntry,C.useClipboardHistoryMerge,C.captureClipboard,C.exportBackup,C.setLoginEnabled]) await assert.rejects(handlers.get(channel)!(event),/authorized/);
+    for(const channel of [C.useClipboardHistoryText,C.getLibrary,C.saveSnippet,C.useClipboardHistoryEntry,C.useClipboardHistoryMerge,C.captureClipboard,C.exportBackup,C.setLoginEnabled]) await assert.rejects(handlers.get(channel)!(event),/authorized/);
     assert.equal(calls,7);
 });

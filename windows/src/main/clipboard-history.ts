@@ -1,3 +1,4 @@
+import { CLIPBOARD_TEXT_ACTIONS, processClipboardText, type ClipboardTextAction } from '../shared/clipboard-text-processing';
 import { ClipboardHistory, type HistoryImage } from '../core/clipboard-history';
 import { mergeHistoryText, type ClipboardMergeRequest, type ClipboardHistoryState } from '../shared/clipboard-history';
 export interface ClipboardHistoryReader { sequence(): number | null; read(isCurrent: () => boolean): Promise<string | HistoryImage | {skippedImage:string} | null> }
@@ -93,15 +94,30 @@ export function clipboardHistoryOperations(recorder: ClipboardHistoryRecorder,
             || (withPaste && typeof request.paste !== 'boolean')) throw new Error('Invalid merge request');
         return {ids: request.ids.map(id), trimLines: request.trimLines, collapseBlankLines: request.collapseBlankLines, paste: request.paste as boolean | undefined};
     }
+    function validAction(action: unknown): action is ClipboardTextAction {
+        return typeof action === 'string' && Object.hasOwn(CLIPBOARD_TEXT_ACTIONS, action);
+    }
     return {
+        useClipboardHistoryText: value => {
+            if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid text processing request');
+            const request = value as Record<string, unknown>;
+            if (Object.keys(request).some(key => !['id', 'action', 'paste', 'sourceText', 'editedText'].includes(key)) || !validAction(request.action) || typeof request.paste !== 'boolean') throw new Error('Invalid text processing request');
+            const source = recorder.text(id(request.id));
+            if (request.sourceText !== undefined && (typeof request.sourceText !== 'string' || request.sourceText !== source)) throw new Error('原记录已修改，请重新生成预览。');
+            if (request.editedText !== undefined && (typeof request.editedText !== 'string' || typeof request.sourceText !== 'string')) throw new Error('Invalid edited processing preview');
+            const output = request.editedText === undefined ? processClipboardText(source, request.action) : processClipboardText(request.editedText as string, 'original');
+            return use({text: output, paste: request.paste});
+        },
         previewClipboardHistoryMerge: value => recorder.merge(merge(value)),
         useClipboardHistoryMerge: value => { const request = merge(value, true); return use({text: recorder.merge(request), paste: request.paste!}); },
         getClipboardHistoryImage: value => { const selectedId=id(value),image=recorder.image(selectedId); if (!image || !imagePreview) throw new Error('Image unavailable'); const preview=imagePreview(image,()=>recorder.hasImage(selectedId)); return preview instanceof Promise ? preview.then(value=>recorder.hasImage(selectedId)?value:null) : preview; },
         editClipboardHistoryEntry: value => {
             if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid history edit');
             const request = value as Record<string, unknown>;
-            if (Object.keys(request).some(key => !['id', 'text'].includes(key)) || typeof request.text !== 'string') throw new Error('Invalid history edit');
-            recorder.edit(id(request.id), request.text);
+            if (Object.keys(request).some(key => !['id', 'text', 'expectedText'].includes(key)) || typeof request.text !== 'string') throw new Error('Invalid history edit');
+            const selectedId = id(request.id);
+            if (request.expectedText !== undefined && (typeof request.expectedText !== 'string' || recorder.text(selectedId) !== request.expectedText)) throw new Error('原记录已修改，请重新生成预览。');
+            recorder.edit(selectedId, request.text);
         },
         getClipboardHistory: value => { empty(value); return recorder.state; },
         setClipboardHistoryEnabled: value => { if (typeof value !== 'boolean') throw new Error('Invalid history preference'); recorder.setEnabled(value); },

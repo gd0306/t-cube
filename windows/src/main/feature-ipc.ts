@@ -4,6 +4,7 @@ import type {WindowRole} from './ipc';
 interface Event {sender:{id:number;mainFrame:unknown};senderFrame:unknown}
 export interface FeatureIPC {handle(channel:string,callback:(event:Event,value?:unknown)=>Promise<unknown>):void}
 export const FEATURE_ROLES:Partial<Record<keyof DesktopBridge,WindowRole[]>>={
+    useClipboardHistoryText:['library'],
     editClipboardHistoryEntry:['library','clipboard-quick'],copyClipboardQuickEntry:['clipboard-quick'],dismissClipboardQuick:['clipboard-quick'],
     getClipboardHistoryImage:['library'],previewClipboardHistoryMerge:['library'],useClipboardHistoryMerge:['library'],
     showClipboardHistory:['widget','settings','expanded','library','clipboard-quick'],getClipboardHistory:['library','clipboard-quick'],setClipboardHistoryEnabled:['library','clipboard-quick'],deleteClipboardHistoryEntry:['library','clipboard-quick'],clearClipboardHistory:['library'],useClipboardHistoryEntry:['library'],

@@ -14,7 +14,7 @@ struct ClipboardQuickPreviewTests {
         let quick = ClipboardQuickController(history: history, copyText: { _ in true }, copyImage: { _ in true }, openManager: {})
         defer { quick.stop(); history.shutdown() }
         history.enable()
-        for text in ["会议记录：周三下午三点，确认本周设计稿。", "https://github.com/gd0306/t-cube", "长按 Ctrl 1 秒，单击任意历史内容复制。", "项目说明\n可在历史中编辑、保存或删除文字。"] {
+        for text in ["会议记录：周三下午三点，确认本周设计稿。", "https://github.com/gd0306/t-cube", "长按 Ctrl 1 秒，单击任意历史内容复制。", "项目说明\n可在历史中编辑、保存或删除文字。", #"{"id":900719925474099312345,"name":"T-Cube","items":[1,2,3]}"#] {
             board.clearContents(); board.setString(text, forType: .string); history.poll()
         }
         let output = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(".build/clipboard-quick-previews")
@@ -23,16 +23,20 @@ struct ClipboardQuickPreviewTests {
             quick.show()
             let panel = try #require(quick.panel)
             panel.appearance = NSAppearance(named: appearance)
-            for editing in [false, true] {
-                if editing { quick.beginEditing(try #require(history.entries.first?.id)) }
+            for suffix in ["list", "editor", "processing", "processing-editor"] {
+                let id = try #require(history.entries.first?.id)
+                if suffix == "editor" { quick.beginEditing(id) }
+                if suffix.hasPrefix("processing") {
+                    quick.beginProcessing(id, action: .jsonPretty)
+                    if suffix == "processing-editor" { quick.isEditingProcessing = true }
+                }
                 try await Task.sleep(for: .milliseconds(250))
                 let content = try #require(panel.contentView)
                 content.layoutSubtreeIfNeeded(); content.displayIfNeeded()
                 let bitmap = try #require(content.bitmapImageRepForCachingDisplay(in: content.bounds))
                 content.cacheDisplay(in: content.bounds, to: bitmap)
-                let suffix = editing ? "editor" : "list"
                 try #require(bitmap.representation(using: .png, properties: [:])).write(to: output.appendingPathComponent("clipboard-quick-\(suffix)-\(name).png"))
-                if editing { quick.cancelEditing() }
+                quick.cancelEditing(); quick.cancelProcessing()
             }
             quick.dismiss()
         }

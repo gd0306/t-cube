@@ -67,6 +67,11 @@ struct ClipboardHistoryView: View {
     @State var category: Category = .text
     @State var selectedIDs: Set<UUID> = []
     @State var selectedImageID: UUID?
+    @State private var textAction: ClipboardTextAction = .original
+    @State private var processingEntryID: UUID?
+    @State private var processingDraft = ""
+    @State private var processingSource = ""
+    @State private var isEditingProcessing = false
     @State var trimLines = false
     @State var collapseBlankLines = false
     @State private var showsRecordingDetails = false
@@ -77,6 +82,13 @@ struct ClipboardHistoryView: View {
 
     private var mergedText: String? {
         model.mergedText(selectedIDs: selectedIDs, trimLines: trimLines, collapseBlankLines: collapseBlankLines)
+    }
+    private var processedText: Result<String, Error>? {
+        if let processingEntryID {
+            guard model.entries.contains(where: { $0.id == processingEntryID }) else { return nil }
+            return Result { try ClipboardTextAction.original.apply(to: processingDraft) }
+        }
+        return mergedText.map { .success($0) }
     }
     private var selectedImage: ClipboardHistoryImage? {
         model.images.first { $0.id == selectedImageID }
@@ -132,9 +144,17 @@ struct ClipboardHistoryView: View {
         .frame(minWidth: 800, idealWidth: 920, minHeight: 540, idealHeight: 680)
         .onChange(of: isActive) { _, active in searchFocused = active && category == .text }
         .onChange(of: category) { _, value in searchFocused = isActive && value == .text }
+        .onChange(of: selectedIDs) { _, ids in
+            if let processingEntryID, ids != [processingEntryID] { cancelProcessing() }
+        }
         .onChange(of: model.query) { _, _ in selectedIDs.removeAll() }
         .onChange(of: model.visibleEntries.map(\.id)) { _, ids in
             selectedIDs.formIntersection(ids)
+        }
+        .onChange(of: model.entries) { _, entries in
+            if let processingEntryID, entries.first(where: { $0.id == processingEntryID })?.text != processingSource {
+                cancelProcessing(); model.status = "原记录已修改或删除，请重新选择处理。"
+            }
         }
         .onChange(of: model.images.map(\.id)) { _, ids in
             if !ids.contains(where: { $0 == selectedImageID }) { selectedImageID = nil }
@@ -169,10 +189,17 @@ struct ClipboardHistoryView: View {
                 } else {
                     List(selection: $selectedIDs) {
                         ForEach(model.visibleEntries) { entry in
-                            Text(String(entry.text.prefix(160)).replacingOccurrences(of: "\n", with: " "))
-                                .lineLimit(2).foregroundStyle(.primary)
-                                .padding(.vertical, 5)
-                                .tag(entry.id)
+                            HStack {
+                                Text(String(entry.text.prefix(160)).replacingOccurrences(of: "\n", with: " "))
+                                    .lineLimit(2).foregroundStyle(.primary).frame(maxWidth: .infinity, alignment: .leading)
+                                Menu {
+                                    ForEach(ClipboardTextAction.allCases) { action in
+                                        Button(action.title) { processEntry(entry.id, action: action) }
+                                    }
+                                } label: { Image(systemName: "text.badge.checkmark") }
+                                .menuStyle(.borderlessButton).fixedSize().help("快捷处理文字").accessibilityLabel("快捷处理文字")
+                            }
+                            .padding(.vertical, 5).tag(entry.id)
                         }
                     }.listStyle(.inset).accessibilityLabel("文字历史列表，可多选")
                 }
@@ -211,7 +238,8 @@ struct ClipboardHistoryView: View {
     }
 
     private var textDetail: some View {
-        let output = mergedText
+        let result = processedText
+        let output = try? result?.get()
         return VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text(selectedIDs.count > 1 ? "合并预览 · \(selectedIDs.count) 条" : "文字预览").font(.headline)
@@ -227,6 +255,22 @@ struct ClipboardHistoryView: View {
                 Button("复制", systemImage: "doc.on.doc") { if let output { useText(output, false) } }.disabled(output == nil)
                 Button("存为常用内容", systemImage: "plus") { if let output { saveText(output) } }.disabled(!canSave || output == nil)
             }
+            if let processingEntryID {
+                HStack {
+                    Text(textAction.title + " · 预览").font(.callout.weight(.medium))
+                    Spacer()
+                    if isEditingProcessing {
+                        Button("保存到本条记录") {
+                            if let output, model.updateText(id: processingEntryID, text: output) { cancelProcessing() }
+                        }.disabled(output == nil)
+                    } else {
+                        Button("编辑结果") { isEditingProcessing = true }
+                    }
+                    Button("取消处理") { cancelProcessing() }
+                }
+                Text("复制不改动历史；修改记录不写入剪贴板。URL 编码用于单个参数值，解码保留 +。")
+                    .font(InterfaceTypography.detail).foregroundStyle(.secondary)
+            }
             DisclosureGroup("整理文字", isExpanded: $showsTextCleanup) {
                 HStack(spacing: 18) {
                     Toggle("逐行去除首尾空白", isOn: $trimLines)
@@ -235,15 +279,37 @@ struct ClipboardHistoryView: View {
                 Text("多条记录以换行连接，原记录保持不变。输出最多 64 KiB。")
                     .font(InterfaceTypography.detail).foregroundStyle(.secondary)
             }
+            .disabled(processingEntryID != nil)
             Divider()
-            if let output {
+            if processingEntryID != nil && isEditingProcessing {
+                TextEditor(text: $processingDraft).font(InterfaceTypography.body)
+                    .accessibilityLabel("编辑处理结果")
+            } else if let output {
                 ScrollView {
                     Text(output).font(InterfaceTypography.body).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
                 }
+            } else if case .failure(let error) = result {
+                emptyState(error.localizedDescription)
             } else {
                 emptyState(selectedIDs.isEmpty ? "选择一条或多条文字记录查看预览" : "合并内容为空或超过 64 KiB，请减少选择或调整清理选项。")
             }
         }.padding(24)
+    }
+
+    private func processEntry(_ id: UUID, action: ClipboardTextAction) {
+        guard let entry = model.entries.first(where: { $0.id == id }) else { model.status = "这条记录已删除。"; return }
+        cancelProcessing()
+        do {
+            let output = try action.apply(to: entry.text)
+            selectedIDs = [id]; processingEntryID = id; textAction = action; processingSource = entry.text
+            isEditingProcessing = false; processingDraft = output
+            model.status = action.notice(source: entry.text, result: output) ?? "已生成预览，原记录保持不变。"
+        } catch { model.status = error.localizedDescription }
+    }
+
+    private func cancelProcessing() {
+        processingEntryID = nil; textAction = .original; processingDraft = ""; processingSource = ""
+        isEditingProcessing = false
     }
 
     @ViewBuilder private var imageDetail: some View {

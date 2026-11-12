@@ -33,6 +33,109 @@ struct ClipboardQuickPanelTests {
         #expect(!history.isEnabled)
     }
 
+    @Test func processingCopiesOnlyThePreviewAndRejectsInvalidOrDeletedSources() throws {
+        _ = NSApplication.shared
+        let board = NSPasteboard(name: .init("TCubeProcessTests-\(UUID().uuidString)"))
+        defer { board.releaseGlobally() }
+        let history = ClipboardHistoryModel(pasteboard: board, schedulesPolling: false)
+        var copied: String?
+        let quick = ClipboardQuickController(history: history, copyText: { copied = $0; return true }, copyImage: { _ in false }, openManager: {})
+        defer { quick.stop(); history.shutdown() }
+        history.enable()
+        board.clearContents(); board.setString("a+b%20c", forType: .string); history.poll()
+        let entry = try #require(history.entries.first)
+        #expect(quick.beginProcessing(entry.id, action: .urlDecode))
+        #expect(copied == nil)
+        #expect(board.string(forType: .string) == entry.text)
+        #expect(try quick.processingResult?.get() == "a+b c")
+        #expect(quick.copyProcessed())
+        #expect(copied == "a+b c")
+        #expect(history.entries == [entry])
+        copied = nil
+        #expect(quick.beginProcessing(entry.id, action: .urlDecode))
+        #expect(quick.saveProcessed())
+        #expect(history.entries.first?.text == "a+b c")
+        #expect(history.entries.first?.capturedAt == entry.capturedAt)
+        #expect(board.string(forType: .string) == entry.text)
+        #expect(!quick.beginProcessing(entry.id, action: .jsonPretty))
+        #expect(quick.processingID == nil)
+        #expect(quick.status.contains("JSON"))
+        #expect(!quick.copyProcessed())
+        #expect(copied == nil)
+        #expect(quick.beginProcessing(entry.id, action: .uppercase))
+        history.delete(entry.id)
+        #expect(quick.processingID == nil)
+        #expect(!quick.copyProcessed())
+    }
+
+    @Test func previewAllowsEditingBeforeCopyWithoutOverwritingHistory() throws {
+        _ = NSApplication.shared
+        let board = NSPasteboard(name: .init("TCubeProcessEditTests-\(UUID().uuidString)"))
+        defer { board.releaseGlobally() }
+        let history = ClipboardHistoryModel(pasteboard: board, schedulesPolling: false)
+        var copied: String?
+        let quick = ClipboardQuickController(history: history, copyText: { copied = $0; return true }, copyImage: { _ in false }, openManager: {})
+        defer { quick.stop(); history.shutdown() }
+        history.enable(); board.clearContents(); board.setString("hello", forType: .string); history.poll()
+        let entry = try #require(history.entries.first)
+        #expect(quick.beginProcessing(entry.id, action: .uppercase))
+        #expect(copied == nil)
+        quick.isEditingProcessing = true; quick.processingDraft = "重新编辑的结果"
+        #expect(quick.copyProcessed())
+        #expect(copied == "重新编辑的结果")
+        #expect(history.entries.first == entry)
+        #expect(quick.processingDraft.isEmpty)
+        #expect(quick.beginProcessing(entry.id, action: .uppercase))
+        history.updateText(id: entry.id, text: "外部改动")
+        #expect(quick.processingID == nil)
+        #expect(quick.processingDraft.isEmpty)
+    }
+
+    @Test func processingPreviewAndEditorStayWithinTheDisplay() async throws {
+        _ = NSApplication.shared
+        let board = NSPasteboard(name: .init("TCubeProcessSizeTests-\(UUID().uuidString)"))
+        defer { board.releaseGlobally() }
+        let history = ClipboardHistoryModel(pasteboard: board, schedulesPolling: false)
+        let quick = ClipboardQuickController(history: history, copyText: { _ in true }, copyImage: { _ in false }, openManager: {})
+        defer { quick.stop(); history.shutdown() }
+        history.enable(); board.clearContents(); board.setString("[" + Array(repeating: "123", count: 40).joined(separator: ",") + "]", forType: .string); history.poll()
+        let screen = NSRect(x: 0, y: 0, width: 640, height: 450)
+        quick.show(at: NSPoint(x: 320, y: 300), visibleScreens: [screen])
+        let panel = try #require(quick.panel)
+        let expectedSize = panel.frame.size
+        quick.beginProcessing(try #require(history.entries.first?.id), action: .jsonPretty)
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(panel.frame.size == expectedSize)
+        #expect(screen.contains(panel.frame))
+        quick.isEditingProcessing = true
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(panel.frame.size == expectedSize)
+        #expect(screen.contains(panel.frame))
+    }
+
+    @Test func everyFreshShowReturnsToTheListAndDropsOnlyUnsavedPreviewState() throws {
+        _ = NSApplication.shared
+        let board = NSPasteboard(name: .init("TCubeReopenPreview-\(UUID().uuidString)"))
+        defer { board.releaseGlobally() }
+        let history = ClipboardHistoryModel(pasteboard: board, schedulesPolling: false)
+        let quick = ClipboardQuickController(history: history, copyText: { _ in true }, copyImage: { _ in false }, openManager: {})
+        defer { quick.stop(); history.shutdown() }
+        history.enable(); board.clearContents(); board.setString("hello", forType: .string); history.poll()
+        let entry = try #require(history.entries.first)
+        for staysVisible in [false, true] {
+            quick.show()
+            #expect(quick.beginProcessing(entry.id, action: .uppercase))
+            quick.isEditingProcessing = true; quick.processingDraft = "尚未保存"
+            if !staysVisible { quick.dismiss() }
+            quick.show()
+            #expect(quick.processingID == nil)
+            #expect(quick.processingDraft.isEmpty)
+            #expect(quick.editingID == nil)
+            #expect(history.entries == [entry])
+            #expect(board.string(forType: .string) == "hello")
+        }
+    }
+
     @Test func singleClickCopiesTheCurrentEditedTextWithoutRecordingItAgain() throws {
         _ = NSApplication.shared
         let board = NSPasteboard(name: .init("TCubeQuickTests-\(UUID().uuidString)"))
@@ -61,7 +164,7 @@ struct ClipboardQuickPanelTests {
         #expect(history.entries.map(\.text) == ["修改后的历史"])
     }
 
-    @Test func openingDoesNotEnableRecordingAndDraftsSurviveDismissal() throws {
+    @Test func reopeningStartsAtTheListWithoutEnablingRecordingOrSavingDrafts() throws {
         _ = NSApplication.shared
         let board = NSPasteboard(name: .init("TCubeQuickTests-\(UUID().uuidString)"))
         defer { board.releaseGlobally() }
@@ -77,8 +180,10 @@ struct ClipboardQuickPanelTests {
         quick.draft = "未保存的草稿"
         quick.dismiss()
         quick.show()
-        #expect(quick.editingID == id)
-        #expect(quick.draft == "未保存的草稿")
+        #expect(quick.editingID == nil)
+        #expect(quick.draft.isEmpty)
+        #expect(history.entries.first?.text == "需要编辑")
+        #expect(quick.beginEditing(id))
         quick.draft = " "
         #expect(!quick.saveEdit())
         #expect(history.entries.first?.text == "需要编辑")

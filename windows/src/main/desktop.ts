@@ -113,11 +113,10 @@ export class DesktopApplication {
             whenLauncherOperationsIdle:()=>this.whenLauncherOperationsIdle(),historyChanged:()=>this.updateTray(),
             createQuickWindow:()=>{
                 const supportsAcrylic=process.platform==='win32'&&Number(release().split('.')[2])>=22621;
-                const window=this.createWindow('clipboard-quick',{title:'T-Cube · 剪贴板历史',width:380,height:520,frame:false,transparent:!supportsAcrylic,backgroundMaterial:supportsAcrylic?'acrylic':undefined,backgroundColor:'#00000000',resizable:false,hasShadow:false,skipTaskbar:true,alwaysOnTop:true,thickFrame:false});
+                const window=this.createWindow('clipboard-quick',{title:'T-Cube · 剪贴板历史',width:380,height:520,frame:false,transparent:false,backgroundMaterial:supportsAcrylic?'acrylic':undefined,backgroundColor:nativeTheme.shouldUseDarkColors?'#1b222d':'#f8fafd',resizable:false,movable:true,hasShadow:true,skipTaskbar:true,alwaysOnTop:true,thickFrame:false});
                 const material=()=>{
-                    if(!supportsAcrylic)return;
-                    const solid=nativeTheme.prefersReducedTransparency||nativeTheme.inForcedColorsMode;
-                    window.setBackgroundMaterial(solid?'none':'acrylic');
+                    const solid=!supportsAcrylic||nativeTheme.prefersReducedTransparency||nativeTheme.inForcedColorsMode;
+                    if(supportsAcrylic)window.setBackgroundMaterial(solid?'none':'acrylic');
                     // Electron's 'none' setter resets the backing color to white; restore the system-theme fallback explicitly.
                     window.setBackgroundColor(solid?(nativeTheme.shouldUseDarkColors?'#1b222d':'#f8fafd'):'#00000000');
                 };

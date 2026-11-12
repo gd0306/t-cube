@@ -1,19 +1,22 @@
+import type { ClipboardTextAction } from './clipboard-text-processing';
 export const CLIPBOARD_HISTORY_LIMITS = { entries: 100, itemBytes: 64 * 1024, totalBytes: 2 * 1024 * 1024 } as const;
 export interface ClipboardHistoryEntry { id: string; text: string; copiedAt: number }
 export interface ClipboardHistoryState { isEnabled: boolean; entries: ClipboardHistoryEntry[]; totalBytes: number; images?: ClipboardImageEntry[]; totalImageBytes?: number; imageNotice?: string }
 export interface ClipboardHistoryBridge {
-    editClipboardHistoryEntry(request: {id: string; text: string}): Promise<void>;
-    copyClipboardQuickEntry(id: string): Promise<void>;
+    editClipboardHistoryEntry(request: {id: string; text: string; expectedText?: string}): Promise<void>;
+    copyClipboardQuickEntry(id: string, action?: ClipboardTextAction, preview?: {text?: string; sourceText: string}): Promise<void>;
     dismissClipboardQuick(): Promise<void>;
     showClipboardHistory(): Promise<void>;
     getClipboardHistory(): Promise<ClipboardHistoryState>;
     setClipboardHistoryEnabled(enabled: boolean): Promise<void>;
     deleteClipboardHistoryEntry(id: string): Promise<void>;
     clearClipboardHistory(): Promise<void>;
+    useClipboardHistoryText(request: { id: string; action: ClipboardTextAction; paste: boolean; sourceText?: string; editedText?: string }): Promise<{ status: string }>;
     useClipboardHistoryEntry(request: { id: string; paste: boolean }): Promise<{ status: string }>;
     getClipboardHistoryImage(id: string): Promise<string | null>;
     previewClipboardHistoryMerge(request: ClipboardMergeRequest): Promise<string>;
     useClipboardHistoryMerge(request: ClipboardMergeRequest & {paste: boolean}): Promise<{status: string}>;
+    onClipboardQuickShown(callback: () => void): () => void;
     onClipboardHistoryChanged(callback: (state: ClipboardHistoryState) => void): () => void;
     onShowClipboardHistory(callback: () => void): () => void;
 }
