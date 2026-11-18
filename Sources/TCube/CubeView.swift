@@ -176,13 +176,19 @@ final class CubeView: ARView {
     func refreshAppearance() {
         let appearance = model.displayedAppearance
         guard appearance != appliedAppearance else { return }
-        let apply = { [weak self] in self?.applyAppearance(appearance) }
+        // A hidden surface can defer this request across many theme ticks, including
+        // a wrap back to the already-applied theme. Resolve the latest value on reveal.
+        let apply = { [weak self] in
+            guard let self else { return }
+            self.applyAppearance(self.model.displayedAppearance)
+        }
         if appliedAppearance != nil, let appearanceTransitionRequested {
             appearanceTransitionRequested { apply() }
         } else { apply() }
     }
 
     private func applyAppearance(_ appearance: CubeAppearance) {
+        guard appearance != appliedAppearance else { return }
         requestRendering()
         appliedAppearance = appearance
         let enabled = appearance.material == .slime

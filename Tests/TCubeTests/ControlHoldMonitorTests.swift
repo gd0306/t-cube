@@ -4,6 +4,69 @@ import Testing
 
 @MainActor
 struct ControlHoldMonitorTests {
+    @Test func delayedModifierCounterConfirmsTheObservedPressWithoutCancellingIt() {
+        var sample = snapshot(at: 10, held: false, modifierCount: 8)
+        var fired = 0
+        let monitor = ControlHoldMonitor(readSnapshot: { sample }, action: { fired += 1 })
+        defer { monitor.stop() }
+        monitor.poll()
+        // Reproduces the Mac: flags update immediately, counters and ages lag behind.
+        sample = snapshot(at: 10.125, modifierCount: 8, modifierAge: 4); monitor.poll()
+        sample.time = 10.25; monitor.poll()
+        sample = snapshot(at: 10.5, modifierCount: 9, modifierAge: 0.5); monitor.poll()
+        for tick in 85...88 { sample.time = Double(tick) / 8; monitor.poll() }
+        #expect(fired == 0)
+        sample.time = 11.125; monitor.poll()
+        #expect(fired == 1)
+        sample.time = 11.25; monitor.poll()
+        #expect(fired == 1)
+    }
+
+    @Test func delayedCounterStillRejectsCombinationsAndRequiresConfirmation() {
+        for interruption in 0..<6 {
+            var sample = snapshot(at: 10, held: false, modifierCount: 8)
+            var fired = 0
+            let monitor = ControlHoldMonitor(readSnapshot: { sample }, action: { fired += 1 })
+            defer { monitor.stop() }
+            monitor.poll()
+            sample = snapshot(at: 10.125, modifierCount: 8, modifierAge: 4); monitor.poll()
+            sample.time = 10.25
+            switch interruption {
+            case 0: sample.otherModifierHeld = true
+            case 1: sample.ordinaryKeyHeld = true
+            case 2: sample.mouseButtonHeld = true
+            case 3: sample.inputCounts[0] += 1
+            case 4: sample.modifierCount += 3
+            default: break // No counter confirmation must never open the panel.
+            }
+            monitor.poll()
+            for tick in 83...96 { sample.time = Double(tick) / 8; monitor.poll() }
+            #expect(fired == 0)
+        }
+    }
+
+    @Test func pendingPressIsDiscardedOnReleaseStopAndSessionReset() {
+        for cancellation in 0..<4 {
+            let center = NotificationCenter()
+            var sample = snapshot(at: 10, held: false, modifierCount: 8)
+            var fired = 0
+            let monitor = ControlHoldMonitor(readSnapshot: { sample }, notificationCenter: center,
+                action: { fired += 1 })
+            defer { monitor.stop() }
+            monitor.start()
+            sample = snapshot(at: 10.125, modifierCount: 8, modifierAge: 4); monitor.poll()
+            switch cancellation {
+            case 0: sample = snapshot(at: 10.25, held: false, modifierCount: 10); monitor.poll()
+            case 1: monitor.stop()
+            case 2: center.post(name: NSWorkspace.didWakeNotification, object: nil)
+            default: center.post(name: NSWorkspace.sessionDidBecomeActiveNotification, object: nil)
+            }
+            sample = snapshot(at: 10.5, modifierCount: 11, modifierAge: 0.5); monitor.poll()
+            for tick in 85...96 { sample.time = Double(tick) / 8; monitor.poll() }
+            #expect(fired == (cancellation == 0 ? 1 : 0))
+        }
+    }
+
     private func timer(after delay: TimeInterval, fire: @escaping @MainActor () -> Void) -> Timer {
         Timer(timeInterval: delay, repeats: false) { _ in MainActor.assumeIsolated { fire() } }
     }
@@ -153,8 +216,8 @@ struct ControlHoldMonitorTests {
         #expect(scheduled == 0)
     }
 
-    @Test func invalidAndPreReleaseModifierAgesDoNotScheduleAnEarlyDeadline() {
-        for age in [Double.nan, .infinity, -0.1, 0.125, 0.5, 1] {
+    @Test func invalidModifierAgesDoNotScheduleADeadline() {
+        for age in [Double.nan, .infinity, -0.1] {
             var sample = snapshot(at: 0, held: false, modifierCount: 0)
             var scheduled = 0
             var fired = 0
@@ -168,6 +231,21 @@ struct ControlHoldMonitorTests {
             for tick in 2...30 { sample.time = Double(tick) / 8; monitor.poll() }
             #expect(scheduled == 0)
             #expect(fired == 0)
+        }
+    }
+
+    @Test func cachedModifierAgeUsesTheObservedPressWithoutFiringEarly() {
+        for age in [0.125, 0.5, 1.0] {
+            var sample = snapshot(at: 0, held: false, modifierCount: 0)
+            var fired = 0
+            let monitor = ControlHoldMonitor(readSnapshot: { sample }, action: { fired += 1 })
+            defer { monitor.stop() }
+            monitor.poll()
+            sample = snapshot(at: 0.125, modifierAge: age); monitor.poll()
+            for tick in 2...8 { sample.time = Double(tick) / 8; monitor.poll() }
+            #expect(fired == 0)
+            sample.time = 1.125; monitor.poll()
+            #expect(fired == 1)
         }
     }
 

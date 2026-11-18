@@ -4,7 +4,70 @@ import Testing
 @testable import TCube
 
 @MainActor
+private final class ThemeVisibilityPanel: NSPanel {
+    var simulatedOcclusion: NSWindow.OcclusionState?
+    override var occlusionState: NSWindow.OcclusionState { simulatedOcclusion ?? super.occlusionState }
+}
+
+@MainActor
 struct ThemePresentationLifecycleTests {
+    @Test func occludedFrozenSurfaceDefersThemesAndRecoversWithoutInput() throws {
+        let (folder, model, view, window) = try fixture()
+        let panel = try #require(window as? ThemeVisibilityPanel)
+        let surface = CubeSurfaceView(cubeView: view, frameCapture: { _ in
+            Issue.record("An occluded surface must not request a theme snapshot")
+        })
+        panel.contentView = surface
+        surface.enableRenderingManagement()
+        defer { panel.orderOut(nil); panel.contentView = nil; model.stopThemeCycle(); try? FileManager.default.removeItem(at: folder) }
+        panel.orderFrontRegardless()
+        panel.simulatedOcclusion = [.visible]
+        _ = surface.resumeRendering(forInput: true)
+        surface.retainDockingFrame(frame(.red))
+        panel.simulatedOcclusion = []
+        surface.synchronizeRenderingVisibility()
+        let original = view.appliedAppearance
+        for theme in [CubeThemePreset.ocean, .forest, .sunset] {
+            model.change { $0.appearance = theme.appearance(glowIntensity: 0.7) }
+            view.refreshAppearance()
+            #expect(view.appliedAppearance == original)
+            #expect(!surface.isThemeTransitioning)
+        }
+        panel.simulatedOcclusion = [.visible]
+        surface.synchronizeRenderingVisibility()
+        #expect(view.appliedAppearance == model.displayedAppearance)
+        #expect(!surface.rendererDetached)
+        #expect(view.animationUpdatesRunning)
+    }
+
+    @Test func hiddenThemeUpdatesWaitForVisibilityAndApplyOnlyTheLatestSelection() throws {
+        for returnsToOriginal in [false, true] {
+            let (folder, model, view, window) = try fixture()
+            let surface = CubeSurfaceView(cubeView: view, frameCapture: { _ in
+                Issue.record("A hidden theme change must not request a snapshot")
+            })
+            window.contentView = surface
+            surface.enableRenderingManagement()
+            defer { window.orderOut(nil); window.contentView = nil; model.stopThemeCycle(); try? FileManager.default.removeItem(at: folder) }
+            let original = try #require(view.appliedAppearance)
+            for theme in [CubeThemePreset.ocean, .forest, .sunset] {
+                model.change { $0.appearance = theme.appearance(glowIntensity: 0.7) }
+                view.refreshAppearance()
+                #expect(view.appliedAppearance == original)
+                #expect(!view.animationUpdatesRunning)
+            }
+            if returnsToOriginal {
+                model.change { $0.appearance = original }
+                view.refreshAppearance()
+            }
+            let latest = model.displayedAppearance
+            #expect(view.appliedAppearance == original)
+            window.orderFrontRegardless()
+            #expect(surface.resumeRendering(forInput: true))
+            #expect(view.appliedAppearance == latest)
+        }
+    }
+
     private func frame(_ color: NSColor) -> NSImage {
         NSImage(size: NSSize(width: 8, height: 8), flipped: false) { rect in color.setFill(); rect.fill(); return true }
     }
@@ -17,7 +80,7 @@ struct ThemePresentationLifecycleTests {
         let model = AppModel(store: store), view = CubeView(model: model)
         view.idlePowerSavingEnabled = true
         let area = try #require(NSScreen.main?.visibleFrame)
-        let window = NSPanel(contentRect: NSRect(x: area.minX+20,y: area.minY+20,width:164,height:164), styleMask:[.borderless,.nonactivatingPanel],backing:.buffered,defer:false)
+        let window = ThemeVisibilityPanel(contentRect: NSRect(x: area.minX+20,y: area.minY+20,width:164,height:164), styleMask:[.borderless,.nonactivatingPanel],backing:.buffered,defer:false)
         window.isReleasedWhenClosed = false
         return (folder,model,view,window)
     }

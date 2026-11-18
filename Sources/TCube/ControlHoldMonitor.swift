@@ -20,6 +20,7 @@ final class ControlHoldMonitor {
     private var gesture = ControlHoldGesture()
     var controlReserved: (Bool) -> Bool = { _ in false }
     private var previous: Snapshot?
+    private var pendingPress: (time: TimeInterval, modifierCount: UInt32)?
     private let readSnapshot: () -> Snapshot
     private let resources: ControlHoldMonitoringResources
     private let scheduleDeadline: DeadlineScheduler
@@ -70,6 +71,7 @@ final class ControlHoldMonitor {
         resources.clearDeadline()
         gesture = ControlHoldGesture()
         previous = nil
+        pendingPress = nil
     }
 
     func poll() {
@@ -78,21 +80,41 @@ final class ControlHoldMonitor {
         let reserved = controlReserved(sample.controlHeld)
         var interrupted = sample.otherModifierHeld || reserved
         var pressedAt: TimeInterval?
+        var awaitingConfirmation = false
         if sample.controlHeld {
             interrupted = interrupted || sample.mouseButtonHeld || sample.ordinaryKeyHeld
             if let previous {
                 if previous.controlHeld {
                     // Counts preserve brief combinations that begin and end between samples.
-                    interrupted = interrupted || sample.inputCounts != previous.inputCounts || sample.modifierCount != previous.modifierCount
-                } else {
-                    // Only one modifier transition is unambiguously a standalone Control press.
-                    interrupted = interrupted || sample.modifierCount != previous.modifierCount &+ 1
-                    interrupted = interrupted || !sample.modifierAge.isFinite || sample.modifierAge < 0
-                    let origin = sample.time - sample.modifierAge
-                    if origin.isFinite, origin > previous.time, origin <= sample.time {
-                        pressedAt = origin
+                    interrupted = interrupted || sample.inputCounts != previous.inputCounts
+                    if let pendingPress {
+                        interrupted = interrupted || sample.time - previous.time > 0.5 || sample.time < previous.time
+                        let transitions = sample.modifierCount &- pendingPress.modifierCount
+                        if transitions == 0 {
+                            awaitingConfirmation = true
+                        } else {
+                            interrupted = interrupted || transitions != 1
+                            pressedAt = pendingPress.time
+                            self.pendingPress = nil
+                        }
                     } else {
-                        interrupted = true
+                        interrupted = interrupted || sample.modifierCount != previous.modifierCount
+                    }
+                } else {
+                    let transitions = sample.modifierCount &- previous.modifierCount
+                    if transitions == 0 {
+                        // Quartz event statistics can lag behind flagsState after boot.
+                        // Wait for exactly one transition; stale statistics cannot cancel
+                        // a fresh press or grant permission to open without confirmation.
+                        pendingPress = (sample.time, previous.modifierCount)
+                        awaitingConfirmation = true
+                    } else {
+                        interrupted = interrupted || transitions != 1
+                        interrupted = interrupted || !sample.modifierAge.isFinite || sample.modifierAge < 0
+                        let origin = sample.time - sample.modifierAge
+                        // A cached age may predate the last observed release. In that
+                        // case use the observed press, never backdate the deadline.
+                        pressedAt = origin.isFinite && origin > previous.time && origin <= sample.time ? origin : sample.time
                     }
                     if sample.inputCounts.count != Self.events.count || sample.inputAges.count != Self.events.count {
                         interrupted = true
@@ -100,13 +122,17 @@ final class ControlHoldMonitor {
                         for index in Self.events.indices where sample.inputCounts[index] != previous.inputCounts[index] {
                             let age = sample.inputAges[index]
                             // Equality and unavailable timing cancel rather than admitting a combination.
-                            interrupted = interrupted || !age.isFinite || age <= sample.modifierAge
+                            interrupted = interrupted || awaitingConfirmation || !age.isFinite || age <= sample.modifierAge
                         }
                     }
                 }
             }
+        } else {
+            pendingPress = nil
         }
         previous = sample
+        if awaitingConfirmation && !interrupted { return }
+        if interrupted { pendingPress = nil }
         let fired = gesture.update(controlHeld: sample.controlHeld, interrupted: interrupted, at: sample.time, pressedAt: pressedAt)
         updateDeadline(at: sample.time)
         if fired { action() }

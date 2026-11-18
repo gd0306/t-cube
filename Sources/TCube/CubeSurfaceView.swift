@@ -12,6 +12,7 @@ final class CubeSurfaceView: NSView {
     private var snapshotGeneration = 0
     private var snapshotPending = false
     private var managesRendering = false
+    private var renderingOccluded = false
     private var applyingAppearance = false
     private var preparingTheme = false
     private var pendingAppearance: (() -> Void)?
@@ -46,6 +47,7 @@ final class CubeSurfaceView: NSView {
         guard managesRendering else { cubeView.resumeAnimationUpdates(); return true }
         guard let window, window.isVisible,
               forInput || cubeView.superview === self || window.occlusionState.contains(.visible) else { return false }
+        renderingOccluded = false
         if !applyingAppearance {
             let pending = pendingAppearance
             pendingAppearance = nil
@@ -89,10 +91,8 @@ final class CubeSurfaceView: NSView {
         if window?.isVisible == true, window?.occlusionState.contains(.visible) == true {
             if !isThemeTransitioning { _ = resumeRendering() }
         } else {
-            let pending = pendingAppearance
-            pendingAppearance = nil
+            renderingOccluded = true
             invalidatePresentation()
-            if let pending { applyingAppearance = true; pending(); applyingAppearance = false }
             cubeView.suspendAnimationUpdates()
             cubeView.removeFromSuperview()
             rendererDetached = true
@@ -100,8 +100,11 @@ final class CubeSurfaceView: NSView {
     }
 
     private func prepareAppearance(_ apply: @escaping () -> Void) {
-        guard window?.isVisible == true, cubeView.superview === self || hasFrozenFrame else {
-            applyingAppearance = true; apply(); applyingAppearance = false
+        guard !renderingOccluded, window?.isVisible == true, cubeView.superview === self || hasFrozenFrame else {
+            // A detached renderer cannot consume new textures. Keep only the latest
+            // request and materialize it when the surface becomes visible again.
+            invalidatePresentation()
+            pendingAppearance = apply
             return
         }
         invalidatePresentation()
