@@ -32,12 +32,12 @@ Published releases provide ready-to-run installation packages:
 
 | Platform | Version | Installer Package | Target Architecture | Requirements & Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| **macOS** | `0.22.9` | [T-Cube-0.22.9-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.9/T-Cube-0.22.9-macos-arm64.dmg) | Apple Silicon (arm64) | macOS 15+ · Ad-hoc signed |
-| **Windows** | `0.22.9` | [T-Cube-0.22.9-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.9/T-Cube-0.22.9-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · Standalone runtime |
+| **macOS** | `0.22.10` | [T-Cube-0.22.10-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.10/T-Cube-0.22.10-macos-arm64.dmg) | Apple Silicon (arm64) | macOS 15+ · Ad-hoc signed |
+| **Windows** | `0.22.10` | [T-Cube-0.22.10-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.10/T-Cube-0.22.10-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · Standalone runtime |
 
 > [!NOTE]
-> - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.9).
-> - `0.22.9` adds per-entry clipboard text previews, validation hints, frosted draggable quick panels and a fresh history list on every Ctrl invocation. See the [release verification record](docs/verification/2026-11-13-clipboard-release.md).
+> - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.10).
+> - `0.22.10` fixes macOS background theme memory growth and Ctrl-hold detection when system event counters lag. Windows receives the matching source version. See the [release verification record](docs/verification/2026-11-18-0.22.10-release.md).
 > - Both installers package the same source commit; see `SOURCE_COMMIT.txt` and `SHA256SUMS.txt` in the release.
 > - The Windows installer bundles its runtime and requires no Node.js installation.
 > - Quit any running T-Cube instance before upgrading; your configuration is automatically preserved.
@@ -129,7 +129,7 @@ A lighter glass shell lets the desktop show through. Hover to reveal icons that 
 
 ### ⚙️ Performance & Low-Power Architecture
 - **Idle Power Saving**: Pauses 3D rendering and flowing light while the cube is stationary (defaults to enabled on macOS).
-- **Resource Reuse**: Unchanged textures are cached across refreshes, empty faces allocate no texture atlases, and Windows application-picker icon retention is strictly bounded.
+- **Resource Reuse**: Unchanged textures are cached across refreshes, empty faces allocate no texture atlases, and Windows application-picker icon retention is strictly bounded. On macOS, hidden or occluded cubes defer theme texture updates until shown, applying only the latest theme.
 - **Refined Modular Settings**: Appearance, Desktop & Performance, Shortcut Groups, Maintenance, and Lifecycle are organized into clear tabs with instant-save feedback.
 - **Lightweight Release Reminders**: Anonymous 6-hour check for GitHub Releases (opt-in, default off) with manual check cooldown, opening the release page for manual download.
 - **Login Startup**: Enabled by default when the installed app first starts. Turn it off in settings; the choice is remembered across restarts. System approval requirements and disabled login items are respected.

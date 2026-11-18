@@ -32,12 +32,12 @@
 
 | 平台 | 版本 | 安装包文件 | 适配架构 | 说明与运行要求 |
 | :--- | :--- | :--- | :--- | :--- |
-| **macOS** | `0.22.9` | [T-Cube-0.22.9-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.9/T-Cube-0.22.9-macos-arm64.dmg) | Apple Silicon (arm64) | 需要 macOS 15+ · 采用本地 ad-hoc 签名 |
-| **Windows** | `0.22.9` | [T-Cube-0.22.9-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.9/T-Cube-0.22.9-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · 自带完整运行时 |
+| **macOS** | `0.22.10` | [T-Cube-0.22.10-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.10/T-Cube-0.22.10-macos-arm64.dmg) | Apple Silicon (arm64) | 需要 macOS 15+ · 采用本地 ad-hoc 签名 |
+| **Windows** | `0.22.10` | [T-Cube-0.22.10-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.10/T-Cube-0.22.10-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · 自带完整运行时 |
 
 > [!NOTE]
-> - 查看完整发布说明与 SHA-256 校验和：[GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.9)。
-> - `0.22.9` 新增逐条剪贴板文字处理预览与校验提示，快捷面板采用可拖动的磨砂界面，每次 Ctrl 唤起回到历史列表。详见[发布验证记录](docs/verification/2026-11-13-clipboard-release.md)。
+> - 查看完整发布说明与 SHA-256 校验和：[GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.10)。
+> - `0.22.10` 修复 macOS 后台主题轮换的内存增长，以及系统事件计数延迟时 Ctrl 长按失效的问题；Windows 同步源码版本。详见[发布验证记录](docs/verification/2026-11-18-0.22.10-release.md)。
 > - 两个平台安装包来自同一源码提交；发布附件提供 `SOURCE_COMMIT.txt` 与 `SHA256SUMS.txt`。
 > - Windows 安装包已整合所需环境，无需单独配置 Node.js。
 > - 更新版本前请先正常退出当前运行的应用，原快捷入口与外观配置会自动保留。
@@ -129,7 +129,7 @@
 
 ### ⚙️ 极佳性能与低功耗架构
 - **静置低功耗模式**：立方体静置时自动暂停 3D 渲染管线与光效循环（macOS 默认开启），大幅节省能耗。
-- **纹理按需复用**：未更改的图标纹理跨刷新复用，空白面不分配多余图集显存，Windows 应用选择器对图标缓存进行严格上限保护。
+- **纹理按需复用**：未更改的图标纹理跨刷新复用，空白面不分配多余图集显存，Windows 应用选择器对图标缓存进行严格上限保护。macOS 在立方体隐藏或被遮挡时延后主题纹理更新，重新显示时只应用最新主题。
 - **模块化设置界面**：外观、桌面与性能、入口分组、配置备份与生命周期分区管理，操作即时保存生效。
 - **轻量版本更新提醒**：支持匿名每 6 小时检查 GitHub Releases 稳定版本（默认关闭，需用户主动开启），提供 1 分钟防刷冷却，一键跳转发布页。
 - **开机自启**：安装后首次运行默认开启，可在设置中关闭，关闭选择会在后续启动中保留；尊重系统批准要求和已禁用的登录项。
