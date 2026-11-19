@@ -164,6 +164,9 @@ final class DesktopAutoHideCoordinator {
     private func animate(to desired: DesktopAutoHideState.Presentation, frame: CGRect, surface: CubeSurfaceView, token: Int) {
         guard let panel, let image = dockingImage else { finishImmediately(as: desired); return }
         let toEdge = desired == .edge
+        // WindowServer can mark the nearly transparent reveal window visible
+        // before the compositor finishes. Keep 3D rendering asleep until handoff.
+        surface.setDockingTransitionActive(true)
         if !toEdge {
             surface.retainDockingFrame(image)
             panel.alphaValue = 0.01
@@ -208,6 +211,7 @@ final class DesktopAutoHideCoordinator {
         }
         if desired != .edge { dockingImage = nil }
         (handle.contentView as? EdgeRevealView)?.setPresented(desired == .edge)
+        (panel.contentView as? CubeSurfaceView)?.setDockingTransitionActive(false)
         didChangePresentation?()
     }
 
@@ -220,6 +224,7 @@ final class DesktopAutoHideCoordinator {
         animator?.shutdown(); animator = nil
         dockingImage = nil; isTransitioning = false
         panel?.alphaValue = 1; panel?.ignoresMouseEvents = false
+        (panel?.contentView as? CubeSurfaceView)?.setDockingTransitionActive(false)
         hover.setPresentationSuspended(false)
         stopped = true; timer?.invalidate(); timer = nil
         settings.onChange = nil

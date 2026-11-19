@@ -123,6 +123,25 @@ final class EdgeDockAnimationTests: XCTestCase {
         }
     }
 
+    func testRevealCannotResumeRendererBeforeCompositorHandoff() throws {
+        let fixture = try Fixture()
+        defer { fixture.close() }
+        fixture.surface.enableRenderingManagement()
+        fixture.coordinator.didChangePresentation = { fixture.surface.synchronizeRenderingVisibility() }
+        fixture.collapse()
+        advance(0.43)
+        XCTAssertTrue(fixture.surface.rendererDetached)
+        fixture.coordinator.reveal()
+        XCTAssertTrue(fixture.coordinator.isTransitioning)
+        fixture.surface.synchronizeRenderingVisibility()
+        XCTAssertFalse(fixture.surface.resumeRendering(forInput: true), "A queued input must not wake the renderer behind the compositor")
+        XCTAssertTrue(fixture.surface.rendererDetached)
+        XCTAssertFalse(fixture.surface.cubeView.animationUpdatesRunning)
+        advance(0.55)
+        XCTAssertFalse(fixture.coordinator.isTransitioning)
+        XCTAssertTrue(fixture.surface.resumeRendering(forInput: true), "Rendering must resume after the compositor hands back the cube")
+    }
+
     func testMissingCaptureFallsBackAndReducedMotionSkipsSpatialAnimation() throws {
         let stalled = try Fixture(capture: { _ in })
         stalled.collapse()

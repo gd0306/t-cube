@@ -13,6 +13,7 @@ final class CubeSurfaceView: NSView {
     private var snapshotPending = false
     private var managesRendering = false
     private var renderingOccluded = false
+    private var dockingTransitionActive = false
     private var applyingAppearance = false
     private var preparingTheme = false
     private var pendingAppearance: (() -> Void)?
@@ -20,6 +21,11 @@ final class CubeSurfaceView: NSView {
     private(set) var rendererDetached = false
     var hasFrozenFrame: Bool { !frozenImage.isHidden && frozenImage.image != nil }
     var isThemeTransitioning: Bool { preparingTheme || transitionTask != nil || cubeView.presentationTransitionActive }
+
+    func setDockingTransitionActive(_ active: Bool) {
+        dockingTransitionActive = active
+        synchronizeRenderingVisibility()
+    }
 
     func enableRenderingManagement() {
         guard !managesRendering else { return }
@@ -45,7 +51,7 @@ final class CubeSurfaceView: NSView {
     @discardableResult
     func resumeRendering(forInput: Bool = false) -> Bool {
         guard managesRendering else { cubeView.resumeAnimationUpdates(); return true }
-        guard let window, window.isVisible,
+        guard !dockingTransitionActive, let window, window.isVisible,
               forInput || cubeView.superview === self || window.occlusionState.contains(.visible) else { return false }
         renderingOccluded = false
         if !applyingAppearance {
@@ -88,7 +94,7 @@ final class CubeSurfaceView: NSView {
 
     func synchronizeRenderingVisibility() {
         guard managesRendering else { return }
-        if window?.isVisible == true, window?.occlusionState.contains(.visible) == true {
+        if !dockingTransitionActive, window?.isVisible == true, window?.occlusionState.contains(.visible) == true {
             if !isThemeTransitioning { _ = resumeRendering() }
         } else {
             renderingOccluded = true
