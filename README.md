@@ -184,7 +184,7 @@ open build/T-Cube.app
 
 # (Optional) Package a drag-to-install DMG installer
 bash scripts/build-dmg.sh
-open build/T-Cube-0.21.1.dmg
+open build/T-Cube-0.22.11.dmg
 ```
 
 ### Windows (Electron + Three.js)
