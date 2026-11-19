@@ -32,12 +32,12 @@
 
 | 平台 | 版本 | 安装包文件 | 适配架构 | 说明与运行要求 |
 | :--- | :--- | :--- | :--- | :--- |
-| **macOS** | `0.22.10` | [T-Cube-0.22.10-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.10/T-Cube-0.22.10-macos-arm64.dmg) | Apple Silicon (arm64) | 需要 macOS 15+ · 采用本地 ad-hoc 签名 |
-| **Windows** | `0.22.10` | [T-Cube-0.22.10-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.10/T-Cube-0.22.10-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · 自带完整运行时 |
+| **macOS** | `0.22.11` | [T-Cube-0.22.11-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.11/T-Cube-0.22.11-macos-arm64.dmg) | Apple Silicon (arm64) | 需要 macOS 15+ · 采用本地 ad-hoc 签名 |
+| **Windows** | `0.22.11` | [T-Cube-0.22.11-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.11/T-Cube-0.22.11-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · 自带完整运行时 |
 
 > [!NOTE]
-> - 查看完整发布说明与 SHA-256 校验和：[GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.10)。
-> - `0.22.10` 修复 macOS 后台主题轮换的内存增长，以及系统事件计数延迟时 Ctrl 长按失效的问题；Windows 同步源码版本。详见[发布验证记录](docs/verification/2026-11-18-0.22.10-release.md)。
+> - 查看完整发布说明与 SHA-256 校验和：[GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.11)。
+> - `0.22.11` 修复 macOS 贴边过渡期间 3D 渲染提前唤醒的问题，动画结束后再恢复渲染；Windows 同步源码版本。详见[发布验证记录](docs/verification/2026-11-19-0.22.11-release.md)。
 > - 两个平台安装包来自同一源码提交；发布附件提供 `SOURCE_COMMIT.txt` 与 `SHA256SUMS.txt`。
 > - Windows 安装包已整合所需环境，无需单独配置 Node.js。
 > - 更新版本前请先正常退出当前运行的应用，原快捷入口与外观配置会自动保留。
