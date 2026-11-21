@@ -42,3 +42,16 @@ Following the user's request, Impeccable A/B assessments independently examined 
 The optical revision was published to `/var/www/t-cube/releases/20261121-140304/public`. Nginx validation and the credential-free release-refresh service succeeded; the active timer remains enabled. Existing domain homepage SHA-256 remains `036013d0010b2c62e9129319e96172eb50a3972b4188937c44199be5cb631a60`. Public HTTPS HTML and versioned CSS were fetched and matched to the local files byte-for-byte. Previous website releases remain available for rollback.
 
 Production browser verification also passed Chinese/English at 320/390/1440 pixels, material switching, the native-motion dialog, image loading and live version metadata, with zero page errors. Production motion checks verified changing canvas frames, paused frames, pause persistence, offscreen suspension/re-entry, reduced-motion static frames and localized control labels. Public versioned JavaScript and the refreshed share image also matched local bytes.
+
+
+## Unified refinement — 2026-11-21
+
+The user's follow-up replaces alternating dark/light sections with one continuous blue-grey surface (`#192938`). CSS was consolidated into a single coherent theme rather than stacking more overrides. The product name leads the hero, material preview and launcher content share a section, the repeated screenshot gallery is removed, feature headings are shorter, and detailed specifications start collapsed. Essential functionality, FAQ, platform requirements, latest downloads and accessible motion controls remain.
+
+Chinese fallback text was regenerated from canonical translation values; the obsolete substring-replacement artifact “辅助桌面工具” is absent, and “辅助功能授权” is correct. An independent read-only review verified the provided desktop/mobile renders and parity of translated fallback elements, without finding blocking issues.
+
+Local Chinese/English checks at 320/390/768/1024/1440 passed with no document horizontal overflow. Material tabs, keyboard selection, enlarged images, demo/Escape, feature details, image loading and reduced motion passed. Motion controls, persistence and offscreen pause/resume passed; selected body-text contrast is approximately 7.33–8.16:1. Release refresh validation still rejects invalid/incomplete data and updates a simulated future version correctly. The mechanical detector reported 12 wrapper-padding warnings; these were checked against actual child spacing and rendered layout, rather than presented as zero warnings or blindly padded.
+
+Evidence for this refinement is under `.build/website/unified/`.
+
+The unified version was deployed to `/var/www/t-cube/releases/20261121-150804/public`. Nginx tests passed, the release refresh service returned `Result=success`/`ExecMainStatus=0`, and the active timer was preserved. The existing domain homepage hash remains unchanged. Public HTML, CSS, JavaScript and share-image downloads match the corresponding local files byte-for-byte.

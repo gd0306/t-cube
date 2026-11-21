@@ -4,12 +4,12 @@
     "en": "Product"
   },
   "t1": {
-    "zh": "桌面工具",
-    "en": "Desktop tools"
+    "zh": "桌面",
+    "en": "Desktop"
   },
   "t2": {
-    "zh": "功能清单",
-    "en": "All features"
+    "zh": "功能",
+    "en": "Features"
   },
   "t3": {
     "zh": "通透玻璃",
@@ -227,173 +227,149 @@
     "zh": "下载",
     "en": "Download"
   },
-  "t57": {
-    "zh": "让桌面，",
-    "en": "Your desktop."
-  },
-  "t58": {
-    "zh": "多一个维度。",
-    "en": "Another dimension."
-  },
   "t59": {
-    "zh": "一个六面 3D 桌面启动器。\n应用、文件与剪贴板，转一下就到。",
-    "en": "A six-face 3D desktop launcher.\nApps, files and your clipboard. Just a turn away."
+    "zh": "应用、剪贴板与显示器，\n都在这个立方体里。",
+    "en": "Apps, clipboard and displays.\nOne cube on your desktop."
   },
   "t60": {
-    "zh": "免费下载 T-Cube",
+    "zh": "下载 T-Cube",
     "en": "Download T-Cube"
   },
   "t62": {
     "zh": "macOS / Windows · 免费开源",
     "en": "macOS / Windows · Free and open source"
   },
-  "t67": {
-    "zh": "极光主题的原生立方体渲染",
-    "en": "Native cube render in the Aurora theme"
-  },
   "t69": {
-    "zh": "六个面，\n24 个快捷入口。",
-    "en": "Six faces.\n24 shortcuts."
+    "zh": "六面快捷启动",
+    "en": "Six faces. Your shortcuts."
   },
   "t70": {
-    "zh": "应用、文件夹、文件、网页和系统设置，都有自己的位置。拖入添加，点击打开；也可以先展开一个面，再挑选。",
-    "en": "Apps, folders, files, websites and system settings all have a place. Drag in a shortcut and click to open, or expand a face before choosing."
+    "zh": "应用、文件、网页与系统设置，拖入即可添加。点击直达，或展开四图标面板。",
+    "en": "Drag in apps, files, websites or system settings. Launch directly, or expand a four-icon panel."
   },
   "t71": {
-    "zh": "网页标题随图标显示，长标题悬停可读。",
-    "en": "Website titles stay with their icons; hover to read long names."
+    "zh": "网页标题与图标同步显示。",
+    "en": "Website titles stay with their icons."
   },
   "t72": {
-    "zh": "左键拖动移动，右键拖动或滚动旋转。",
-    "en": "Left-drag to move; right-drag or scroll to rotate."
+    "zh": "左键移动，右键或滚动旋转。",
+    "en": "Left-drag to move. Right-drag or scroll to rotate."
   },
   "t73": {
-    "zh": "Windows 可按名称搜索已安装应用。",
-    "en": "Find installed Windows apps by name."
+    "zh": "Windows 支持搜索已安装应用。",
+    "en": "Search installed apps on Windows."
   },
   "t74": {
-    "zh": "玻璃与史莱姆，\n随指针回应。",
-    "en": "Glass and Slime.\nResponsive by nature."
+    "zh": "材质与主题",
+    "en": "Materials and themes"
   },
   "t75": {
-    "zh": "通透的玻璃，或弹性的史莱姆。九款主题与自定义渐变，悬停即可展开常用入口。",
-    "en": "Clear glass or elastic Slime. Nine themes and custom gradients, with your shortcuts revealed on hover."
+    "zh": "玻璃、史莱姆与九款主题，支持自定义渐变和自动轮换。",
+    "en": "Glass, Slime and nine themes, with custom gradients and automatic cycling."
   },
   "t76": {
     "zh": "悬停显现，1.1–4.0 倍放大。",
     "en": "Reveal on hover. Enlarge from 1.1–4.0×."
   },
   "t81": {
-    "zh": "贴边收起。\n全屏隐藏。",
-    "en": "Dock at the edge.\nHide in fullscreen."
+    "zh": "桌面控制",
+    "en": "Desktop controls"
   },
   "t83": {
-    "zh": "靠近，立方体就回来。",
-    "en": "Hover to bring it back."
+    "zh": "贴边收起，全屏隐藏",
+    "en": "Edge docking and fullscreen hiding"
   },
   "t84": {
-    "zh": "贴近屏幕边缘，离开后收成一条纤细的控制柄。鼠标靠近，立方体轻柔归位。全屏时自动隐藏，位置始终记得。",
-    "en": "Near the display edge, leaving collapses the cube into a slender handle. Hover to bring it gently back. It hides in fullscreen and remembers its resting position."
+    "zh": "移开指针后收起，悬停恢复；全屏时自动隐藏，原位置不变。",
+    "en": "Move away to collapse, hover to restore. Hide in fullscreen and keep the saved position."
   },
   "t85": {
-    "zh": "播放原生贴边动效",
-    "en": "Play the native docking preview"
+    "zh": "播放演示",
+    "en": "Play demo"
   },
   "t88": {
     "zh": "macOS 显示器 Type-C 与 HDMI 输入切换",
     "en": "Type-C and HDMI input switching on macOS"
   },
   "t89": {
-    "zh": "切换输入，调节亮度。",
-    "en": "Switch inputs. Adjust brightness."
+    "zh": "显示器控制",
+    "en": "Display controls"
   },
   "t90": {
-    "zh": "从菜单栏或托盘切换 Type-C / HDMI。每台显示器保存独立的输入映射，切换结果经过回读确认。macOS 还能独立调节支持的屏幕亮度。",
-    "en": "Switch Type-C / HDMI from the menu bar or tray. Each monitor keeps its own input mapping, with readback to confirm a switch. On macOS, adjust supported display brightness independently."
+    "zh": "从菜单栏或托盘切换 Type-C / HDMI，按显示器保存映射并回读确认。macOS 支持独立调节屏幕亮度。",
+    "en": "Switch Type-C / HDMI from the menu bar or tray, with per-display mappings and confirmed readback. macOS also supports independent display brightness."
   },
   "t92": {
-    "zh": "查看平台与硬件要求",
-    "en": "See platform and hardware requirements"
+    "zh": "硬件要求",
+    "en": "Hardware requirements"
   },
   "t93": {
-    "zh": "剪贴板，\n接着用。",
-    "en": "Your clipboard.\nReady to reuse."
-  },
-  "t94": {
-    "zh": "这一轮工作里的文字和图片，随时找回、处理和复用。",
-    "en": "Recall, transform and reuse text and images from this session."
+    "zh": "剪贴板与常用内容",
+    "en": "Clipboard and reusable content"
   },
   "t95": {
     "zh": "macOS 剪贴板快捷历史面板，包含文字和图片记录",
     "en": "macOS quick clipboard history with text and image records"
   },
   "t96": {
-    "zh": "Ctrl 一秒，\n打开历史。",
-    "en": "Hold Ctrl.\nOpen history."
+    "zh": "Ctrl 长按一秒",
+    "en": "Hold Ctrl for one second"
   },
   "t97": {
-    "zh": "在立方体外单独长按 Ctrl，快捷历史就在指针附近出现。释放后点选复制，也能编辑、删除；搜索和多选合并，请打开完整历史管理。",
-    "en": "Hold Ctrl alone outside the cube to open history near the pointer. Release, then click to copy, edit or delete. Use the full history manager for search and multi-entry merging."
+    "zh": "在立方体外唤出快捷历史，点击复制、编辑或删除。搜索和多选合并位于完整历史管理中。",
+    "en": "Open quick history outside the cube to copy, edit or delete. Search and multi-entry merging are in the full history manager."
   },
   "t98": {
-    "zh": "文字处理，先看结果。",
-    "en": "Text tools with a preview."
+    "zh": "本地文字处理",
+    "en": "Local text tools"
   },
   "t99": {
-    "zh": "空白整理、大小写、JSON、URL 编解码，在本地完成。明确复制或保存，才会写入结果。",
-    "en": "Clean whitespace, change case, format JSON or encode URLs locally. A result is written only when you copy or explicitly save it."
+    "zh": "空白整理、大小写、JSON 与 URL 编解码。预览后复制或保存。",
+    "en": "Clean whitespace, change case, format JSON and encode URLs. Preview, then copy or save."
   },
   "t100": {
-    "zh": "常用文案，填好再用。",
-    "en": "Reusable text and templates."
+    "zh": "文案与模板",
+    "en": "Snippets and templates"
   },
   "t101": {
-    "zh": "给常用文案分组、收藏，或把 {{变量}} 留给模板。预览填充结果，再复制或粘贴到验证过的目标。",
-    "en": "Group and favorite useful text, or leave {{variables}} in templates. Preview the filled result, then copy or paste to a verified target."
-  },
-  "t102": {
-    "zh": "原生剪贴板文字处理的可编辑预览",
-    "en": "Editable native clipboard text-processing preview"
-  },
-  "t104": {
-    "zh": "Windows 常用内容与结构化字段管理界面",
-    "en": "Windows reusable content library and structured fields"
+    "zh": "分组、收藏、结构化字段与 {{变量}} 模板，填好即可复用。",
+    "en": "Groups, favorites, structured fields and {{variable}} templates, ready to reuse."
   },
   "t106": {
-    "zh": "数据留在本地。\n渲染按需运行。",
-    "en": "Local data.\nRendering on demand."
+    "zh": "本地与轻量",
+    "en": "Local and lightweight"
   },
   "t107": {
-    "zh": "静置时放缓，隐藏时停止渲染。让注意力和图形资源，都留给手头的事。",
-    "en": "Idle power saving pauses rendering, and hidden surfaces stop drawing. Leave attention and graphics work for what you’re doing."
+    "zh": "空闲节能，隐藏时停止渲染。",
+    "en": "Idle power saving. Hidden surfaces stop rendering."
   },
   "t108": {
-    "zh": "代码公开，欢迎查看",
-    "en": "The code is open. Take a look."
+    "zh": "GitHub",
+    "en": "GitHub"
   },
   "t109": {
-    "zh": "会话历史，退出即清除。",
-    "en": "Session history clears on quit."
+    "zh": "会话历史只在内存",
+    "en": "Session history stays in memory"
   },
   "t110": {
-    "zh": "剪贴板会话历史只保存在内存，不落盘、不云同步。退出应用，即刻清除。你主动保存到常用内容的记录另行本地持久化。",
-    "en": "Clipboard session history stays in memory, never on disk or in cloud sync, and clears on quit. Items you explicitly save to the content library persist locally."
+    "zh": "退出即清除，不写入磁盘。主动保存到常用内容的记录会在本地保留。",
+    "en": "Cleared on quit, never written to disk. Items explicitly saved to the content library persist locally."
   },
   "t111": {
-    "zh": "无遥测，不做云同步。",
-    "en": "No telemetry. No cloud sync."
+    "zh": "无遥测、无云同步",
+    "en": "No telemetry or cloud sync"
   },
   "t112": {
-    "zh": "核心功能本地运行，无遥测。配置可预览导入导出，导入前自动备份。版本提醒默认关闭；手动检查或启用提醒时会访问 GitHub。",
-    "en": "Core features run locally with no telemetry. Preview configuration imports/exports and keep pre-import backups. Release reminders default off; manual checks and enabled reminders contact GitHub."
+    "zh": "配置留在本地，支持导入导出和备份。仅手动检查或启用版本提醒时访问 GitHub。",
+    "en": "Local configuration, with import, export and backups. GitHub is contacted only for manual checks or enabled release reminders."
   },
   "t113": {
-    "zh": "平台与完整功能。",
-    "en": "Platforms and features."
+    "zh": "完整功能",
+    "en": "All features"
   },
   "t117": {
-    "zh": "使用文档",
-    "en": "User guide"
+    "zh": "文档",
+    "en": "Documentation"
   },
   "t118": {
     "zh": "控制与手势",
@@ -404,16 +380,12 @@
     "en": "Controls and gestures"
   },
   "t120": {
-    "zh": "下载 T-Cube。",
-    "en": "Download T-Cube."
-  },
-  "t122": {
-    "zh": "当前稳定版本",
-    "en": "Current stable release"
+    "zh": "下载",
+    "en": "Download"
   },
   "t123": {
-    "zh": "Apple Silicon 原生应用",
-    "en": "Native Apple Silicon app"
+    "zh": "Apple Silicon",
+    "en": "Apple Silicon"
   },
   "t124": {
     "zh": "下载 macOS 版",
@@ -424,8 +396,8 @@
     "en": "macOS 15+ · Apple Silicon · DMG"
   },
   "t127": {
-    "zh": "自带完整运行环境",
-    "en": "Standalone runtime included"
+    "zh": "独立安装包",
+    "en": "Standalone installer"
   },
   "t128": {
     "zh": "下载 Windows 版",
@@ -440,7 +412,7 @@
     "en": "macOS not notarized · Windows unsigned"
   },
   "t132": {
-    "zh": "发布说明",
+    "zh": "更新记录",
     "en": "Release notes"
   },
   "t133": {
@@ -448,15 +420,15 @@
     "en": "SHA-256 checksums"
   },
   "t134": {
-    "zh": "GitHub 源码",
-    "en": "Source on GitHub"
+    "zh": "GitHub",
+    "en": "GitHub"
   },
   "t135": {
     "zh": "常见问题",
     "en": "Frequently asked questions"
   },
   "t137": {
-    "zh": "返回 gd306.cn",
-    "en": "Back to gd306.cn"
+    "zh": "gd306.cn",
+    "en": "gd306.cn"
   }
 }
