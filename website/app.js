@@ -31,7 +31,6 @@ function applyLanguage(next) {
     $('[data-guide-link]').href = 'https://github.com/gd0306/t-cube/blob/master/' + (language === 'zh' ? 'README-CN.md' : 'README.md');
     $$('.image-button').forEach(button=>button.setAttribute('aria-label', (language==='zh'?'查看大图：':'Enlarge: ') + ($('img',button)?.alt || '')));
     updateMaterialCopy();
-    updateEffectsLabel();
     showReleaseStatus();
     try { localStorage.setItem('tcube-language', language); } catch { /* The page remains usable without storage. */ }
 }
@@ -114,26 +113,12 @@ function applyRelease(data){
 fetch('release.json',{cache:'no-cache'}).then(response=>{if(!response.ok)throw new Error('Release refresh failed');return response.json();}).then(applyRelease).catch(()=>{releaseState='unavailable';showReleaseStatus();});
 
 // The light belongs to the product stage, not to the reading surface.
-function updateEffectsLabel() {
-    const button = $('[data-effects-toggle]');
-    if (!button) return;
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const playing = button.getAttribute('aria-pressed') === 'true';
-    const label = reduced ? (language === 'zh' ? '静态模式' : 'Static mode')
-        : playing ? (language === 'zh' ? '暂停动效' : 'Pause motion')
-        : (language === 'zh' ? '播放动效' : 'Play motion');
-    $('[data-effects-label]',button).textContent = label;
-    button.setAttribute('aria-label',label);
-}
 (() => {
     const stage = $('.hero-shell');
     const canvas = $('#optical-canvas');
-    const control = $('[data-effects-toggle]');
     const context = canvas?.getContext('2d');
-    if (!stage || !control) return;
+    if (!stage) return;
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
-    let enabled = true;
-    try { enabled = localStorage.getItem('tcube-motion') !== 'off'; } catch {}
     let visible = true;
     let running = false;
     let request = 0;
@@ -181,12 +166,8 @@ function updateEffectsLabel() {
         paint(elapsed);
     }
     function synchronize() {
-        running = enabled && !preference.matches && visible && !document.hidden;
+        running = !preference.matches && visible && !document.hidden;
         stage.classList.toggle('effects-paused',!running);
-        control.disabled = preference.matches;
-        control.setAttribute('aria-pressed',String(enabled && !preference.matches));
-        control.hidden = false;
-        updateEffectsLabel();
         if (running && !request) {
             lastFrame = performance.now();
             request = requestAnimationFrame(tick);
@@ -208,11 +189,6 @@ function updateEffectsLabel() {
         }
         paint(elapsed);
     }
-    control.addEventListener('click',() => {
-        enabled = !enabled;
-        try { localStorage.setItem('tcube-motion',enabled ? 'on' : 'off'); } catch {}
-        synchronize();
-    });
     stage.addEventListener('pointermove',event => {
         if (!running || compact || pointerRequest) return;
         const bounds = stage.getBoundingClientRect();

@@ -14,7 +14,7 @@ The six-face launcher story and material preview share one section, reducing rep
 
 ## Motion and access
 
-The cube floats slowly, with restrained refracted ribbons and a pointer-responsive light field fading into the shared ground. No orbit rings, stars, particle rain or unrelated counters. Effects can be paused and the choice is remembered; loops stop offscreen/hidden, and reduced-motion yields a static stage. Desktop/compact canvas caps remain 30/20fps with bounded pixel density. Utility motion controls are icon-only with localized accessible labels. Mobile controls retain 44px touch targets.
+The cube floats slowly, with restrained refracted ribbons and a pointer-responsive light field fading into the shared ground. No orbit rings, stars, particle rain or unrelated counters. Effects run automatically while the product stage is visible; loops stop offscreen/hidden, and reduced-motion yields a static stage. Desktop/compact canvas caps remain 30/20fps with bounded pixel density. The header has no motion control, as explicitly requested by the maintainer. Mobile controls retain 44px touch targets.
 
 All content and download anchors remain available without JavaScript. Chinese fallback text is regenerated from canonical translations rather than modified with substring replacements. Material tabs, native dialogs, keyboard focus and live release metadata remain functional.
 
