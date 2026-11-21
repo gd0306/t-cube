@@ -1,0 +1,36 @@
+# Website deployment acceptance — 2026-11-21
+
+Production: https://www.gd306.cn/t-cube/
+
+## Scope
+
+New Chinese-first, bilingual product website. No native application code, package version, user application data or installer assets were changed. Existing site homepage and unrelated services are preserved.
+
+## Product and content
+
+- Current GitHub latest was re-read during this task: `v0.22.11`, with macOS arm64 DMG and Windows x64 EXE, checksums and source marker.
+- Five complete feature categories follow repository documentation and source, with real native renders and UI captures. Old settings captures showing an Apply flow were excluded.
+- Search/multi-entry merge are assigned to the full history manager, rather than claimed as a shared quick-panel capability. Privacy distinguishes volatile history from explicitly saved content; optional GitHub release checks are disclosed.
+- Hardware/permission/platform boundaries and unsigned/not-notarized installer requirements are stated. No invented adoption statistics, testimonials, performance benchmarks or universal DDC compatibility claims.
+
+## Browser and functional checks
+
+- Local Playwright: Chinese and English at `320`, `390`, `768`, `1024`, `1440` CSS pixels, with no horizontal page overflow after fixing the native-render container.
+- Language toggle and reload persistence; keyboard material tabs (Home/End/arrows); enlarged-image dialog and Escape; native-motion dialog; feature accordion; loaded product images; reduced-motion behavior all passed.
+- JavaScript syntax, deployment shell syntax and Python compilation passed.
+- Release-refresh validation rejects a foreign download host and incomplete metadata while retaining current HTML/JSON. A simulated future version updates both platform links, checksums and the no-JavaScript fallback version. This is a local simulation, not a new software release.
+- The Impeccable detector was run once. Small functional text was enlarged; physical key-cap shadow was softened. Remaining layout warnings were reviewed against rendered results: section insets use padding-block and a max-width child, desktop input imagery uses an actual display-edge diagram, and the two-platform separator is a structural divider. They are not represented as zero warnings.
+
+## Production deployment
+
+- Release directory: `/var/www/t-cube/releases/20261121-134210/public`.
+- Active path `/var/www/html/t-cube` is an atomic symlink. Only static public files are exposed; deployment and refresh operations scripts are outside the web root.
+- Nginx configuration tests passed before/after publication; no Nginx configuration change or reload was needed.
+- Existing homepage SHA-256 before/after: `036013d0010b2c62e9129319e96172eb50a3972b4188937c44199be5cb631a60`.
+- Public HTTPS HTML/CSS/JS and 16 assets (19 files) were downloaded and matched to local SHA-256, byte for byte. `release.json` was fetched separately because its server refresh timestamp intentionally differs.
+- `t-cube-release-refresh.service`: first production refresh succeeded with `Result=success`, `ExecMainStatus=0`. Its hourly timer is active. No GitHub credential is used; failed network/validation refreshes retain valid existing links.
+
+- Production Playwright: Chinese and English at `320`, `390`, `1440` pixels all matched viewport width; material tab, motion dialog and Escape passed, with no broken product images or JavaScript page errors. The displayed installer URLs match current release metadata.
+- Both public installer links returned HTTP `206` for an unauthenticated one-byte range probe.
+
+Local evidence: `.build/website/` (deployment receipt, public-file hash manifest, browser checks, refresh checks). Browser captures were initially written to `output/playwright/` by the Playwright skill.

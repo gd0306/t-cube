@@ -1,0 +1,11 @@
+[Unit]
+Description=Keep T-Cube website downloads aligned with GitHub stable releases
+
+[Timer]
+OnCalendar=hourly
+RandomizedDelaySec=300
+Persistent=true
+Unit=t-cube-release-refresh.service
+
+[Install]
+WantedBy=timers.target

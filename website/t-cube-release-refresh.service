@@ -1,0 +1,15 @@
+[Unit]
+Description=Refresh T-Cube public stable release download links
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/python3 /opt/t-cube-site/refresh-release.py --root /var/www/html/t-cube
+User=root
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/www/t-cube
+TimeoutStartSec=40

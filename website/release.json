@@ -1,0 +1,31 @@
+{
+  "version": "0.22.11",
+  "publishedAt": "2026-11-19T04:24:11Z",
+  "page": "https://github.com/gd0306/t-cube/releases/tag/v0.22.11",
+  "assets": [
+    {
+      "name": "SHA256SUMS.txt",
+      "url": "https://github.com/gd0306/t-cube/releases/download/v0.22.11/SHA256SUMS.txt",
+      "size": 200,
+      "sha256": "cfeab509c4bac78a051de67db67dd15fa509e27fc78aceab5332596c155cd82b"
+    },
+    {
+      "name": "SOURCE_COMMIT.txt",
+      "url": "https://github.com/gd0306/t-cube/releases/download/v0.22.11/SOURCE_COMMIT.txt",
+      "size": 41,
+      "sha256": "c68716baa9e9a0022fec133835ed4d06a68c8ca3d5ec9783eed5a094ff3db136"
+    },
+    {
+      "name": "T-Cube-0.22.11-macos-arm64.dmg",
+      "url": "https://github.com/gd0306/t-cube/releases/download/v0.22.11/T-Cube-0.22.11-macos-arm64.dmg",
+      "size": 4179799,
+      "sha256": "77a9fc833ff6817255dcd7ecad40ce6efed85dc9d9bdcf54b95214efc07e1614"
+    },
+    {
+      "name": "T-Cube-0.22.11-windows-x64-setup.exe",
+      "url": "https://github.com/gd0306/t-cube/releases/download/v0.22.11/T-Cube-0.22.11-windows-x64-setup.exe",
+      "size": 125856111,
+      "sha256": "e87efd42df10c5fe1192318dd31b6b0f531616ba3e5eeb2add80bff438632c96"
+    }
+  ]
+}
