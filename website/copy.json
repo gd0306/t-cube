@@ -407,10 +407,6 @@
     "zh": "Windows 10 22H2 / 11 · x64 · EXE",
     "en": "Windows 10 22H2 / 11 · x64 · EXE"
   },
-  "t131": {
-    "zh": "macOS 未公证 · Windows 未签名",
-    "en": "macOS not notarized · Windows unsigned"
-  },
   "t132": {
     "zh": "更新记录",
     "en": "Release notes"
