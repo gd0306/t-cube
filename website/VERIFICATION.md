@@ -34,3 +34,11 @@ New Chinese-first, bilingual product website. No native application code, packag
 - Both public installer links returned HTTP `206` for an unauthenticated one-byte range probe.
 
 Local evidence: `.build/website/` (deployment receipt, public-file hash manifest, browser checks, refresh checks). Browser captures were initially written to `output/playwright/` by the Playwright skill.
+
+## Optical redesign — 2026-11-21
+
+Following the user's request, Impeccable A/B assessments independently examined the previous black page. The review and resolution are recorded in `UI-REVIEW.md`. The new page uses a deep-blue animated optical stage alternating with light ice-blue content, fewer generic headings and no repeated instructional captions. Hero effects are user-pausable, pause when offscreen/hidden, and respect reduced motion. Desktop/compact paint caps are 30/20fps with bounded pixel density. Local bilingual layout/interaction and motion-control checks passed; selected body-text contrast is 4.89–5.87:1. The latest download updater remains functional and was retested against invalid, incomplete and simulated future releases. CSS/JS/share-image cache keys were advanced for immediate delivery of the redesigned assets.
+
+The optical revision was published to `/var/www/t-cube/releases/20261121-140304/public`. Nginx validation and the credential-free release-refresh service succeeded; the active timer remains enabled. Existing domain homepage SHA-256 remains `036013d0010b2c62e9129319e96172eb50a3972b4188937c44199be5cb631a60`. Public HTTPS HTML and versioned CSS were fetched and matched to the local files byte-for-byte. Previous website releases remain available for rollback.
+
+Production browser verification also passed Chinese/English at 320/390/1440 pixels, material switching, the native-motion dialog, image loading and live version metadata, with zero page errors. Production motion checks verified changing canvas frames, paused frames, pause persistence, offscreen suspension/re-entry, reduced-motion static frames and localized control labels. Public versioned JavaScript and the refreshed share image also matched local bytes.
