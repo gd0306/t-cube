@@ -30,6 +30,13 @@ test -s "$RELEASE/public/assets/social-preview.jpg"
 test -s "$RELEASE/public/assets/nunito-sans-latin.woff2"
 test -s "$RELEASE/public/assets/roboto-condensed-latin.woff2"
 /usr/local/bin/python3 "$RELEASE/ops/refresh-release.py" --root "$RELEASE/public"
+ORIGIN=http://tcube.gd306.cn
+ORIGIN_PORT=80
+if grep -Eq 'listen[[:space:]]+443[[:space:]]+ssl' /etc/nginx/t-cube-site.conf; then
+    ORIGIN=https://tcube.gd306.cn
+    ORIGIN_PORT=443
+    sed -i 's|http://tcube.gd306.cn/|https://tcube.gd306.cn/|g' "$RELEASE/public/index.html"
+fi
 nginx -t
 HOMEPAGE_BEFORE="$(sha256sum /var/www/html/index.html | cut -d ' ' -f 1)"
 mkdir -p "/var/backups/t-cube-site/$DEPLOY_ID" /opt/t-cube-site
@@ -50,7 +57,7 @@ systemctl show t-cube-release-refresh.service -p Result -p ExecMainStatus
 HOMEPAGE_AFTER="$(sha256sum /var/www/html/index.html | cut -d ' ' -f 1)"
 test "$HOMEPAGE_BEFORE" = "$HOMEPAGE_AFTER"
 nginx -t
-curl -fsS --resolve tcube.gd306.cn:80:127.0.0.1 http://tcube.gd306.cn/ -o "/tmp/t-cube-$DEPLOY_ID-https.html"
+curl -fsS --resolve "tcube.gd306.cn:$ORIGIN_PORT:127.0.0.1" "$ORIGIN/" -o "/tmp/t-cube-$DEPLOY_ID-https.html"
 cmp "/tmp/t-cube-$DEPLOY_ID-https.html" /var/www/html/t-cube/index.html
 sha256sum /var/www/html/t-cube/index.html /var/www/html/t-cube/style.css /var/www/html/t-cube/app.js
 printf 'DEPLOYED %s\nHOMEPAGE_SHA256 %s\n' "$RELEASE" "$HOMEPAGE_AFTER"

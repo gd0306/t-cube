@@ -39,3 +39,26 @@ This installs `nginx/t-cube-site.conf` at `/etc/nginx/t-cube-site.conf` and incl
 The root/index HTML and release metadata use `Cache-Control: no-cache` so browsers revalidate migration and release changes.
 
 The configuration script backs up the main config and owned include files under `/var/backups/t-cube-site/domain-*`, runs `nginx -t`, gracefully reloads the running Nginx master with `nginx -s reload`, and verifies the new host, legacy asset redirect and unchanged personal homepage. A failed verification restores those backed-up configuration files. No HTTPS listener or certificate is configured for the new subdomain yet. After the domain is configured, use `deploy.sh` normally; it now verifies the dedicated HTTP origin. Physical release directories and the refresh timer remain unchanged.
+
+### Prepare and enable HTTPS
+
+The prepared TLS template mirrors the existing main site's SSL cache, timeout and cipher settings. Stage it without changing the active HTTP site:
+
+```bash
+TCUBE_SITE_HOST=root@your-server bash website/prepare-https.sh
+```
+
+Upload the Nginx/PEM certificate bundle (leaf certificate followed by intermediate certificates) and matching unencrypted PEM private key to:
+
+- `/opt/ssl/tcube.gd306.cn_nginx/tcube.gd306.cn_bundle.crt`
+- `/opt/ssl/tcube.gd306.cn_nginx/tcube.gd306.cn.key`
+
+Then run on the server:
+
+```bash
+sudo /usr/local/sbin/enable-tcube-https
+```
+
+The staged template lives at `/etc/nginx/t-cube-site-https.conf.pending`. The activation helper checks expiry, hostname coverage and key matching, sets private-key mode `600`, backs up the active site/legacy redirects/HTML, installs the TLS server, validates Nginx and reloads gracefully. It verifies the HTTPS response with normal certificate verification and enables the HTTP-to-HTTPS redirect; a failure restores the previous configuration and HTML. It also changes current canonical/share metadata and legacy redirects to HTTPS. The helper is not an automatic certificate-renewal service.
+
+Future content deployments detect an enabled TLS server, preserve HTTPS metadata and verify that origin. Re-running `configure-domain.sh` preserves an already-enabled TLS server instead of reverting it to HTTP. The main site's existing certificate covers only `gd306.cn` and `www.gd306.cn`; the uploaded certificate must cover `tcube.gd306.cn` or a matching wildcard.

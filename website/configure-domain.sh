@@ -1,5 +1,5 @@
 #!/bin/bash
-# Configure the maintainer-authorized HTTP origin without replacing other vhosts.
+# Configure the dedicated origin, preserving an already-enabled HTTPS server.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TCUBE_SITE_HOST="${TCUBE_SITE_HOST:?Set TCUBE_SITE_HOST to the authorized SSH target}"
@@ -30,8 +30,18 @@ rollback() {
 }
 trap 'result=$?; rollback; exit "$result"' ERR
 tar -xzf "/tmp/$CHANGE_ID.tar.gz" -C "$BACKUP/incoming"
-install -m 644 "$BACKUP/incoming/t-cube-site.conf" /etc/nginx/t-cube-site.conf
+ORIGIN=http://tcube.gd306.cn
+ORIGIN_PORT=80
+if grep -Eq 'listen[[:space:]]+443[[:space:]]+ssl' /etc/nginx/t-cube-site.conf; then
+    ORIGIN=https://tcube.gd306.cn
+    ORIGIN_PORT=443
+else
+    install -m 644 "$BACKUP/incoming/t-cube-site.conf" /etc/nginx/t-cube-site.conf
+fi
 install -m 644 "$BACKUP/incoming/t-cube-legacy-locations.conf" /etc/nginx/t-cube-legacy-locations.conf
+if test "$ORIGIN_PORT" = 443; then
+    sed -i 's|http://tcube.gd306.cn/|https://tcube.gd306.cn/|g' /etc/nginx/t-cube-legacy-locations.conf
+fi
 python3 - <<'PY'
 from pathlib import Path
 path = Path('/etc/nginx/nginx.conf')
@@ -55,17 +65,17 @@ PY
 nginx -t
 nginx -s reload
 for attempt in 1 2 3 4 5 6 7 8 9 10; do
-    if curl -fsS --max-time 3 --resolve tcube.gd306.cn:80:127.0.0.1 http://tcube.gd306.cn/ -o "$BACKUP/new-origin.html" && cmp -s "$BACKUP/new-origin.html" /var/www/html/t-cube/index.html; then break; fi
+    if curl -fsS --max-time 3 --resolve "tcube.gd306.cn:$ORIGIN_PORT:127.0.0.1" "$ORIGIN/" -o "$BACKUP/new-origin.html" && cmp -s "$BACKUP/new-origin.html" /var/www/html/t-cube/index.html; then break; fi
     sleep 0.2
 done
 cmp "$BACKUP/new-origin.html" /var/www/html/t-cube/index.html
 curl -fsS --resolve www.gd306.cn:443:127.0.0.1 https://www.gd306.cn/ -o "$BACKUP/main-homepage.html"
 cmp "$BACKUP/main-homepage.html" /var/www/html/index.html
 REDIRECT="$(curl -sS -o /dev/null -w '%{redirect_url}' --resolve www.gd306.cn:443:127.0.0.1 'https://www.gd306.cn/t-cube/assets/app-icon.png?check=1')"
-test "$REDIRECT" = 'http://tcube.gd306.cn/assets/app-icon.png?check=1'
+test "$REDIRECT" = "$ORIGIN/assets/app-icon.png?check=1"
 HOMEPAGE_AFTER="$(sha256sum /var/www/html/index.html | cut -d ' ' -f 1)"
 test "$HOMEPAGE_BEFORE" = "$HOMEPAGE_AFTER"
 trap - ERR
 rm -f "/tmp/$CHANGE_ID.tar.gz"
-printf 'ORIGIN http://tcube.gd306.cn/\nBACKUP %s\nHOMEPAGE_SHA256 %s\n' "$BACKUP" "$HOMEPAGE_AFTER"
+printf 'ORIGIN %s/\nBACKUP %s\nHOMEPAGE_SHA256 %s\n' "$ORIGIN" "$BACKUP" "$HOMEPAGE_AFTER"
 REMOTE
