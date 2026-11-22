@@ -228,8 +228,8 @@
     "en": "Download"
   },
   "t59": {
-    "zh": "应用、剪贴板与显示器，\n都在这个立方体里。",
-    "en": "Apps, clipboard and displays.\nOne cube on your desktop."
+    "zh": "应用、文件、剪贴板与显示器。\n一个悬浮立方体，接起桌面日常。",
+    "en": "Apps, files, clipboard and displays.\nOne floating cube for your everyday work."
   },
   "t60": {
     "zh": "下载 T-Cube",
@@ -240,8 +240,8 @@
     "en": "macOS / Windows · Free and open source"
   },
   "t69": {
-    "zh": "六面快捷启动",
-    "en": "Six faces. Your shortcuts."
+    "zh": "六个面，\n装下你的快捷入口。",
+    "en": "Six faces.\nA place for every shortcut."
   },
   "t70": {
     "zh": "应用、文件、网页与系统设置，拖入即可添加。点击直达，或展开四图标面板。",
@@ -304,8 +304,8 @@
     "en": "Hardware requirements"
   },
   "t93": {
-    "zh": "剪贴板与常用内容",
-    "en": "Clipboard and reusable content"
+    "zh": "复制过的，\n随时找回来。",
+    "en": "Copied once.\nReady when you need it."
   },
   "t95": {
     "zh": "macOS 剪贴板快捷历史面板，包含文字和图片记录",
@@ -336,8 +336,8 @@
     "en": "Groups, favorites, structured fields and {{variable}} templates, ready to reuse."
   },
   "t106": {
-    "zh": "本地与轻量",
-    "en": "Local and lightweight"
+    "zh": "留在本地，\n轻装运行。",
+    "en": "Local by design.\nLight on your desktop."
   },
   "t107": {
     "zh": "空闲节能，隐藏时停止渲染。",
@@ -380,8 +380,8 @@
     "en": "Controls and gestures"
   },
   "t120": {
-    "zh": "下载",
-    "en": "Download"
+    "zh": "把 T-Cube\n放上你的桌面。",
+    "en": "Make room\nfor T-Cube."
   },
   "t123": {
     "zh": "Apple Silicon",
@@ -426,5 +426,21 @@
   "t137": {
     "zh": "gd306.cn",
     "en": "gd306.cn"
+  },
+  "heroTitle": {
+    "zh": "常用的一切，\n就在手边。",
+    "en": "Your desktop.\nWithin reach."
+  },
+  "launcherAlt": {
+    "zh": "T-Cube 展开的四项网页入口与标题",
+    "en": "Four expanded website shortcuts with titles in T-Cube"
+  },
+  "toolsAlt": {
+    "zh": "macOS 剪贴板文字处理窗口，包含 JSON 与 URL 本地工具",
+    "en": "Native macOS clipboard text tools with local JSON and URL processing"
+  },
+  "libraryAlt": {
+    "zh": "Windows 常用内容库，包含分组与结构化模板",
+    "en": "Native Windows content library with groups and structured templates"
   }
 }

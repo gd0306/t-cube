@@ -1,0 +1,335 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-22T06:24:24.654802+00:00",
+  "title": "Design System: T-Cube Website",
+  "extensions": {
+    "colorMeta": {
+      "bg": {
+        "role": "neutral",
+        "displayName": "炭绿",
+        "tonalRamp": [
+          "oklch(15% 0.0031 182.9)",
+          "oklch(26% 0.0078 182.9)",
+          "oklch(38% 0.0124 182.9)",
+          "oklch(50% 0.0155 182.9)",
+          "oklch(62% 0.0155 182.9)",
+          "oklch(74% 0.0124 182.9)",
+          "oklch(85% 0.0078 182.9)",
+          "oklch(95% 0.0031 182.9)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "深苔绿",
+        "tonalRamp": [
+          "oklch(15% 0.0036 179.4)",
+          "oklch(26% 0.0091 179.4)",
+          "oklch(38% 0.0145 179.4)",
+          "oklch(50% 0.0181 179.4)",
+          "oklch(62% 0.0181 179.4)",
+          "oklch(74% 0.0145 179.4)",
+          "oklch(85% 0.0091 179.4)",
+          "oklch(95% 0.0036 179.4)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "暖白",
+        "tonalRamp": [
+          "oklch(15% 0.0024 96.4)",
+          "oklch(26% 0.0061 96.4)",
+          "oklch(38% 0.0097 96.4)",
+          "oklch(50% 0.0121 96.4)",
+          "oklch(62% 0.0121 96.4)",
+          "oklch(74% 0.0097 96.4)",
+          "oklch(85% 0.0061 96.4)",
+          "oklch(95% 0.0024 96.4)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "雾灰绿",
+        "tonalRamp": [
+          "oklch(15% 0.0031 164.6)",
+          "oklch(26% 0.0078 164.6)",
+          "oklch(38% 0.0124 164.6)",
+          "oklch(50% 0.0155 164.6)",
+          "oklch(62% 0.0155 164.6)",
+          "oklch(74% 0.0124 164.6)",
+          "oklch(85% 0.0078 164.6)",
+          "oklch(95% 0.0031 164.6)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "薄荷绿",
+        "tonalRamp": [
+          "oklch(15% 0.0177 161.5)",
+          "oklch(26% 0.0442 161.5)",
+          "oklch(38% 0.0707 161.5)",
+          "oklch(50% 0.0883 161.5)",
+          "oklch(62% 0.0883 161.5)",
+          "oklch(74% 0.0707 161.5)",
+          "oklch(85% 0.0442 161.5)",
+          "oklch(95% 0.0177 161.5)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "灰绿线",
+        "tonalRamp": [
+          "oklch(15% 0.0044 170.7)",
+          "oklch(26% 0.0109 170.7)",
+          "oklch(38% 0.0174 170.7)",
+          "oklch(50% 0.0218 170.7)",
+          "oklch(62% 0.0218 170.7)",
+          "oklch(74% 0.0174 170.7)",
+          "oklch(85% 0.0109 170.7)",
+          "oklch(95% 0.0044 170.7)"
+        ]
+      },
+      "hero-copy": {
+        "role": "neutral",
+        "displayName": "浅灰绿",
+        "tonalRamp": [
+          "oklch(15% 0.0022 149.8)",
+          "oklch(26% 0.0055 149.8)",
+          "oklch(38% 0.0088 149.8)",
+          "oklch(50% 0.0110 149.8)",
+          "oklch(62% 0.0110 149.8)",
+          "oklch(74% 0.0088 149.8)",
+          "oklch(85% 0.0055 149.8)",
+          "oklch(95% 0.0022 149.8)"
+        ]
+      },
+      "scrollbar": {
+        "role": "neutral",
+        "displayName": "滚动条灰绿",
+        "tonalRamp": [
+          "oklch(15% 0.0064 163.9)",
+          "oklch(26% 0.0159 163.9)",
+          "oklch(38% 0.0255 163.9)",
+          "oklch(50% 0.0319 163.9)",
+          "oklch(62% 0.0319 163.9)",
+          "oklch(74% 0.0255 163.9)",
+          "oklch(85% 0.0159 163.9)",
+          "oklch(95% 0.0064 163.9)"
+        ]
+      },
+      "link-underline": {
+        "role": "primary",
+        "displayName": "薄荷半透明线",
+        "tonalRamp": [
+          "oklch(15% 0.0177 161.5)",
+          "oklch(26% 0.0442 161.5)",
+          "oklch(38% 0.0707 161.5)",
+          "oklch(50% 0.0883 161.5)",
+          "oklch(62% 0.0883 161.5)",
+          "oklch(74% 0.0707 161.5)",
+          "oklch(85% 0.0442 161.5)",
+          "oklch(95% 0.0177 161.5)"
+        ]
+      },
+      "dialog-backdrop": {
+        "role": "neutral",
+        "displayName": "深绿遮幕",
+        "tonalRamp": [
+          "oklch(15% 0.0034 175.8)",
+          "oklch(26% 0.0085 175.8)",
+          "oklch(38% 0.0135 175.8)",
+          "oklch(50% 0.0169 175.8)",
+          "oklch(62% 0.0169 175.8)",
+          "oklch(74% 0.0135 175.8)",
+          "oklch(85% 0.0085 175.8)",
+          "oklch(95% 0.0034 175.8)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "首屏标题",
+        "purpose": "首屏主标题；尺寸随现有媒体查询调整。"
+      },
+      "headline": {
+        "displayName": "章节标题",
+        "purpose": "章节层级。"
+      },
+      "title": {
+        "displayName": "功能标题",
+        "purpose": "功能与平台标题，保留局部尺寸。"
+      },
+      "body": {
+        "displayName": "正文",
+        "purpose": "主要说明文字。"
+      },
+      "label": {
+        "displayName": "标签",
+        "purpose": "导航与辅助界面文字。"
+      },
+      "button": {
+        "displayName": "行动入口",
+        "purpose": "描边下载按钮。"
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "button-transition",
+        "value": "background .22s, color .22s, transform .22s",
+        "purpose": "按钮悬停反色并上移2px。"
+      },
+      {
+        "name": "image-transition",
+        "value": "filter .2s",
+        "purpose": "图像悬停亮度1.07。"
+      },
+      {
+        "name": "zoom-transition",
+        "value": "opacity .2s",
+        "purpose": "放大标记显现。"
+      },
+      {
+        "name": "cube-float",
+        "value": "10s ease-in-out infinite; translateY(-4px) → translateY(6px)",
+        "purpose": "原生产品图轻浮动；离屏或文档隐藏时暂停。"
+      },
+      {
+        "name": "hero-tilt",
+        "value": "transform .6s cubic-bezier(.16,1,.3,1)",
+        "purpose": "允许动态效果且支持悬停时响应指针倾斜。"
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation: none !important; transition: none !important; scroll-behavior: auto",
+        "purpose": "prefers-reduced-motion: reduce时禁用动效，hero-art同时移除transform。"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact-phone",
+        "value": "360px",
+        "query": "(max-width:360px)"
+      },
+      {
+        "name": "phone",
+        "value": "600px",
+        "query": "(max-width:600px)"
+      },
+      {
+        "name": "stacked-hero",
+        "value": "800px",
+        "query": "(max-width:800px)"
+      },
+      {
+        "name": "compact-desktop",
+        "value": "1100px",
+        "query": "(max-width:1100px)"
+      },
+      {
+        "name": "wide-desktop",
+        "value": "1440px",
+        "query": "(min-width:1440px)"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "描边下载按钮",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "首屏和页尾的直接安装包入口。",
+      "html": "<a class=\"ds-button\" href=\"#download\">下载 macOS 版<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 3v12m-5-5 5 5 5-5M5 17v4h14v-4\"/></svg></a>",
+      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:space-between;gap:28px;min-height:60px;padding:15px 22px;border:1px solid var(--ink);border-radius:2px;background:transparent;color:var(--ink);font-size:16px;font-weight:800;line-height:1.4;text-decoration:none;transition:background .22s,color .22s,transform .22s;font-family:var(--font);}.ds-button svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.6;flex-shrink:0}.ds-button:hover{background:var(--ink);color:var(--bg);transform:translateY(-2px);}.ds-button:focus-visible{outline:2px solid var(--accent);outline-offset:5px;}@media(prefers-reduced-motion:reduce){.ds-button{transition:none}}"
+    },
+    {
+      "name": "紧凑描边按钮",
+      "kind": "button",
+      "refersTo": "button-compact",
+      "description": "页头下载入口，保留44px最小高度。",
+      "html": "<a class=\"ds-compact\" href=\"#download\">下载</a>",
+      "css": ".ds-compact{display:inline-flex;align-items:center;justify-content:space-between;gap:28px;min-height:60px;padding:15px 22px;border:1px solid var(--ink);border-radius:2px;background:transparent;color:var(--ink);font-size:16px;font-weight:800;line-height:1.4;text-decoration:none;transition:background .22s,color .22s,transform .22s;font-family:var(--font);min-height:44px;padding:10px 22px;font-size:14px}.ds-compact:hover{background:var(--ink);color:var(--bg);transform:translateY(-2px);}.ds-compact:focus-visible{outline:2px solid var(--accent);outline-offset:5px;}@media(prefers-reduced-motion:reduce){.ds-compact{transition:none}}"
+    },
+    {
+      "name": "文字链接",
+      "kind": "button",
+      "refersTo": "text-link",
+      "description": "文档、平台辅助下载与演示入口。",
+      "html": "<a class=\"ds-text-link\" href=\"#features\">完整功能</a>",
+      "css": ".ds-text-link{display:inline-flex;align-items:center;min-height:44px;font-size:15px;color:var(--accent);text-decoration:underline;text-underline-offset:.3em;text-decoration-thickness:1px;text-decoration-color:var(--accent);text-decoration-color:color-mix(in srgb,var(--accent) 40%,transparent);font-family:var(--font);}.ds-text-link:hover{text-decoration-color:currentColor}.ds-text-link:focus-visible{outline:2px solid var(--accent);outline-offset:5px;}"
+    },
+    {
+      "name": "页头导航",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "桌面章节链接，800px以下隐藏该中间导航。",
+      "html": "<nav class=\"ds-nav\" aria-label=\"产品导航\"><a href=\"#features\">功能</a><a href=\"#download\">下载</a></nav>",
+      "css": ".ds-nav{display:flex;gap:30px;font-family:var(--font);}.ds-nav a{display:flex;align-items:center;min-height:44px;font-size:14px;color:var(--muted);text-decoration:none}.ds-nav a:hover{color:var(--accent)}.ds-nav a:focus-visible{outline:2px solid var(--accent);outline-offset:5px;}@media(max-width:800px){.ds-nav{display:none}}"
+    },
+    {
+      "name": "材质标签",
+      "kind": "custom",
+      "refersTo": "material-tab",
+      "description": "预览三种原生产品状态；片段展示当前选中状态，真实页面由app.js处理键盘与切换。",
+      "html": "<div class=\"ds-tabs\" role=\"tablist\" aria-label=\"材质\"><button role=\"tab\" aria-selected=\"true\" tabindex=\"0\">通透玻璃</button><button role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">极光</button><button role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">静置</button></div>",
+      "css": ".ds-tabs{display:flex;gap:22px;flex-wrap:wrap;border-bottom:1px solid var(--line);font-family:var(--font);}.ds-tabs button{font:inherit;font-size:13px;min-height:44px;padding:8px 0;color:var(--muted);background:transparent;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer}.ds-tabs button[aria-selected=true]{color:var(--accent);border-color:var(--accent)}.ds-tabs button:hover{color:var(--ink)}.ds-tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:5px;}"
+    },
+    {
+      "name": "功能折叠项",
+      "kind": "custom",
+      "refersTo": "disclosure",
+      "description": "无框架依赖的原生details；完整功能和FAQ共享该语言。",
+      "html": "<details class=\"ds-detail\"><summary>六面快捷入口<span class=\"ds-plus\" aria-hidden=\"true\"></span></summary><p>六面共24个快捷位置，可打开应用、文件和网页。</p></details>",
+      "css": ".ds-detail{border-top:1px solid var(--line);border-bottom:1px solid var(--line);color:var(--ink);font-family:var(--font);}.ds-detail summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:76px;font-weight:600;font-size:20px;line-height:1.5;padding:23px 0}.ds-detail summary::-webkit-details-marker{display:none}.ds-detail summary:hover{color:var(--accent)}.ds-detail summary:focus-visible{outline:2px solid var(--accent);outline-offset:5px;}.ds-plus{width:14px;height:14px;position:relative;flex-shrink:0}.ds-plus:before,.ds-plus:after{content:\"\";position:absolute;background:currentColor;left:0;top:6px;width:14px;height:1px}.ds-plus:after{transform:rotate(90deg)}.ds-detail[open] .ds-plus:after{transform:none}.ds-detail p{font-size:14px;line-height:1.9;color:var(--muted);margin:0;padding-bottom:18px}"
+    },
+    {
+      "name": "快捷键说明",
+      "kind": "custom",
+      "refersTo": "keyboard-key",
+      "description": "非交互键帽与薄荷绿快捷键说明。",
+      "html": "<div class=\"ds-chord\"><kbd>Ctrl</kbd><span>长按一秒</span></div>",
+      "css": ".ds-chord{display:flex;align-items:center;gap:10px;color:var(--accent);font-size:14px;font-family:var(--font);}.ds-chord kbd{border:1px solid var(--line);padding:4px 13px;border-radius:4px;font:inherit;color:var(--ink)}"
+    },
+    {
+      "name": "平台下载信息组",
+      "kind": "card",
+      "refersTo": "download-platform",
+      "description": "开放信息组保留平台、系统和架构说明，无额外投影或卡片底。",
+      "html": "<article class=\"ds-platform\"><span class=\"ds-os\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M16.8 12.7c0-2 1.6-3 1.7-3.1-1-1.4-2.5-1.6-3.1-1.6-1.3-.1-2.5.8-3.2.8-.6 0-1.6-.8-2.7-.7-1.4 0-2.8.9-3.5 2.1-1.5 2.6-.4 6.5 1 8.6.7 1 1.5 2.1 2.6 2 1 0 1.4-.7 2.8-.7 1.3 0 1.7.7 2.8.7 1.2 0 1.9-1 2.6-2 .8-1.1 1.1-2.2 1.2-2.3-.1 0-2.2-.9-2.2-3.3ZM14.6 6.7c.6-.8 1.1-1.9 1-3-.9.1-2 .6-2.7 1.4-.6.6-1.2 1.8-1 2.9 1 .1 2-.5 2.7-1.3Z\"/></svg></span><h3>macOS</h3><p>Apple Silicon</p><a class=\"ds-download\" href=\"#download\">下载 macOS 版</a><p class=\"ds-requirements\">macOS 15+ · Apple Silicon · DMG</p></article>",
+      "css": ".ds-platform{position:relative;padding-left:48px;color:var(--ink);font-family:var(--font);}.ds-os{position:absolute;left:0;top:4px;width:25px;height:25px}.ds-os svg{width:100%;height:100%;fill:var(--ink)}.ds-platform h3{font-size:26px;font-weight:700;letter-spacing:-.035em;line-height:1.2;margin:0}.ds-platform p{font-size:13px;margin:5px 0 0;color:var(--muted)}.ds-download{display:inline-flex;align-items:center;justify-content:space-between;gap:28px;min-height:60px;padding:15px 22px;border:1px solid var(--ink);border-radius:2px;background:transparent;color:var(--ink);font-size:16px;font-weight:800;line-height:1.4;text-decoration:none;transition:background .22s,color .22s,transform .22s;font-family:var(--font);margin-top:18px;display:flex}.ds-download:hover{background:var(--ink);color:var(--bg);transform:translateY(-2px);}.ds-download:focus-visible{outline:2px solid var(--accent);outline-offset:5px;}.ds-platform .ds-requirements{font-size:12px;margin-top:15px}@media(prefers-reduced-motion:reduce){.ds-download{transition:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "炭绿桌面工作台",
+    "overview": "T-Cube 网站以用户指定的 [MotionObj Regex](https://motionobj.com/regex/) 为视觉参照：连续炭绿底色、开阔分栏、厚实简洁的标题、细描边行动入口与真实产品图像。它呈现一款随手可用的桌面工具；视觉证据来自现有应用图标、原生立方体渲染和 macOS / Windows 界面截图。\n\n整体安静、直接、克制。页面依靠字号、留白与分隔线建立层级，薄荷绿集中用于选择状态、链接和焦点。用户本次确定的新方向替代此前蓝灰底色以及早期 Apple / OpenAI 参考；无交替明暗章节、装饰画布或粒子背景。当前首屏与故事顺序属于[页面方向契约](.impeccable/surfaces/website-index-html.md)，不把单页布局当作所有未来页面的固定模板。",
+    "keyCharacteristics": [
+      "连续炭绿背景，以同色系表面和细线组织内容。",
+      "Manrope 配合中文系统无衬线字体，标题紧凑，正文舒展。",
+      "近直角描边按钮，真实截图承担产品说明。",
+      "中文默认、英文可切换，键盘操作与减少动态效果优先。"
+    ],
+    "rules": [
+      {
+        "name": "The Continuous Ground Rule",
+        "body": "从页头到页脚延续 `bg`，章节通过留白与 `line` 分隔，产品承托面使用 `surface`。",
+        "section": "colors"
+      },
+      {
+        "name": "The Flat Surface Rule",
+        "body": "页面表面保持平整，让原生立方体与截图提供产品深度。",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** 延续炭绿背景、同色承托面和细分隔线，以排版与留白组织信息。",
+      "**Do** 使用真实应用图标、原生渲染与平台截图，保留图片比例和有效说明。",
+      "**Do** 保持近直角描边 CTA、可见键盘焦点与明确的双平台下载入口。",
+      "**Do** 同步中文和英文文案、图片替代文字与状态信息，并尊重减少动态效果设置。"
+    ],
+    "donts": [
+      "**Don't** 重新引入旧蓝灰视觉、交替明暗章节或装饰粒子画布。",
+      "**Don't** 给平整承托面新增投影、模糊玻璃层或胶囊式主要按钮。",
+      "**Don't** 用虚构界面、用户数字或营销徽章替代真实产品证据。",
+      "**Don't** 让连续动画在页面隐藏时运行，或要求 JavaScript 才能看到正文和下载链接。"
+    ]
+  }
+}
