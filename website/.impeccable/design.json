@@ -303,7 +303,7 @@
     "overview": "T-Cube 网站以用户指定的 [MotionObj Regex](https://motionobj.com/regex/) 为视觉参照：连续炭绿底色、开阔分栏、厚实简洁的标题、细描边行动入口与真实产品图像。它呈现一款随手可用的桌面工具；视觉证据来自现有应用图标、原生立方体渲染和 macOS / Windows 界面截图。\n\n整体安静、直接、克制。页面依靠字号、留白与分隔线建立层级，薄荷绿集中用于选择状态、链接和焦点。用户本次确定的新方向替代此前蓝灰底色以及早期 Apple / OpenAI 参考；无交替明暗章节、装饰画布或粒子背景。当前首屏与故事顺序属于[页面方向契约](.impeccable/surfaces/website-index-html.md)，不把单页布局当作所有未来页面的固定模板。",
     "keyCharacteristics": [
       "连续炭绿背景，以同色系表面和细线组织内容。",
-      "Manrope 配合中文系统无衬线字体，标题紧凑，正文舒展。",
+      "Avenir Next Condensed / Roboto Condensed 标题配合 Avenir Next / Nunito Sans 正文；中文采用自然无衬线字形。",
       "近直角描边按钮，真实截图承担产品说明。",
       "中文默认、英文可切换，键盘操作与减少动态效果优先。"
     ],

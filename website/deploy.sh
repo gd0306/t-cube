@@ -27,7 +27,8 @@ tar -xzf "$ARCHIVE" -C "$RELEASE"
 if command -v restorecon >/dev/null 2>&1; then restorecon -R "$RELEASE/public"; fi
 test -s "$RELEASE/public/index.html"
 test -s "$RELEASE/public/assets/social-preview.jpg"
-test -s "$RELEASE/public/assets/manrope-bold.ttf"
+test -s "$RELEASE/public/assets/nunito-sans-latin.woff2"
+test -s "$RELEASE/public/assets/roboto-condensed-latin.woff2"
 /usr/local/bin/python3 "$RELEASE/ops/refresh-release.py" --root "$RELEASE/public"
 nginx -t
 HOMEPAGE_BEFORE="$(sha256sum /var/www/html/index.html | cut -d ' ' -f 1)"

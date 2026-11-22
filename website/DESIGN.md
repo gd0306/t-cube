@@ -14,37 +14,37 @@ colors:
   dialog-backdrop: "#101b18e8"
 typography:
   display:
-    fontFamily: 'Manrope, "PingFang SC", "Microsoft YaHei", sans-serif'
+    fontFamily: '"Avenir Next Condensed","Roboto Condensed","PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif'
     fontSize: "clamp(46px, 4.5vw, 68px)"
-    fontWeight: 700
+    fontWeight: 500
     lineHeight: 1.23
-    letterSpacing: "-0.04em"
+    letterSpacing: "0"
   headline:
-    fontFamily: 'Manrope, "PingFang SC", "Microsoft YaHei", sans-serif'
+    fontFamily: '"Avenir Next Condensed","Roboto Condensed","PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif'
     fontSize: "46px"
-    fontWeight: 700
+    fontWeight: 500
     lineHeight: 1.2
-    letterSpacing: "-0.035em"
+    letterSpacing: "0"
   title:
-    fontFamily: 'Manrope, "PingFang SC", "Microsoft YaHei", sans-serif'
+    fontFamily: '"Avenir Next Condensed","Roboto Condensed","PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif'
     fontSize: "28px"
-    fontWeight: 700
+    fontWeight: 500
     lineHeight: 1.2
-    letterSpacing: "-0.035em"
+    letterSpacing: "0"
   body:
-    fontFamily: 'Manrope, "PingFang SC", "Microsoft YaHei", sans-serif'
+    fontFamily: '"Avenir Next","Nunito Sans","PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif'
     fontSize: "17px"
     fontWeight: 400
     lineHeight: 1.75
   label:
-    fontFamily: 'Manrope, "PingFang SC", "Microsoft YaHei", sans-serif'
+    fontFamily: '"Avenir Next","Nunito Sans","PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif'
     fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.75
   button:
-    fontFamily: 'Manrope, "PingFang SC", "Microsoft YaHei", sans-serif'
+    fontFamily: '"Avenir Next","Nunito Sans","PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif'
     fontSize: "16px"
-    fontWeight: 800
+    fontWeight: 700
     lineHeight: 1.4
 rounded:
   action: "2px"
@@ -119,7 +119,7 @@ T-Cube 网站以用户指定的 [MotionObj Regex](https://motionobj.com/regex/) 
 **Key Characteristics:**
 
 - 连续炭绿背景，以同色系表面和细线组织内容。
-- Manrope 配合中文系统无衬线字体，标题紧凑，正文舒展。
+- Avenir Next Condensed / Roboto Condensed 标题配合 Avenir Next / Nunito Sans 正文；中文采用自然无衬线字形。
 - 近直角描边按钮，真实截图承担产品说明。
 - 中文默认、英文可切换，键盘操作与减少动态效果优先。
 
@@ -151,9 +151,9 @@ sidecar 的八阶色带仅供面板预览，并未成为页面新增色阶。
 
 ## Typography
 
-**Display / Body Font:** 自托管 Manrope；中文依次回退到 `PingFang SC`、`Microsoft YaHei` 和 `sans-serif`。两个字体文件分别声明 `400–600` 与 `700–800` 字重，采用 `font-display: swap`；根元素禁用合成字形。
+**Display / Body Font:** 与指定参考页一致，已安装的 `Avenir Next Condensed` 用于标题，`Avenir Next` 用于正文。未安装时分别使用自托管开源 `Roboto Condensed` 与 `Nunito Sans` 拉丁字符 WOFF2 可变字体；中文依次由 `PingFang SC`、`Noto Sans SC`、`Microsoft YaHei` 提供。采用 `font-display: swap`，不请求外部字体服务，不分发系统专有字体。
 
-**Character:** 英文轮廓简洁厚实，中文保留自然阅读节奏。标题统一 `700`、紧字距、`text-wrap: balance`，支持明确换行；正文使用 `text-wrap: pretty`。界面不另设等宽字体，版本与文件大小使用 tabular numerals。
+**Character:** 英文标题为窄体 `400` 与 `-0.015em` 字距；中文标题为 `500` 与自然字距，不压缩汉字。正文为 `400`，按钮与品牌为 `700`。字号、配色和布局沿用现有页面，标题支持明确换行和 `text-wrap: balance`；正文使用 `text-wrap: pretty`。版本与大小使用 tabular numerals。
 
 ### Hierarchy
 
@@ -162,7 +162,7 @@ sidecar 的八阶色带仅供面板预览，并未成为页面新增色阶。
 - **Title**：`h3` 默认 `28px`，`h4` 默认 `21px`；功能、平台与隐私标题使用现有 `21–32px` 局部尺寸。
 - **Body**：默认 `17px / 1.75`，`600px` 以下为 `16px`；首屏介绍默认 `20px / 1.65`，最大 `28em`。其他说明段落最大约 `30–34em`。
 - **Label**：导航为 `14px`；材质标签为 `13px`，移动端 `12px`；细节说明通常为 `12–15px`。
-- **Button**：默认 `16px / 1.4`、`800`；紧凑按钮 `14px`。文案使用自然大小写。
+- **Button**：默认 `16px / 1.4`、`700`；紧凑按钮 `14px`。文案使用自然大小写。
 
 ## Layout
 

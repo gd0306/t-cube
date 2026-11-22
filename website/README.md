@@ -3,7 +3,7 @@
 Chinese-first bilingual static website for https://www.gd306.cn/t-cube/.
 
 - `index.html`, `style.css`, `app.js`: dependency-free page, keyboard material tabs, native image dialogs and remembered language selection.
-- `assets/`: actual native renders/UI captures from `docs/images/` and self-hosted Manrope fonts (OFL license included).
+- `assets/`: actual native renders/UI captures from `docs/images/` and self-hosted Nunito Sans / Roboto Condensed fallbacks (OFL licenses included); installed Avenir Next / Avenir Next Condensed take priority.
 - `release.json`: validated latest stable release with platform installers, sizes and checksums.
 - `refresh-release.py`: credential-free GitHub stable-release refresh; rejects incomplete releases and keeps previous valid files if fetching or validation fails. Atomically updates JSON and the HTML's no-JavaScript fallback links.
 - `t-cube-release-refresh.*`: hourly systemd refresh on the maintainer's existing server; not a browser background task.
