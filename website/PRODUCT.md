@@ -15,7 +15,7 @@ T-Cube is a six-face, 24-slot floating 3D launcher with glass/slime materials, h
 The website defaults to Chinese and includes an English switch, as requested. Host at https://www.gd306.cn/t-cube/. Preserve the existing domain homepage and services. Use currently published installers, never a guessed future release.
 
 ## Brand Commitments
-Use the T-Cube name and existing application icon and native product renders. The user's current visual reference is https://motionobj.com/regex/: continuous charcoal green, warm white typography, mint interaction states, fine separators and near-square outlined actions. This explicitly replaces the earlier Apple / OpenAI reference and blue-grey treatment. Adapt the visual language to T-Cube's real product evidence; avoid claiming affiliation.
+Use the T-Cube name and existing application icon and native product renders. The user's current visual reference is https://motionobj.com/regex/: continuous neutral charcoal black, warm white typography, mint interaction states, fine separators and near-square outlined actions. This explicitly replaces the earlier Apple / OpenAI reference and blue-grey treatment. Adapt the visual language to T-Cube's real product evidence; avoid claiming affiliation.
 
 ## Evidence on Hand
 README.md, README-CN.md, windows/README.md, docs/verification, and real screenshots and transparent native renders in docs/images. No fabricated users, usage counts, performance claims, testimonials or awards.

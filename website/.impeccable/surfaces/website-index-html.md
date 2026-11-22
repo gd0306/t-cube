@@ -13,7 +13,7 @@ A Chinese-first introduction for macOS and Windows users evaluating T-Cube. The 
 
 THESIS: A desktop utility presented with the directness of the user-selected MotionObj Regex page: bold typography, open columns, real product images and outlined actions.
 
-OWN-WORLD: Continuous charcoal green ground, warm white type, mint selected controls, fine separators and square outlined download buttons. No alternating light/dark sections or ornamental canvas effects.
+OWN-WORLD: Continuous neutral charcoal black ground, warm white type, mint selected controls, fine separators and square outlined download buttons. No alternating light/dark sections or ornamental canvas effects.
 
 STORY: See the six-face launcher, try its three visual states, understand clipboard and monitor workflows, then download or inspect full functionality.
 
