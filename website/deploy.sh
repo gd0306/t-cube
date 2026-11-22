@@ -50,7 +50,7 @@ systemctl show t-cube-release-refresh.service -p Result -p ExecMainStatus
 HOMEPAGE_AFTER="$(sha256sum /var/www/html/index.html | cut -d ' ' -f 1)"
 test "$HOMEPAGE_BEFORE" = "$HOMEPAGE_AFTER"
 nginx -t
-curl -fsS --resolve www.gd306.cn:443:127.0.0.1 https://www.gd306.cn/t-cube/ -o "/tmp/t-cube-$DEPLOY_ID-https.html"
+curl -fsS --resolve tcube.gd306.cn:80:127.0.0.1 http://tcube.gd306.cn/ -o "/tmp/t-cube-$DEPLOY_ID-https.html"
 cmp "/tmp/t-cube-$DEPLOY_ID-https.html" /var/www/html/t-cube/index.html
 sha256sum /var/www/html/t-cube/index.html /var/www/html/t-cube/style.css /var/www/html/t-cube/app.js
 printf 'DEPLOYED %s\nHOMEPAGE_SHA256 %s\n' "$RELEASE" "$HOMEPAGE_AFTER"

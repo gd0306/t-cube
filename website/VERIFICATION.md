@@ -1,6 +1,6 @@
 # Website deployment acceptance — 2026-11-21
 
-Production: https://www.gd306.cn/t-cube/
+Production: http://tcube.gd306.cn/
 
 ## Scope
 
@@ -89,3 +89,15 @@ Preload and decode the three original native images, then atomically replace the
 Browser checks covered delayed loading, changing the selection while a prior load is pending, all three decoded pixel hashes, keyboard selection, localized captions, failed loading and successful retry, and mobile overflow. All passed without script errors; the three images have distinct decoded pixel hashes. Captured screenshots confirm Aurora has icons while the resting state does not. Existing static previews remain authentic product renders; no image colors were fabricated.
 
 Published to `/var/www/t-cube/releases/20261122-144602/public`; Nginx and stable-release refresh succeeded. Public HTTPS HTML and JavaScript matched local bytes; the production browser switched through all three states and reproduced the same three decoded pixel hashes as local verification. The existing domain homepage hash is unchanged. Evidence: ignored `.build/website/material-fix/`.
+
+## Dedicated HTTP origin — 2026-11-22
+
+Migrated the active product website to `http://tcube.gd306.cn/` as requested, with no URL prefix and no new TLS configuration. Server DNS resolves the host to `82.156.8.14`. The dedicated server block is included after the existing default servers to avoid changing unrelated hosts' implicit defaults. Its root uses the existing active-release symlink, so static files, language switching and hourly stable-release refresh share one source of truth. The physical directory name is unchanged and is not part of the public URL.
+
+Old `/t-cube` links on the main HTTPS host redirect permanently to the dedicated HTTP origin. Existing asset paths and query parameters are retained; an old prefix on the new host also redirects to its root. The main HTTP homepage continues redirecting to its existing HTTPS homepage. Current canonical/share-image URLs, bilingual README website anchors and deployment checks use the dedicated origin. Existing GitHub repository and release installer locations remain unchanged.
+
+The configuration script records backups and restores its managed configuration on failure. The server's systemd reload command was unavailable; the initial configuration attempt restored the previous files, and the final script uses the verified running Nginx master's `nginx -s reload` interface. Nginx syntax, new-host response, legacy asset redirect and the existing personal homepage were verified after reload. Final Nginx backup: `/var/backups/t-cube-site/domain-20261122-231425`; active product release: `/var/www/t-cube/releases/20261122-231216/public`.
+
+Production checks: HTTP root 200; canonical/OG root and share image use the new domain; desktop/mobile Chinese and English have no overflow or page errors; all three decoded material frames differ; release metadata returns v0.22.11 and the four installer anchors remain valid. All HTML/CSS/JS/image URLs in the rendered DOM resolve to the new origin. Public HTML matches local bytes, and `Cache-Control: no-cache` covers root/index HTML and release data. A browser opened before content deployment retained old canonical metadata; after disabling that existing browser cache and applying the cache policy, the final run verified the new canonical metadata. The existing domain homepage SHA-256 remains `036013d0010b2c62e9129319e96172eb50a3972b4188937c44199be5cb631a60`.
+
+Evidence: ignored `.build/website/domain-migration/`. Hosting configuration and bootstrap are versioned under `website/nginx/` and `website/configure-domain.sh`.

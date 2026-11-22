@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> · <strong>简体中文</strong> · <a href="https://www.gd306.cn/t-cube/">产品官网</a>
+  <a href="README.md">English</a> · <strong>简体中文</strong> · <a href="http://tcube.gd306.cn/">产品官网</a>
 </p>
 
 ---
