@@ -79,3 +79,13 @@ Published to `/var/www/t-cube/releases/20261122-143159/public`; Nginx and releas
 The maintainer explicitly replaced the green background with a black treatment. Updated the shared canvas to `#101010`, product surfaces to `#181818`, and separators, secondary text, scrollbar and dialog backdrop to neutral greys. Typography, layout, imagery and mint interaction accents are retained. Design tokens and the route brief match the new palette.
 
 Desktop (1440px) and mobile (390px) captures show neutral black surfaces without overflow. Chinese/English switching, material tabs, image dialog/Escape and four direct download anchors passed with no page errors. Text and accent contrast against the two backgrounds ranges from 10.15:1 to 16.97:1. Published to `/var/www/t-cube/releases/20261122-143734/public`; Nginx and release refresh succeeded, public CSS matched local bytes. A production browser navigation timed out; the retry did not complete promptly and was stopped, so repeated browser interaction checks are local-only. The existing domain homepage hash is unchanged. Evidence: ignored `.build/website/black-theme/`.
+
+## Material preview synchronization — 2026-11-22
+
+Reproduced the reported mismatch by delaying the Aurora image: the old handler immediately selected tab 1 while its image was incomplete (`naturalWidth=0`), leaving the previously displayed resting cube visible. The server's Aurora bytes and JavaScript matched the repository, so this was an image-loading synchronization problem.
+
+Preload and decode the three original native images, then atomically replace the displayed image and commit its tab/label/caption. Keep the last complete state while loading; a request counter ensures the last selection wins. Failed loads retain the original selection and allow retry. Image and script cache keys were advanced.
+
+Browser checks covered delayed loading, changing the selection while a prior load is pending, all three decoded pixel hashes, keyboard selection, localized captions, failed loading and successful retry, and mobile overflow. All passed without script errors; the three images have distinct decoded pixel hashes. Captured screenshots confirm Aurora has icons while the resting state does not. Existing static previews remain authentic product renders; no image colors were fabricated.
+
+Published to `/var/www/t-cube/releases/20261122-144602/public`; Nginx and stable-release refresh succeeded. Public HTTPS HTML and JavaScript matched local bytes; the production browser switched through all three states and reproduced the same three decoded pixel hashes as local verification. The existing domain homepage hash is unchanged. Evidence: ignored `.build/website/material-fix/`.

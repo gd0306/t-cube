@@ -7,6 +7,12 @@ let language = 'zh';
 let selectedMaterial = 0;
 let releaseState = 'initial';
 const materialImages = ['cube-hover-dark.png','cube-aurora-dark.png','cube-idle-dark.png'];
+const materialVersion = '20261122-preview';
+const materialLoads = new Map();
+const initialMaterialImage = $('#material-image');
+let materialRequest = 0;
+let materialLoading = false;
+let materialFailed = false;
 const materialDescriptions = {
     zh: ['悬停显现，1.1–4.0 倍放大。','极光主题。让光线，流过每一面。','移开指针，回到安静的玻璃轮廓。'],
     en: ['Reveal on hover. Enlarge from 1.1–4.0×.','Aurora. A little light on every face.','Move away. Return to a quiet glass silhouette.']
@@ -35,19 +41,55 @@ function applyLanguage(next) {
     try { localStorage.setItem('tcube-language', language); } catch { /* The page remains usable without storage. */ }
 }
 function updateMaterialCopy() {
-    $('#material-caption').textContent = materialDescriptions[language][selectedMaterial];
+    $('#material-caption').textContent = materialLoading
+        ? (language === 'zh' ? '正在加载预览…' : 'Loading preview…')
+        : materialFailed
+            ? (language === 'zh' ? '预览加载失败，请再次选择重试。' : 'Preview could not load. Select a tab to retry.')
+            : materialDescriptions[language][selectedMaterial];
     $('#material-image').alt = materialAlt[language][selectedMaterial];
 }
-function selectMaterial(index, moveFocus = false) {
-    selectedMaterial = index;
-    $$('[data-material]').forEach((button,i) => {
-        button.setAttribute('aria-selected',String(index === i));
-        button.tabIndex = index === i ? 0 : -1;
-        if (moveFocus && index === i) button.focus();
+function loadMaterial(index) {
+    if (materialLoads.has(index)) return materialLoads.get(index);
+    const image = index === 0 ? initialMaterialImage : new Image(1120, 840);
+    image.decoding = 'async';
+    image.className = 'hero-cube';
+    const source = new URL('assets/' + materialImages[index] + '?v=' + materialVersion, document.baseURI).href;
+    if (image.src !== source) image.src = source;
+    const loading = image.decode().then(() => image).catch(error => {
+        materialLoads.delete(index);
+        throw error;
     });
-    $('#material-image').src = 'assets/' + materialImages[index];
-    $('#material-preview').setAttribute('aria-labelledby','material-tab-'+index);
+    materialLoads.set(index, loading);
+    return loading;
+}
+function selectMaterial(index, moveFocus = false) {
+    const request = ++materialRequest;
+    const preview = $('#material-preview');
+    if (moveFocus) $(`[data-material="${index}"]`).focus();
+    materialLoading = true;
+    materialFailed = false;
+    preview.setAttribute('aria-busy', 'true');
     updateMaterialCopy();
+    return loadMaterial(index).then(image => {
+        if (request !== materialRequest) return;
+        selectedMaterial = index;
+        image.id = 'material-image';
+        preview.replaceChildren(image);
+        $$('[data-material]').forEach((button,i) => {
+            button.setAttribute('aria-selected', String(index === i));
+            button.tabIndex = index === i ? 0 : -1;
+        });
+        preview.setAttribute('aria-labelledby', 'material-tab-' + index);
+        materialLoading = false;
+        preview.setAttribute('aria-busy', 'false');
+        updateMaterialCopy();
+    }).catch(() => {
+        if (request !== materialRequest) return;
+        materialLoading = false;
+        materialFailed = true;
+        preview.setAttribute('aria-busy', 'false');
+        updateMaterialCopy();
+    });
 }
 $$('[data-material]').forEach((button,index) => {
     button.addEventListener('click',()=>selectMaterial(index));
@@ -64,6 +106,7 @@ $('[data-language]').addEventListener('click',()=>applyLanguage(language === 'zh
 try { if (localStorage.getItem('tcube-language') === 'en') language = 'en'; } catch {}
 applyLanguage(language);
 selectMaterial(0);
+materialImages.forEach((_,index) => loadMaterial(index).catch(() => {}));
 
 const dialog = $('.media-dialog');
 let dialogOpener = null;
