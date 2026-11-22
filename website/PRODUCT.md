@@ -12,7 +12,7 @@ People evaluating T-Cube for their macOS or Windows desktop. Introduce all suppo
 
 ## Capabilities and Constraints
 T-Cube is a six-face, 24-slot floating 3D launcher with glass/slime materials, hover zoom, rotation, theme cycling, edge collapse, fullscreen hiding, desktop placement, display control, clipboard history and text tools, and a reusable snippet/template library. Platform differences, limits, signing, local data and permissions follow current source and bilingual README files.
-The website defaults to Chinese and includes an English switch, as requested. Host at http://tcube.gd306.cn/. Preserve the existing domain homepage and services. Use currently published installers, never a guessed future release.
+The website defaults to Chinese and includes an English switch, as requested. Host at https://tcube.gd306.cn/. Preserve the existing domain homepage and services. Use currently published installers, never a guessed future release.
 
 ## Brand Commitments
 Use the T-Cube name and existing application icon and native product renders. The user's current visual reference is https://motionobj.com/regex/: continuous neutral charcoal black, warm white typography, mint interaction states, fine separators and near-square outlined actions. This explicitly replaces the earlier Apple / OpenAI reference and blue-grey treatment. Adapt the visual language to T-Cube's real product evidence; avoid claiming affiliation.

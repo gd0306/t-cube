@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-  <strong>English</strong> · <a href="README-CN.md">简体中文</a> · <a href="http://tcube.gd306.cn/">Website</a>
+  <strong>English</strong> · <a href="README-CN.md">简体中文</a> · <a href="https://tcube.gd306.cn/">Website</a>
 </p>
 
 ---

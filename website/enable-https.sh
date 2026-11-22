@@ -37,10 +37,14 @@ nginx -t
 nginx -s reload
 verified=false
 for attempt in 1 2 3 4 5 6 7 8 9 10; do
-    if curl -fsS --max-time 5 --resolve tcube.gd306.cn:443:127.0.0.1 https://tcube.gd306.cn/ -o "$BACKUP/https.html" && cmp -s "$BACKUP/https.html" "$PAGE"; then verified=true; break; fi
+    if curl -fsS --max-time 5 --resolve tcube.gd306.cn:443:127.0.0.1 https://tcube.gd306.cn/ -o "$BACKUP/https.html" 2>"$BACKUP/https-check.err" && cmp -s "$BACKUP/https.html" "$PAGE"; then verified=true; break; fi
     sleep 0.2
 done
-test "$verified" = true
+if test "$verified" != true; then
+    cat "$BACKUP/https-check.err" >&2
+    printf 'HTTPS verification did not pass; restoring the previous configuration.\n' >&2
+    false
+fi
 REDIRECT="$(curl -sS --max-time 5 -o /dev/null -w '%{redirect_url}' --resolve tcube.gd306.cn:80:127.0.0.1 http://tcube.gd306.cn/)"
 test "$REDIRECT" = 'https://tcube.gd306.cn/'
 trap - ERR

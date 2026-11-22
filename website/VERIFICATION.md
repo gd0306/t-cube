@@ -1,6 +1,6 @@
 # Website deployment acceptance — 2026-11-21
 
-Production: http://tcube.gd306.cn/
+Production: https://tcube.gd306.cn/
 
 ## Scope
 
@@ -111,3 +111,11 @@ Created the root-owned certificate directory (750), staged `/etc/nginx/t-cube-si
 The activation command checks files, expiry, hostname and public-key matching before replacing the active configuration, then backs up the vhost, legacy redirects and HTML. OpenSSL on this server returns zero even when `x509 -checkhost` reports a mismatch, so the helper explicitly checks the affirmative match output as well. Activation switches HTTP and legacy links to HTTPS, updates current canonical metadata, verifies the normal trusted TLS response, and rolls back on failure. Missing-certificate activation was exercised and refused before any active-config change. Actual T-Cube TLS activation and handshake validation remain pending the maintainer's certificate upload.
 
 Deployment scripts detect an enabled TLS server, preserve HTTPS metadata/redirects and use its origin for validation. Syntax checks passed for all website shell scripts. Prepared-state backup: `/var/backups/t-cube-site/https-ready-20261122-232049`. Existing main homepage hash remains unchanged. Evidence: ignored `.build/website/https-preparation/`.
+
+## HTTPS activation confirmed — 2026-11-22
+
+After the maintainer uploaded the certificate and ran the activation helper, independently checked the installed certificate, the certificate served with tcube.gd306.cn SNI, Nginx syntax, local TLS verification and public HTTPS. Both certificates identify tcube.gd306.cn; the public HTTPS root returned 200 using normal trust verification, HTTP returned 301 to HTTPS, and HTML matches the deployed source. The certificate is valid from 2026-11-22 through 2027-02-20 (UTC).
+
+The screenshot's single hostname-mismatch error was an initial failed verification attempt, followed by a successful retry and the helper's enabled message. This is consistent with the immediate probe reaching pre-reload workers while the new TLS vhost was being adopted; no persistent mismatch was observed in the independent checks. Retry stderr is now retained in the activation backup and printed only if all attempts fail, preserving final diagnostics without presenting a recovered transient as an active failure.
+
+Updated canonical/OG metadata, current product documentation and bilingual README links to HTTPS. Deployed `/var/www/t-cube/releases/20261122-232846/public` through the script's actual HTTPS-detection branch; stable-release refresh and Nginx checks passed. Existing personal homepage SHA-256 remains unchanged. Evidence: ignored `.build/website/https-activation/`.
