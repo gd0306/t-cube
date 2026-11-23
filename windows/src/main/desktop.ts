@@ -41,7 +41,11 @@ export class DesktopApplication {
     private quitCancelled: (() => void) | null = null;
     private pollActive = false;
     private previousButtons = false;
-    private readonly iconCache = new IconCache();
+    private readonly iconCache = new IconCache({
+        onWebsiteIconChanged: () => {
+            if (this.host && !this.quitting) void this.host.refreshIcons().catch(error => this.host.reportError(error));
+        },
+    });
     private readonly started = Date.now();
     private readonly controlHold=new ControlHoldGesture();
     private controlInput:ReturnType<typeof observeControlInterference>|undefined;

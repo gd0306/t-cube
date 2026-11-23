@@ -37,6 +37,7 @@ Published releases provide ready-to-run installation packages:
 
 > [!NOTE]
 > - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.11).
+> - Source `0.22.12` adds automatic website icons and monochrome title markers; published installers above remain `0.22.11`.
 > - `0.22.11` keeps macOS 3D rendering suspended throughout edge-dock transitions and restores it after handoff. Windows receives the matching source version. See the [release verification record](docs/verification/2026-11-19-0.22.11-release.md).
 > - Both installers package the same source commit; see `SOURCE_COMMIT.txt` and `SHA256SUMS.txt` in the release.
 > - The Windows installer bundles its runtime and requires no Node.js installation.
@@ -104,11 +105,11 @@ A lighter glass shell lets the desktop show through. Hover to reveal icons that 
 ### ⚡ Six-Face Multi-Type Launcher
 - **24 Quick Slots**: 6 faces with 4 shortcuts each. Empty slots remain clean and transparent; click targets strictly match the curved icons.
 - **Versatile Entry Types**: Add local applications, folders, individual files (opens with default app), HTTP/HTTPS web links (opens in default browser), or system settings panes.
-- **Real-Time Website Titles**: Web entries display titles directly beneath their icon on both the cube and expanded panels with single-line ellipsis and hover tooltips. Drawn locally without external favicon network requests.
+- **Real-Time Website Titles**: Web entries display titles directly beneath their icon on both the cube and expanded panels with single-line ellipsis and hover tooltips. Titles include a monochrome outline globe. Website icons load anonymously in the background from the site itself (including its declared icon host), with bounded session caching and the existing default icon as fallback.
 - **Dual Launch Modes**: Choose between expanding a face into a 4-icon panel before opening, or launching immediately by clicking icons directly on the cube.
 
 <p align="center">
-  <img src="docs/images/website-titles-expanded.png" width="220" alt="Website titles beneath the icons: short names, a truncated long title and Emoji">
+  <img src="docs/images/website-titles-expanded.png" width="220" alt="Website titles with monochrome globe markers: short names and a truncated long title">
 </p>
 
 ### 🖥️ Desktop Ergonomics & Display Control
@@ -184,7 +185,7 @@ open build/T-Cube.app
 
 # (Optional) Package a drag-to-install DMG installer
 bash scripts/build-dmg.sh
-open build/T-Cube-0.22.11.dmg
+open build/T-Cube-0.22.12.dmg
 ```
 
 ### Windows (Electron + Three.js)
@@ -234,7 +235,7 @@ Per-monitor input mappings are stored separately in `display-inputs.json` beside
 
 Configuration files store shortcut bindings, material/appearance choices, interaction tuning, and window coordinates. Removing a shortcut never deletes the original target file or application. Corrupted configurations are preserved rather than silently overwritten with default values.
 
-T-Cube is 100% offline and privacy-first: no telemetry, no tracking, and no cloud synchronization.
+Core launching, clipboard and content tools run locally, with no telemetry, tracking or cloud synchronization. Website shortcuts request their site icon anonymously in the background; the site origin and its declared icon URL are contacted without browser cookies, credentials, page query parameters or third-party favicon services. Icon responses are bounded and held in session memory; unavailable icons keep the existing default. Manual/optional version checks contact GitHub.
 
 ---
 

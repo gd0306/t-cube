@@ -20,7 +20,7 @@ export async function assertExpandedWebsiteTitles(expanded: Page): Promise<void>
     await expanded.locator('button').first().getByText(websiteTitle, { exact: true }).waitFor();
     const labels = await expanded.locator('button').evaluateAll(buttons => buttons.map(button => ({
         text: button.textContent?.trim(), title: button.getAttribute('title'), accessible: button.getAttribute('aria-label'),
-        caption: (() => { const label = button.querySelector<HTMLElement>('.website-title');
+        caption: (() => { const label = button.querySelector<HTMLElement>('.website-name');
             return label ? { overflow: getComputedStyle(label).textOverflow, nowrap: getComputedStyle(label).whiteSpace,
                 clipped: label.scrollWidth > label.clientWidth } : null; })(),
     })));

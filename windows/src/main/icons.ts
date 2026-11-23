@@ -3,9 +3,31 @@ import { extractIconInWorker } from '../native/icon-service';
 import { FACES } from '../shared/contracts';
 import type { Configuration } from '../shared/contracts';
 import { isLocalIconPath } from './targets';
+import { loadWebsiteIcon, websiteOrigin } from './website-icons';
 
 export class IconCache {
     private readonly cache = new Map<string, Promise<string | null>>();
+    private readonly websites = new Map<string, { image: string | null; controller: AbortController }>();
+    constructor(private readonly options: {
+        websiteIcon?: (origin: string, signal: AbortSignal) => Promise<string | null>;
+        onWebsiteIconChanged?: () => void;
+    } = {}) {}
+
+    private website(origin: string): string | null {
+        let entry = this.websites.get(origin);
+        if (!entry) {
+            entry = { image: null, controller: new AbortController() };
+            this.websites.set(origin, entry);
+            const current = entry;
+            const load = this.options.websiteIcon ?? ((url, signal) => loadWebsiteIcon(url, undefined, { signal }));
+            void Promise.resolve().then(() => load(origin, current.controller.signal)).then(image => {
+                if (this.websites.get(origin) !== current || current.controller.signal.aborted || !image) return;
+                current.image = image;
+                this.options.onWebsiteIconChanged?.();
+            }).catch(() => { /* Keep the default icon and cache failures until removal. */ });
+        }
+        return entry.image;
+    }
     private async load(target: string): Promise<string | null> {
         const { app, nativeImage } = await import('electron');
         try {
@@ -27,9 +49,17 @@ export class IconCache {
         const items = allItems.filter(item => !isURLTarget(item.kind) && isLocalIconPath(item.path, process.platform));
         const active = new Set(items.map(item => item.path.toLowerCase()));
         for (const key of this.cache.keys()) if (!active.has(key)) this.cache.delete(key);
+        const activeOrigins = new Set(allItems.filter(item => item.kind === 'website')
+            .map(item => websiteOrigin(item.path)).filter((origin): origin is string => origin !== null).slice(0, 64));
+        for (const [origin, entry] of this.websites) if (!activeOrigins.has(origin)) {
+            entry.controller.abort(); this.websites.delete(origin);
+        }
         const icons: Record<string, string> = {};
         for (const item of allItems) {
-            if (isURLTarget(item.kind)) icons[item.id] = shortcutIcon(item.kind);
+            if (isURLTarget(item.kind)) {
+                const origin = item.kind === 'website' ? websiteOrigin(item.path) : null;
+                icons[item.id] = (origin && activeOrigins.has(origin) ? this.website(origin) : null) ?? shortcutIcon(item.kind);
+            }
         }
         await Promise.all(items.map(async item => {
             const key = item.path.toLowerCase();
@@ -42,7 +72,7 @@ export class IconCache {
     }
 }
 
-/** Bundled vector artwork: no favicon requests, shell extensions or filesystem lookups. */
+/** Bundled fallback artwork remains available while website images load or fail. */
 function shortcutIcon(kind: string): string {
     const drawing = kind === 'website'
         ? '<circle cx="32" cy="32" r="19"/><ellipse cx="32" cy="32" rx="8" ry="19"/><path d="M13 32h38M17 22h30M17 42h30"/>'

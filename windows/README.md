@@ -1,6 +1,6 @@
 # T-Cube for Windows
 
-Source version **0.22.11** targets Windows 10 22H2 / Windows 11, x64. This client uses Electron and Three.js; the repository's macOS client remains native Swift. The **0.22.11** installer below packages the current Windows client with matching source metadata. This release synchronizes the version with the native macOS edge-dock renderer suspension fix; Windows behavior is unchanged. See the [release verification record](../docs/verification/2026-11-19-0.22.11-release.md).
+Source version **0.22.12** targets Windows 10 22H2 / Windows 11, x64. This client uses Electron and Three.js; the repository's macOS client remains native Swift. Source 0.22.12 adds background website icon retrieval and monochrome globe markers before website titles. The published installer below remains **0.22.11** and does not include these source changes yet. See the [previous release verification record](../docs/verification/2026-11-19-0.22.11-release.md).
 
 ## Installer
 
@@ -27,7 +27,7 @@ Mappings live separately at `%APPDATA%\T-Cube\display-inputs.json` and are not i
 
 ## Office tools and idle performance
 
-Website entries show their saved title below the icon on the cube and expanded face. Long titles use single-line ellipsis; hover shows the full name. Clicking the title uses the existing launch/expand preference. Rendering stays local with no favicon requests.
+Website entries show their saved title below the icon on the cube and expanded face. Long titles use single-line ellipsis; hover shows the full name. Clicking the title uses the existing launch/expand preference. Titles include a monochrome outline globe without changing the saved name. Icons are fetched anonymously in the background from the website origin and its declared icon URL, cached for the session and replaced by the existing default artwork on failure. No browser cookies, credentials, saved-page query parameters or third-party favicon service are used; requests, response bytes and raster dimensions are bounded.
 
 Clipboard history is available from the tray or the **剪贴板历史** tab. Hold **Ctrl alone for 1 second** to open a compact glass history list beside the pointer; release Ctrl to keep it open, then click a text or image entry once to copy and dismiss it. **编辑文字** opens a session draft with explicit **保存** / **取消**; deletion is also available for both text and images. Editing preserves the entry ID, timestamp and order, does not write the system clipboard, and rejects changes exceeding 64 KiB UTF-8 per entry or the 2 MiB text budget without removing other entries. The full manager retains search, merge, paste and saving common content. Every launch starts recording automatically; pause it from the full history manager for the current session. The quick list offers **启用记录** while paused. Existing history remains available while paused; enabling/resuming starts with the next copy. History stays in memory, disappears on exit and is excluded from backup/export. File drops and supported privacy exclusion markers are skipped, but unmarked sensitive content may still be recorded. No cloud sync.
 

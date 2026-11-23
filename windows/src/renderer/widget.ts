@@ -14,7 +14,7 @@ import { SlimeMotion } from '../core/slime';
 import { SlimeShell } from '../core/slime-geometry';
 import { applyScrollRotation, DragRotation, IdleRotation, PrismMotion } from '../core/rotation';
 import { FACES, type Appearance, type Face, type Snapshot } from '../shared/contracts';
-import { fitWebsiteTitle, padTransparentRGB, subscribe, wheelDelta } from './util';
+import { drawWebsiteGlobe, fitWebsiteTitle, padTransparentRGB, subscribe, wheelDelta } from './util';
 import { gestureHit } from './state';
 import { createGlassMaterial, updateGlassMaterial } from './glass';
 import { OpticalTransition } from './optical-transition';
@@ -215,13 +215,17 @@ async function updateIcons(data: Snapshot) {
             if (item?.kind === 'website') {
                 const r = WEBSITE_TITLE_RECTS[i];
                 ctx.font = '600 54px system-ui';
-                const title = fitWebsiteTitle(item.name, r.width - 24, text => ctx.measureText(text).width);
+                const markSize = 42, gap = 12;
+                const title = fitWebsiteTitle(item.name, r.width - 24 - markSize - gap, text => ctx.measureText(text).width);
                 if (title) {
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
                     ctx.beginPath(); ctx.roundRect(r.x, r.y, r.width, r.height, 20); ctx.fill();
                     ctx.fillStyle = 'white';
-                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                    ctx.fillText(title, r.x + r.width / 2, r.y + r.height / 2);
+                    const contentWidth = markSize + gap + ctx.measureText(title).width;
+                    const left = r.x + (r.width - contentWidth) / 2;
+                    drawWebsiteGlobe(ctx, left, r.y + (r.height - markSize) / 2, markSize);
+                    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+                    ctx.fillText(title, left + markSize + gap, r.y + r.height / 2);
                 }
             }
         });

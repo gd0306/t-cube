@@ -15,12 +15,20 @@ struct WebsiteTitlePreviewTests {
         let store = ConfigurationStore(url: directory.appendingPathComponent("configuration.json"))
         var config = CubeConfiguration()
         config.autoRotatesWhenIdle = false
-        for (index, name) in ["工作仓库", "个人仓库", "这是一段需要自动省略的网页长标题", "设计 👩🏽‍💻 资料"].enumerated() {
-            try config.place(WebsiteTarget.item(title: name, address: "https://example.test/page/\(index)"), to: .front, slot: index)
+        for (index, name) in ["狗狗加速", "工作仓库", "这是一段需要自动省略的网页长标题", "设计资料"].enumerated() {
+            let address = index == 0 ? (ProcessInfo.processInfo.environment["TCUBE_PREVIEW_WEBSITE_URL"] ?? "https://example.test/page/0") : "https://example.test/page/\(index)"
+            try config.place(WebsiteTarget.item(title: name, address: address), to: .front, slot: index)
         }
         try store.save(config)
         let model = AppModel(store: store)
         defer { model.stopThemeCycle() }
+        if ProcessInfo.processInfo.environment["TCUBE_PREVIEW_WEBSITE_URL"] != nil {
+            let item = try #require(config.group(for: .front).slots[0])
+            WebsiteIconCache.shared.update(items: [item])
+            for _ in 0..<200 where WebsiteIconCache.shared.image(for: item.url) == nil { try await Task.sleep(for: .milliseconds(100)) }
+            #expect(WebsiteIconCache.shared.image(for: item.url) != nil)
+        }
+        defer { WebsiteIconCache.shared.update(items: []) }
         let view = CubeView(model: model)
         let window = NSPanel(contentRect: NSRect(x: 100, y: 100, width: 440, height: 440), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false

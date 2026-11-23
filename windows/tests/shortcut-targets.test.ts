@@ -59,7 +59,7 @@ test('icon cache supplies local URL artwork without extracting filesystem icons'
     const config = defaultConfiguration();
     config.groups.front.slots[0] = { id: 'web', name: 'Docs', kind: 'website', path: 'https://example.com' };
     config.groups.front.slots[1] = { id: 'settings', name: 'Display', kind: 'systemSettings', path: 'ms-settings:display' };
-    const icons = await new IconCache().forConfiguration(config);
+    const icons = await new IconCache({ websiteIcon: async () => null }).forConfiguration(config);
     assert.match(icons.web, /^data:image\/svg\+xml/);
     assert.match(icons.settings, /^data:image\/svg\+xml/);
     assert.notEqual(icons.web, icons.settings);

@@ -8,6 +8,8 @@ final class AppModel: ObservableObject {
     @Published private(set) var activeTheme: CubeThemePreset?
     @Published var selectedFace: CubeFace = .front
     var onChange: (() -> Void)?
+    var onIconsChange: (() -> Void)?
+    private var websiteIconsStarted = false
     var onAppearanceChange: (() -> Void)?
     var onPlacementRequested: ((CubePlacement) -> Void)?
     var onConfigurationRestored: (() -> Void)?
@@ -31,6 +33,21 @@ final class AppModel: ObservableObject {
     }
 
     deinit { themeCycleTask?.cancel() }
+
+    func startWebsiteIcons() {
+        guard !websiteIconsStarted else { return }
+        websiteIconsStarted = true
+        WebsiteIconCache.shared.onChange = { [weak self] in
+            self?.objectWillChange.send()
+            self?.onIconsChange?()
+        }
+        refreshWebsiteIcons()
+    }
+
+    private func refreshWebsiteIcons() {
+        guard websiteIconsStarted else { return }
+        WebsiteIconCache.shared.update(items: configuration.groups.values.flatMap { $0.slots.compactMap { $0 } })
+    }
 
     func advanceTheme() {
         guard let next = configuration.themeCycle.next(after: activeTheme), next != activeTheme else { return }
@@ -85,6 +102,7 @@ final class AppModel: ObservableObject {
         self.configuration = configuration
         loadFailure = nil
         restartThemeCycle()
+        refreshWebsiteIcons()
         onChange?()
         onConfigurationRestored?()
     }
@@ -97,6 +115,7 @@ final class AppModel: ObservableObject {
             let cycleChanged = candidate.themeCycle != configuration.themeCycle
             configuration = candidate
             if cycleChanged { restartThemeCycle() }
+            refreshWebsiteIcons()
             onChange?()
         } catch { report(error) }
     }
@@ -222,7 +241,8 @@ enum LauncherService {
         }
     }
 
-    static func icon(for item: LauncherItem) -> NSImage {
+    static func icon(for item: LauncherItem, websiteIcons: WebsiteIconCache = .shared) -> NSImage {
+        if item.kind == .website, let icon = websiteIcons.image(for: item.url) { return icon }
         if !item.kind.isLocal {
             let symbol = item.kind == .website ? "globe" :
                 (SystemSettingsTarget.allCases.first { $0.url == item.url }?.symbol ?? "gearshape.fill")

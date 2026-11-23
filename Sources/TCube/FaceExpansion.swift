@@ -109,8 +109,12 @@ struct ExpandedFaceView: View {
                             Image(nsImage: LauncherService.icon(for: item)).resizable()
                                 .frame(width: 64, height: 64)
                             if let title = item.websiteDisplayTitle {
-                                Text(title).font(.system(size: 11, weight: .semibold))
-                                    .lineLimit(1).truncationMode(.tail)
+                                HStack(spacing: 3) {
+                                    Image(systemName: "globe").symbolRenderingMode(.monochrome)
+                                        .fixedSize().accessibilityHidden(true)
+                                    Text(title).lineLimit(1).truncationMode(.tail)
+                                }
+                                    .font(.system(size: 11, weight: .semibold))
                                     .foregroundStyle(.white)
                                     .padding(.horizontal, 5).padding(.vertical, 2)
                                     .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 4))

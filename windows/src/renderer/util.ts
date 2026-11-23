@@ -16,6 +16,19 @@ export function fitWebsiteTitle(name: string, width: number, measure: (text: str
     return graphemes.join('') + '…';
 }
 
+/** A small line drawing, independent of emoji fonts and the stored launcher name. */
+export function drawWebsiteGlobe(ctx: CanvasRenderingContext2D, x: number, y: number, size: number): void {
+    const cx = x + size / 2, cy = y + size / 2, radius = size * 0.42;
+    ctx.save();
+    ctx.strokeStyle = 'white'; ctx.lineWidth = size * 0.07;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, radius, radius, 0, 0, Math.PI * 2);
+    ctx.moveTo(cx + radius * 0.4, cy);
+    ctx.ellipse(cx, cy, radius * 0.4, radius, 0, 0, Math.PI * 2);
+    ctx.moveTo(cx - radius, cy); ctx.lineTo(cx + radius, cy);
+    ctx.stroke(); ctx.restore();
+}
+
 export function padTransparentRGB(
     pixels: Uint8ClampedArray,
     width: number,

@@ -5,6 +5,24 @@ import Testing
 
 @MainActor
 struct WebsiteTitleTests {
+    @Test func websiteCaptionKeepsAMonochromeGlobeBeforeTheTitle() throws {
+        let item = try WebsiteTarget.item(title: "A", address: "https://example.invalid")
+        let group = try FaceGroup(name: "网页", slots: [item, nil, nil, nil])
+        let image = try #require(CubeTheme.faceImage(group: group, ordinal: 0))
+        let bitmap = NSBitmapImageRep(cgImage: image)
+        var whiteMarkPixels = 0
+        for y in 473..<518 {
+            for x in 236..<262 {
+                guard let c = bitmap.colorAt(x: x, y: y)?.usingColorSpace(.sRGB) else { continue }
+                if c.alphaComponent > 0.8 && min(c.redComponent, c.greenComponent, c.blueComponent) > 0.85 {
+                    whiteMarkPixels += 1
+                }
+            }
+        }
+        #expect(whiteMarkPixels > 40, "A monochrome globe must precede the single-letter title")
+        #expect(item.name == "A", "The indicator is artwork, never part of the saved title")
+    }
+
     @Test func webpageCaptionsArePaintedBelowIconsAndNamesInvalidateOnlyWebsiteArtwork() throws {
         let item = try WebsiteTarget.item(title: "工作仓库", address: "https://example.com/work")
         var renamed = item; renamed.name = "个人仓库"

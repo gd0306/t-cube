@@ -1,4 +1,4 @@
-import { subscribe } from './util';
+import { drawWebsiteGlobe, subscribe } from './util';
 const container = document.querySelector<HTMLElement>('#icons')!;
 const buttons = Array.from({ length: 4 }, () => {
     const button = document.createElement('button');
@@ -7,6 +7,12 @@ const buttons = Array.from({ length: 4 }, () => {
     const title = document.createElement('span');
     title.className = 'website-title';
     title.hidden = true;
+    const globe = document.createElement('canvas');
+    globe.className = 'website-globe'; globe.width = globe.height = 32;
+    globe.setAttribute('aria-hidden', 'true');
+    drawWebsiteGlobe(globe.getContext('2d')!, 0, 0, 32);
+    const name = document.createElement('span'); name.className = 'website-name';
+    title.append(globe, name);
     button.append(img, title);
     container.append(button);
     return button;
@@ -19,7 +25,7 @@ subscribe(({ state, icons }) => {
         button.setAttribute('aria-label', item?.name ?? '空');
         const title = button.querySelector<HTMLElement>('.website-title')!;
         title.hidden = item?.kind !== 'website';
-        title.textContent = item?.kind === 'website' ? item.name.replace(/\s+/gu, ' ').trim() : '';
+        title.querySelector<HTMLElement>('.website-name')!.textContent = item?.kind === 'website' ? item.name.replace(/\s+/gu, ' ').trim() : '';
         button.title = item?.kind === 'website' ? item.name : '';
         const img = button.querySelector('img')!;
         img.src = item ? (icons[item.id] ?? '') : '';

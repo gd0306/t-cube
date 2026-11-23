@@ -151,7 +151,7 @@ final class CubeView: ARView {
             : "悬停显示入口；滚动旋转；左键拖动位置；右键拖动旋转；单击图标直接打开；右键单击设置。")
         for (ordinal, face) in CubeFace.allCases.enumerated() {
             let group = model.configuration.group(for: face)
-            let artwork = CubeTheme.FaceArtwork(group: group)
+            let artwork = CubeTheme.FaceArtwork(group: group, websiteIconRevision: WebsiteIconCache.shared.revision)
             guard faceArtwork[face] != artwork, let panel = panels[face] else { continue }
             do {
                 var material = UnlitMaterial(applyPostProcessToneMap: false)

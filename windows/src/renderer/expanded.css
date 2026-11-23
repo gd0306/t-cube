@@ -52,6 +52,9 @@ button:has(.website-title:not([hidden])) img {
     height: calc(100% - 25px);
 }
 .website-title {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     box-sizing: border-box;
     flex: 0 0 auto;
     max-width: 100%;
@@ -61,6 +64,12 @@ button:has(.website-title:not([hidden])) img {
     background: rgba(0, 0, 0, 0.6);
     color: white;
     font: 600 13px/17px system-ui;
+    overflow: hidden;
+}
+.website-title[hidden] { display: none; }
+.website-globe { width: 14px; height: 14px; flex: 0 0 14px; }
+.website-name {
+    min-width: 0;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;

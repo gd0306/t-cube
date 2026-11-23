@@ -73,6 +73,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if let self { surface?.input.updateInteractionHelp(expandsFaces: self.model.configuration.expandsFacesOnClick) }
         }
         model.onAppearanceChange = { [weak self] in self?.cubeView.refreshAppearance() }
+        model.onIconsChange = { [weak self] in self?.cubeView.refreshTextures() }
+        model.startWebsiteIcons()
         applySize(restoring: true)
         let hover = CubeHoverController(window: panel, settings: model.configuration.hover)
         hoverController = hover

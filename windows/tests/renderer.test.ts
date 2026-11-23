@@ -108,3 +108,23 @@ test('settings refresh preserves focused native select menus on every page', () 
     assert.equal(shouldDeferSettingsRender('behavior', null, 'SELECT'), true);
     assert.equal(shouldDeferSettingsRender('appearance', null, 'BUTTON'), false);
 });
+
+test('website globe uses a monochrome bounded canvas path rather than a text prefix', async () => {
+    const { drawWebsiteGlobe } = await import('../src/renderer/util');
+    const ellipses: number[][] = [];
+    let strokes = 0, text = 0;
+    const context = {
+        save() {}, restore() {}, beginPath() {},
+        ellipse(...values: number[]) { ellipses.push(values); },
+        moveTo() {}, lineTo() {}, stroke() { strokes++; },
+        fillText() { text++; }, strokeStyle: '', lineWidth: 0,
+    };
+    drawWebsiteGlobe(context as unknown as CanvasRenderingContext2D, 10, 20, 16);
+    assert.equal(context.strokeStyle, 'white');
+    assert.equal(strokes, 1); assert.equal(text, 0);
+    assert.equal(ellipses.length, 2);
+    for (const [x, y, rx, ry] of ellipses) {
+        assert.equal(x, 18); assert.equal(y, 28);
+        assert.ok(x - rx >= 10 && x + rx <= 26 && y - ry >= 20 && y + ry <= 36);
+    }
+});

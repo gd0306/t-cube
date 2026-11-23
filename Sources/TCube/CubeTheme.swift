@@ -19,15 +19,17 @@ enum CubeTheme {
             let kind: LauncherItem.Kind
             let bookmark: Data?
             let websiteTitle: String?
+            let websiteIconRevision: Int
         }
 
         let slots: [IconSource?]
         var isEmpty: Bool { slots.allSatisfy { $0 == nil } }
 
-        init(group: FaceGroup) {
+        init(group: FaceGroup, websiteIconRevision: Int = 0) {
             slots = group.slots.map { item in
                 item.map { IconSource(url: $0.url, kind: $0.kind,
-                                      bookmark: $0.kind.isLocal ? $0.bookmark : nil, websiteTitle: $0.websiteDisplayTitle) }
+                                      bookmark: $0.kind.isLocal ? $0.bookmark : nil, websiteTitle: $0.websiteDisplayTitle,
+                                      websiteIconRevision: $0.kind == .website ? websiteIconRevision : 0) }
             }
         }
     }
@@ -55,13 +57,7 @@ enum CubeTheme {
                     let rect = FaceLayout.websiteTitleRect(slot)
                     NSColor.black.withAlphaComponent(0.60).setFill()
                     NSBezierPath(roundedRect: rect, xRadius: 14, yRadius: 14).fill()
-                    let paragraph = NSMutableParagraphStyle()
-                    paragraph.alignment = .center
-                    paragraph.lineBreakMode = .byTruncatingTail
-                    (title as NSString).draw(in: rect.insetBy(dx: 8, dy: 4), withAttributes: [
-                        .font: NSFont.systemFont(ofSize: 54, weight: .semibold),
-                        .foregroundColor: NSColor.white, .paragraphStyle: paragraph
-                    ])
+                    WebsiteTitleArtwork.draw(title, in: rect)
                 }
             }
         }
