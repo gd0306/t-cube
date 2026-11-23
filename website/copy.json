@@ -56,8 +56,8 @@
     "en": "Configure with drag and drop. Launch directly or expand a four-icon panel first. Removing a shortcut never deletes the original app or file."
   },
   "t14": {
-    "zh": "网页标题本地绘制，长标题省略并可悬停查看；不请求网络 favicon。",
-    "en": "Website titles are drawn locally, with ellipsis and hover tooltips for long names; no network favicon requests."
+    "zh": "自动获取网页图标，无法获取时保留默认图标；标题前显示单色地球标记，长标题可悬停查看。",
+    "en": "Website icons load automatically, with the default icon as a fallback. Titles carry a monochrome globe marker; hover to read long names."
   },
   "t15": {
     "zh": "Windows 提供可搜索的应用选择器，支持已注册系统／Store 应用与便携 .exe。",
@@ -136,8 +136,8 @@
     "en": "Installed apps enable login startup by default on first launch. Opt out and the choice is remembered; system approvals and disabled states are respected."
   },
   "t34": {
-    "zh": "核心功能本地运行，无遥测、无云同步。手动检查或启用默认关闭的 6 小时版本提醒时访问 GitHub；公开构建经发布页手动下载安装。",
-    "en": "Core features run locally, with no telemetry or cloud sync. Manual checks and optional six-hour release reminders contact GitHub; reminders default off. Public builds use manual downloads from the release page."
+    "zh": "核心功能本地运行，无遥测、无云同步。网页图标直接从已配置站点匿名获取，不使用第三方服务；手动检查或启用默认关闭的 6 小时版本提醒时访问 GitHub。",
+    "en": "Core features run locally, with no telemetry or cloud sync. Website icons are fetched anonymously from configured sites without third-party services. Manual checks and optional six-hour release reminders contact GitHub; reminders default off."
   },
   "t35": {
     "zh": "悬停 / 移开",
@@ -248,8 +248,8 @@
     "en": "Drag in apps, files, websites or system settings. Launch directly, or expand a four-icon panel."
   },
   "t71": {
-    "zh": "网页标题与图标同步显示。",
-    "en": "Website titles stay with their icons."
+    "zh": "自动获取网页图标，标题清晰可辨。",
+    "en": "Automatic website icons, with clearly marked titles."
   },
   "t72": {
     "zh": "左键移动，右键或滚动旋转。",
@@ -360,8 +360,8 @@
     "en": "No telemetry or cloud sync"
   },
   "t112": {
-    "zh": "配置留在本地，支持导入导出和备份。仅手动检查或启用版本提醒时访问 GitHub。",
-    "en": "Local configuration, with import, export and backups. GitHub is contacted only for manual checks or enabled release reminders."
+    "zh": "配置留在本地，支持导入导出和备份。网页图标直接访问已配置站点；检查更新和版本提醒访问 GitHub。",
+    "en": "Configuration stays local, with import, export and backups. Website icons contact configured sites directly; update checks and reminders contact GitHub."
   },
   "t113": {
     "zh": "完整功能",

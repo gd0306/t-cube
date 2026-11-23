@@ -32,13 +32,13 @@ Published releases provide ready-to-run installation packages:
 
 | Platform | Version | Installer Package | Target Architecture | Requirements & Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| **macOS** | `0.22.11` | [T-Cube-0.22.11-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.11/T-Cube-0.22.11-macos-arm64.dmg) | Apple Silicon (arm64) | macOS 15+ · Ad-hoc signed |
-| **Windows** | `0.22.11` | [T-Cube-0.22.11-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.11/T-Cube-0.22.11-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · Standalone runtime |
+| **macOS** | `0.22.12` | [T-Cube-0.22.12-macos-arm64.dmg](https://github.com/gd0306/t-cube/releases/download/v0.22.12/T-Cube-0.22.12-macos-arm64.dmg) | Apple Silicon (arm64) | macOS 15+ · Ad-hoc signed |
+| **Windows** | `0.22.12` | [T-Cube-0.22.12-windows-x64-setup.exe](https://github.com/gd0306/t-cube/releases/download/v0.22.12/T-Cube-0.22.12-windows-x64-setup.exe) | Windows x64 | Windows 10 (22H2) / 11 · Standalone runtime |
 
 > [!NOTE]
-> - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.11).
-> - Source `0.22.12` adds automatic website icons and monochrome title markers; published installers above remain `0.22.11`.
-> - `0.22.11` keeps macOS 3D rendering suspended throughout edge-dock transitions and restores it after handoff. Windows receives the matching source version. See the [release verification record](docs/verification/2026-11-19-0.22.11-release.md).
+> - View full changelogs and SHA-256 checksums in [GitHub Releases](https://github.com/gd0306/t-cube/releases/tag/v0.22.12).
+> - `0.22.12` adds automatic website icons, default-icon fallbacks and monochrome globe markers before website titles on macOS and Windows.
+> - See the [release verification record](docs/verification/2026-11-23-0.22.12-release.md).
 > - Both installers package the same source commit; see `SOURCE_COMMIT.txt` and `SHA256SUMS.txt` in the release.
 > - The Windows installer bundles its runtime and requires no Node.js installation.
 > - Quit any running T-Cube instance before upgrading; your configuration is automatically preserved.

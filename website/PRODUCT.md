@@ -23,4 +23,4 @@ README.md, README-CN.md, windows/README.md, docs/verification, and real screensh
 ## Principles
 Show the real product; keep downloading straightforward; document platform differences honestly; keep core website reading and links usable without JavaScript; respect motion preferences and keyboard navigation.
 
-Source 0.22.12 adds anonymous background website icon retrieval and monochrome globe title markers. The published 0.22.11 installers still use the original default website icon; update the public product copy when those installers are released.
+Version 0.22.12 includes anonymous background website icon retrieval, default-icon fallbacks and monochrome globe title markers on macOS and Windows. Icon requests contact configured website origins directly without a third-party icon service.
