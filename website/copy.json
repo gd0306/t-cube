@@ -442,5 +442,25 @@
   "libraryAlt": {
     "zh": "Windows 常用内容库，包含分组与结构化模板",
     "en": "Native Windows content library with groups and structured templates"
+  },
+  "announcement": {
+    "zh": "✦ T-Cube v0.22.12 已发布 · 适用于 macOS 与 Windows",
+    "en": "✦ T-Cube v0.22.12 is live · For macOS & Windows"
+  },
+  "featuresBadge": {
+    "zh": "核心特性",
+    "en": "Core Features"
+  },
+  "gesturesBadge": {
+    "zh": "操作交互",
+    "en": "Controls & Gestures"
+  },
+  "downloadBadge": {
+    "zh": "获取应用",
+    "en": "Get T-Cube"
+  },
+  "faqBadge": {
+    "zh": "解答",
+    "en": "FAQ"
   }
 }
