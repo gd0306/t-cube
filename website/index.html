@@ -15,13 +15,13 @@
     <meta name="twitter:card" content="summary_large_image">
     <link rel="icon" href="assets/app-icon.png">
     <link rel="preload" as="image" href="assets/cube-hover-dark.png?v=20261122-preview">
-    <link rel="stylesheet" href="style.css?v=20261124-antigravity">
-    <script src="app.js?v=20261124-antigravity" defer></script>
+    <link rel="stylesheet" href="style.css?v=20261125-antigravity3">
+    <script src="app.js?v=20261125-antigravity3" defer></script>
 </head>
 <body>
     <a class="skip-link" href="#main"><span data-i18n="t55">跳到主要内容</span></a>
 
-    <!-- Floating Navigation Bar (Antigravity Style) -->
+    <!-- Floating Navigation Bar -->
     <header class="site-header">
         <div class="nav-inner">
             <a class="brand" href="#top" aria-label="T-Cube">
@@ -46,10 +46,11 @@
                 </a>
             </div>
         </div>
+        <div class="nav-progress" aria-hidden="true"></div>
     </header>
 
     <main id="main">
-        <!-- Hero Section with Antigravity Particles -->
+        <!-- Hero Section with Antigravity Orbital Field -->
         <div class="hero-shell">
             <canvas id="gravity-canvas" class="gravity-canvas" aria-hidden="true"></canvas>
 
@@ -82,14 +83,17 @@
                     <p class="hero-platforms" data-i18n="t62">macOS / Windows · 免费开源</p>
                 </div>
 
-                <!-- Hero 3D Interactive Stage -->
-                <div class="hero-art">
+                <!-- Hero 3D Weightless Stage -->
+                <div class="hero-art" data-active-material="0">
                     <div class="material-stage">
+                        <div class="cube-aura" aria-hidden="true"></div>
+                        <div class="cube-orbit-ring" aria-hidden="true"></div>
                         <div id="material-preview" role="tabpanel" aria-labelledby="material-tab-0">
                             <img class="hero-cube" src="assets/cube-hover-dark.png?v=20261122-preview" alt="通透玻璃主题，显示快捷图标" id="material-image" width="1120" height="840" fetchpriority="high">
                         </div>
                         <div class="stage-controls">
                             <div role="tablist" class="material-tabs" aria-label="产品状态 / Product appearance">
+                                <span class="tab-indicator" aria-hidden="true"></span>
                                 <button type="button" role="tab" aria-selected="true" aria-controls="material-preview" id="material-tab-0" data-material="0">
                                     <span data-i18n="t3">通透玻璃</span>
                                 </button>
@@ -109,16 +113,15 @@
 
         <!-- Bento Grid: Core Experience -->
         <section class="section-wrap" id="experience">
-            <div class="section-heading-wrap">
-                <span class="section-tag" data-i18n="featuresBadge">核心特性</span>
+            <div class="section-heading-wrap reveal-item">
                 <h2 data-i18n="t69">六个面，
 装下你的快捷入口。</h2>
                 <p data-i18n="t70">应用、文件、网页与系统设置，拖入即可添加。点击直达，或展开四图标面板。</p>
             </div>
 
-            <div class="bento-grid">
+            <div class="bento-grid" data-spotlight-group>
                 <!-- Bento 1: 3D Launcher & Website Titles (Span 12 / 2-col) -->
-                <div class="bento-card bento-col-12 launcher-bento">
+                <div class="bento-card bento-col-12 launcher-bento reveal-item">
                     <div class="launcher-copy">
                         <h3 data-i18n="t69">六个面，
 装下你的快捷入口。</h3>
@@ -133,10 +136,7 @@
                             <p data-i18n="t75">玻璃、史莱姆与九款主题，支持自定义渐变和自动轮换。</p>
                         </div>
                     </div>
-                    <div class="window-frame">
-                        <div class="window-header">
-                            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-                        </div>
+                    <div class="media-frame">
                         <button class="image-button" type="button" data-zoom aria-label="查看大图 / Enlarge">
                             <img src="assets/website-titles-expanded.png?v=0.22.12" alt="T-Cube 展开的四项网页入口与标题" data-i18n-alt="launcherAlt" width="440" height="440" loading="lazy">
                             <span class="zoom-mark" aria-hidden="true">+</span>
@@ -145,7 +145,7 @@
                 </div>
 
                 <!-- Bento 2: Edge Docking & Fullscreen (Span 6) -->
-                <div class="bento-card bento-col-6 dock-feature-card" id="workflow">
+                <div class="bento-card bento-col-6 dock-feature-card reveal-item" id="workflow">
                     <div>
                         <h3 data-i18n="t83">贴边收起，全屏隐藏</h3>
                         <p data-i18n="t84">移开指针后收起，悬停恢复；全屏时自动隐藏，原位置不变。</p>
@@ -156,12 +156,12 @@
                     </div>
                     <div class="edge-stage">
                         <div class="edge-rail" aria-hidden="true"></div>
-                        <img src="assets/cube-idle-dark.png" alt="静置状态的玻璃立方体" width="1120" height="840" loading="lazy">
+                        <img class="edge-cube" src="assets/cube-idle-dark.png" alt="静置状态的玻璃立方体" width="1120" height="840" loading="lazy">
                     </div>
                 </div>
 
                 <!-- Bento 3: Display Input & Brightness Control (Span 6) -->
-                <div class="bento-card bento-col-6 display-feature-card">
+                <div class="bento-card bento-col-6 display-feature-card reveal-item">
                     <div>
                         <h3 data-i18n="t89">显示器控制</h3>
                         <p data-i18n="t90">从菜单栏或托盘切换 Type-C / HDMI，按显示器保存映射并回读确认。macOS 支持独立调节屏幕亮度。</p>
@@ -180,11 +180,8 @@
                 </div>
 
                 <!-- Bento 4: 1-Second Quick Clipboard (Span 12) -->
-                <div class="bento-card bento-col-12 clipboard-bento">
-                    <div class="window-frame">
-                        <div class="window-header">
-                            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-                        </div>
+                <div class="bento-card bento-col-12 clipboard-bento reveal-item">
+                    <div class="media-frame">
                         <button type="button" class="image-button" data-zoom aria-label="查看大图 / Enlarge image">
                             <img src="assets/clipboard-quick-list-dark.png" alt="macOS 剪贴板快捷历史面板，包含文字和图片记录" data-i18n-alt="t95" loading="lazy" decoding="async">
                             <span class="zoom-mark" aria-hidden="true">+</span>
@@ -233,7 +230,7 @@
                 </div>
 
                 <!-- Bento 5: Privacy & Local Performance (Span 12) -->
-                <div class="bento-card bento-col-12 privacy-bento">
+                <div class="bento-card bento-col-12 privacy-bento reveal-item">
                     <div class="privacy-copy">
                         <h3 data-i18n="t106">留在本地，
 轻装运行。</h3>
@@ -259,48 +256,47 @@
 
         <!-- Controls & Gestures Matrix -->
         <section class="section-wrap gestures-section">
-            <div class="section-heading-wrap">
-                <span class="section-tag" data-i18n="gesturesBadge">操作交互</span>
+            <div class="section-heading-wrap reveal-item">
                 <h2 data-i18n="t118">控制与手势</h2>
             </div>
 
-            <div class="gestures-grid">
-                <div class="gesture-card">
+            <div class="gestures-grid" data-spotlight-group>
+                <div class="gesture-card reveal-item">
                     <div class="gesture-header">
                         <span class="gesture-icon-pill">Hover</span>
                         <h4 data-i18n="t35">悬停 / 移开</h4>
                     </div>
                     <p data-i18n="t36">显示图标、放大 / 恢复静置</p>
                 </div>
-                <div class="gesture-card">
+                <div class="gesture-card reveal-item">
                     <div class="gesture-header">
                         <span class="gesture-icon-pill">Drag</span>
                         <h4 data-i18n="t37">左键拖动</h4>
                     </div>
                     <p data-i18n="t38">移动并保存位置</p>
                 </div>
-                <div class="gesture-card">
+                <div class="gesture-card reveal-item">
                     <div class="gesture-header">
                         <span class="gesture-icon-pill">Rotate</span>
                         <h4 data-i18n="t39">右键拖动 / 滚动</h4>
                     </div>
                     <p data-i18n="t40">自由旋转立方体</p>
                 </div>
-                <div class="gesture-card">
+                <div class="gesture-card reveal-item">
                     <div class="gesture-header">
                         <span class="gesture-icon-pill"><kbd>Ctrl</kbd></span>
                         <h4 data-i18n="t41">立方体上按住 Ctrl</h4>
                     </div>
                     <p data-i18n="t42">临时恢复原大小，可配合左键拖动</p>
                 </div>
-                <div class="gesture-card">
+                <div class="gesture-card reveal-item">
                     <div class="gesture-header">
                         <span class="gesture-icon-pill"><kbd>Ctrl</kbd> 1s</span>
                         <h4 data-i18n="t43">立方体外 Ctrl 1 秒</h4>
                     </div>
                     <p data-i18n="t44">打开剪贴板快捷历史</p>
                 </div>
-                <div class="gesture-card">
+                <div class="gesture-card reveal-item">
                     <div class="gesture-header">
                         <span class="gesture-icon-pill"><kbd>Esc</kbd></span>
                         <h4 data-i18n="t45">点击外部 / Esc</h4>
@@ -312,13 +308,12 @@
 
         <!-- Full Details Accordion -->
         <section class="section-wrap details-section" id="details">
-            <div class="section-heading-wrap">
-                <span class="section-tag" data-i18n="t2">功能</span>
+            <div class="section-heading-wrap reveal-item">
                 <h2 data-i18n="t113">完整功能</h2>
-                <p><a class="text-link" href="https://github.com/gd0306/t-cube/blob/master/README-CN.md" data-guide-link target="_blank" rel="noopener"><span data-i18n="t117">查看完整开发文档</span> →</a></p>
+                <p><a class="text-link" href="https://github.com/gd0306/t-cube/blob/master/README-CN.md" data-guide-link target="_blank" rel="noopener"><span data-i18n="t117">文档</span> →</a></p>
             </div>
 
-            <div class="accordion-list">
+            <div class="accordion-list reveal-item">
                 <details class="feature-detail">
                     <summary>
                         <span data-i18n="t6">外观与交互</span>
@@ -390,11 +385,11 @@
             </div>
         </section>
 
-        <!-- Download Section (Antigravity Style) -->
+        <!-- Download Section -->
         <section class="download-section" id="download">
+            <canvas id="download-canvas" class="download-canvas" aria-hidden="true"></canvas>
             <div class="section-wrap">
-                <div class="download-heading">
-                    <span class="section-tag" data-i18n="downloadBadge">获取应用</span>
+                <div class="download-heading reveal-item">
                     <h2 data-i18n="t120">把 T-Cube
 放上你的桌面。</h2>
                     <div class="release-note">
@@ -403,9 +398,9 @@
                     </div>
                 </div>
 
-                <div class="download-grid">
+                <div class="download-grid" data-spotlight-group>
                     <!-- macOS Platform Card -->
-                    <article class="download-platform">
+                    <article class="download-platform reveal-item">
                         <div class="os-logo" aria-hidden="true">
                             <svg viewBox="0 0 24 24"><path d="M16.8 12.7c0-2 1.6-3 1.7-3.1-1-1.4-2.5-1.6-3.1-1.6-1.3-.1-2.5.8-3.2.8-.6 0-1.6-.8-2.7-.7-1.4 0-2.8.9-3.5 2.1-1.5 2.6-.4 6.5 1 8.6.7 1 1.5 2.1 2.6 2 1 0 1.4-.7 2.8-.7 1.3 0 1.7.7 2.8.7 1.2 0 1.9-1 2.6-2 .8-1.1 1.1-2.2 1.2-2.3-.1 0-2.2-.9-2.2-3.3ZM14.6 6.7c.6-.8 1.1-1.9 1-3-.9.1-2 .6-2.7 1.4-.6.6-1.2 1.8-1 2.9 1 .1 2-.5 2.7-1.3Z"></path></svg>
                         </div>
@@ -420,7 +415,7 @@
                     </article>
 
                     <!-- Windows Platform Card -->
-                    <article class="download-platform">
+                    <article class="download-platform reveal-item">
                         <div class="os-logo" aria-hidden="true">
                             <svg viewBox="0 0 24 24"><path d="M2 3h9v8H2V3Zm11 0h9v8h-9V3ZM2 13h9v8H2v-8Zm11 0h9v8h-9v-8Z"></path></svg>
                         </div>
@@ -435,7 +430,7 @@
                     </article>
                 </div>
 
-                <div class="download-support">
+                <div class="download-support reveal-item">
                     <a href="https://github.com/gd0306/t-cube/releases/latest" target="_blank" rel="noopener" data-release-page>
                         <span data-i18n="t132">更新记录</span>
                     </a>
@@ -451,12 +446,11 @@
 
         <!-- FAQ Section -->
         <section class="section-wrap faq-section">
-            <div class="section-heading-wrap">
-                <span class="section-tag" data-i18n="faqBadge">解答</span>
+            <div class="section-heading-wrap reveal-item">
                 <h2 data-i18n="t135">常见问题</h2>
             </div>
 
-            <div class="faq-list">
+            <div class="faq-list reveal-item">
                 <details class="faq">
                     <summary>
                         <span data-i18n="t47">需要哪些权限？</span>
