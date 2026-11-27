@@ -2,11 +2,15 @@
 
 Chinese-first bilingual static website for https://tcube.gd306.cn/.
 
-- `index.html`, `style.css`, `app.js`: dependency-free page, keyboard material tabs, native image dialogs and remembered language selection.
+- `index.html`, `style.css`, `app.js`: dependency-free page with keyboard material tabs, native image dialogs, remembered language selection, a keyboard-accessible system/light/dark theme switcher with a saved preference, and an interactive hero particle canvas.
+- `copy.json`: reference bilingual copy inventory. It is not loaded by the page or included in deployment, and there is no automatic synchronization with `app.js`. Runtime translations are inline in `app.js` (`translations` and theme labels); update those and the matching default HTML text when changing visible copy, and keep this reference inventory aligned.
 - `assets/`: actual native renders/UI captures from `docs/images/` and self-hosted Nunito Sans / Roboto Condensed fallbacks (OFL licenses included); installed Avenir Next / Avenir Next Condensed take priority.
 - `release.json`: validated latest stable release with platform installers, sizes and checksums.
 - `refresh-release.py`: credential-free GitHub stable-release refresh; rejects incomplete releases and keeps previous valid files if fetching or validation fails. Atomically updates JSON and the HTML's no-JavaScript fallback links.
 - `t-cube-release-refresh.*`: hourly systemd refresh on the maintainer's existing server; not a browser background task.
+- `deploy.sh`: package and deploy the public site plus server-side release-refresh tooling.
+- `nginx/`, `configure-domain.sh`: dedicated-domain routing templates and HTTP bootstrap.
+- `prepare-https.sh`, `enable-https.sh`: stage TLS configuration and install the server activation helper, then enable HTTPS after certificates are supplied.
 
 Preview:
 
@@ -14,7 +18,9 @@ Preview:
 python3 -m http.server 8765 --bind 127.0.0.1 --directory website
 ```
 
-Only HTML/CSS/JS, `release.json`, and `assets/` are publicly deployed. Operations scripts and design/verification notes remain outside the web root. Releases live under `/var/www/t-cube/releases/`; `/var/www/html/t-cube` selects the active release. Prior releases and the existing domain homepage remain intact. Deployment and verification evidence is kept under ignored `.build/website/`.
+`deploy.sh` publishes only `index.html`, `style.css`, `app.js`, `release.json`, and `assets/` in each release's `public/` directory. It also transfers `refresh-release.py` and `t-cube-release-refresh.{service,timer}` in a separate `ops/` directory, then installs the refresh script at `/opt/t-cube-site/refresh-release.py` and the units under `/etc/systemd/system/`. These operations files stay outside the web root; `copy.json` and design/verification notes are not included in the deployment package.
+
+Releases live under `/var/www/t-cube/releases/`; `/var/www/html/t-cube` selects the active release's `public/` directory. Prior releases and the existing domain homepage remain intact. Deployment and verification evidence is kept under ignored `.build/website/`.
 
 Deploy using the maintainer's authorized SSH credentials (no credentials are stored in this repository):
 
@@ -22,7 +28,9 @@ Deploy using the maintainer's authorized SSH credentials (no credentials are sto
 TCUBE_SITE_HOST=root@your-server bash website/deploy.sh
 ```
 
-On this maintainer Mac, `TCUBE_SITE_INTERFACE=en0` selects the previously verified direct network route when ordinary SSH is intercepted by a local proxy. `deploy.sh` backs up the active route, verifies the transfer, tests Nginx, switches an atomic symlink, starts the refresh service, and verifies that the domain homepage is unchanged.
+`TCUBE_SITE_INTERFACE` is an optional troubleshooting parameter for binding SSH/SCP to a specific local interface when a proxy interferes. For example, this maintainer Mac has used `TCUBE_SITE_INTERFACE=en0`; verify the interface on the current machine before using it. Normal deployment needs only `TCUBE_SITE_HOST`.
+
+`deploy.sh` backs up the active route, verifies the transfer, tests Nginx, switches an atomic symlink, starts the refresh service, and verifies that the domain homepage is unchanged.
 
 Rollback: repoint `/var/www/html/t-cube` atomically to a retained release's `public/` directory. Do not remove releases while they are active or referenced by rollback backups.
 
@@ -47,6 +55,8 @@ The prepared TLS template mirrors the existing main site's SSL cache, timeout an
 ```bash
 TCUBE_SITE_HOST=root@your-server bash website/prepare-https.sh
 ```
+
+This stages `nginx/t-cube-site-https.conf` at `/etc/nginx/t-cube-site-https.conf.pending` and installs the repository's `website/enable-https.sh` as the server command `/usr/local/sbin/enable-tcube-https`. It leaves the active site configuration unchanged.
 
 Upload the Nginx/PEM certificate bundle (leaf certificate followed by intermediate certificates) and matching unencrypted PEM private key to:
 

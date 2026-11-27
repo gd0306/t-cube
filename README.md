@@ -97,14 +97,14 @@ A lighter glass shell lets the desktop show through. Hover to reveal icons that 
 
 ### 🧊 3D Aesthetics & Material Physics
 - **Frosted Settings**: Sidebar navigation and immediate appearance saving, with a page-scoped default reset. macOS uses native frosted backgrounds; Windows 11 22H2+ uses Acrylic, while older Windows versions and reduced-transparency/high-contrast modes use solid fallbacks. Windows also has a blue/cyan cube tray icon.
-- **Clear Liquid Glass & Slime Materials**: Soft corners, shallow curved faces, and subtle reflections. On macOS 26+, content utilizes native Clear Liquid Glass (with frosted glass fallback on earlier systems). Switch to **Slime** material for an elastic jelly body that trails cursor motion and springs back gracefully.
-- **Wandering Idle Rotation**: Slowly drifts through shifting 3D angles at rest. Hovering stops rotation instantly; leaving resumes it. Automatically paused when macOS "Reduce Motion" is enabled, or toggle it off under **Appearance → Dynamic Rotation**.
+- **Clear Glass & Slime Materials**: Soft corners, shallow curved faces, and subtle reflections. The macOS 3D cube body uses RealityKit physically based materials; its expanded four-icon panel uses native Clear Liquid Glass on macOS 26+ (with frosted glass fallback on earlier supported systems). Switch to **Slime** material for an elastic jelly body that trails cursor motion and springs back gracefully.
+- **Wandering Idle Rotation**: Slowly drifts through shifting 3D angles at rest. Hovering stops rotation instantly; leaving resumes it. Automatically paused when macOS "Reduce Motion" is enabled. Turn it off under **Appearance → Interaction & Animation → Auto-rotate when idle** on macOS or **Interaction & Placement → Rotate when idle** on Windows.
 - **Hover Zoom**: Smoothly expands when hovered (customizable from 1.1× to 4.0×) and snaps back to resting size when the pointer leaves.
 - **Theme Customization**: Nine theme presets, custom two-color gradients, and optional automatic theme cycling every 10 or 20 seconds with 0.4-second optical crossfades.
 
 ### ⚡ Six-Face Multi-Type Launcher
 - **24 Quick Slots**: 6 faces with 4 shortcuts each. Empty slots remain clean and transparent; click targets strictly match the curved icons.
-- **Versatile Entry Types**: Add local applications, folders, individual files (opens with default app), HTTP/HTTPS web links (opens in default browser), or system settings panes.
+- **Versatile Entry Types**: Add local applications, folders, individual files (opens with default app), HTTP/HTTPS web links (opens in default browser), or macOS / Windows system settings panes.
 - **Real-Time Website Titles**: Web entries display titles directly beneath their icon on both the cube and expanded panels with single-line ellipsis and hover tooltips. Titles include a monochrome outline globe. Website icons load anonymously in the background from the site itself (including its declared icon host), with bounded session caching and the existing default icon as fallback.
 - **Dual Launch Modes**: Choose between expanding a face into a 4-icon panel before opening, or launching immediately by clicking icons directly on the cube.
 
@@ -115,25 +115,25 @@ A lighter glass shell lets the desktop show through. Hover to reveal icons that 
 ### 🖥️ Desktop Ergonomics & Display Control
 - **Edge Auto-Collapse**: When positioned within ~32 logical pixels of an outer left/right display edge, leaving the cube for ~0.8 seconds collapses it into a slim 10×56 translucent glass handle. Hovering restores the cube without altering its saved resting position. macOS uses a ~0.36-second droplet absorption and ~0.46-second gentle reveal, with interruption support; Reduce Motion skips spatial transitions. [Native motion preview](docs/images/mac-edge-dock.gif).
 - **Fullscreen Auto-Hide**: Automatically hides on the active display when a fullscreen application is focused, pausing 3D rendering to eliminate background GPU overhead.
-- **Quick Screen Placement**: Instantly snap the cube to any screen corner or display center from the menu bar or **Appearance → Quick Placement** (automatically accounts for Dock, menu bar, and taskbar insets).
+- **Quick Screen Placement**: Instantly snap the cube to any screen corner or display center from the menu-bar / tray menu, **Desktop & Performance → Quick Placement** on macOS, or **Interaction & Placement → Quick Placement** on Windows (automatically accounts for Dock, menu bar, and taskbar insets).
 - **Independent Display Brightness (macOS)**: Adjust individual monitor brightness directly from the menu-bar cube. Supports native Apple displays and external monitor hardware backlight control over DDC/CI on Apple Silicon connections. Requires no extra utilities, administrator rights, Accessibility, or Screen Recording permissions.
 - **Monitor Input Switching (macOS / Windows)**: Automatically detects connected monitors and keeps each screen’s Type-C / HDMI mapping separate. No model preset or guessed port codes; saved mappings are preserved. Unidentified, ambiguous, or unreadable targets cannot switch. Open **How to obtain input codes** from the monitor’s **Settings…** on macOS, or in the Windows input panel, for the physical-menu → active-host Refresh → record both decimal codes → save → verify procedure. macOS external input control requires Apple Silicon and a usable DDC/CI connection; detection alone does not guarantee hardware compatibility. Controls lock while busy and highlight confirmed input only, without background polling. [Implementation and limits](docs/verification/2026-11-07-display-input-discovery.md).
 
 ### 📋 Productivity Suite: Clipboard & Reusable Content
 - **In-Memory Session Clipboard**: Text and image history kept strictly in volatile memory. Cleared immediately on exit; never written to disk, included in backups, or transmitted over the network.
-  - **Text History**: Retains up to 100 entries (64 KiB per entry, 2 MiB total). Supports search, multi-selection, ordered concatenation, line trimming, and repeated blank-line collapsing.
+  - **Text History**: Retains up to 100 entries (64 KiB per entry, 2 MiB total). Supports search, multi-selection, ordered concatenation, line trimming, and repeated blank-line collapsing; preview the result before copying or pasting.
   - **Image History**: Retains up to 10 recent images (8 MiB normalized PNG per image, 32 MiB total, 16 megapixels max) with thumbnail previews and bounded detail views.
 - **Quick Clipboard Panel (macOS / Windows)**: With the pointer outside the cube, hold `Ctrl` alone for **1 second** to open a glass history list near the pointer. Release `Ctrl`, then single-click text or an image to copy it and close the panel. Edit, save, cancel, or delete text records; editing changes session history only, preserving order and capture time. Other keys, mouse buttons, scrolling, or entering the cube cancel the hold until Ctrl is released; cube resizing and dragging take priority. Recording starts automatically with the app and can be paused for the current session; existing clipboard content is not imported at startup. macOS uses a native frosted material; Windows 11 22H2+ uses acrylic, with a solid fallback on Windows 10 and earlier Windows 11 builds. Drag the title to move the panel; every fresh invocation returns to the history list. System accessibility preferences may reduce transparency. [Preview and verification](docs/verification/2026-11-10-clipboard-quick-panel.md).
 - **Per-entry Text Tools**: Open the processing menu beside a text record to preview plain text, whitespace cleanup, case conversion, JSON formatting/minification or URL component encoding/decoding. Copy the result, or edit it before copying or explicitly saving to that session record. Processing stays local; previews do not overwrite history. [Preview and verification](docs/verification/2026-11-13-clipboard-text-tools.md).
-- **Snippet Library & Dynamic Templates**: Open the content library from the status menu or with `Command+Shift+Space` (`Ctrl+Shift+Space` on Windows). Organize reusable snippets with groups and favorites. Enable template mode to use dynamic placeholders like `{{customer_name}}`—fill variables once and preview the merged result before copying or pasting.
+- **Snippet Library & Dynamic Templates**: Open the content library from the menu-bar / tray menu or with `Command+Shift+Space` (`Ctrl+Shift+Space` on Windows). Organize reusable snippets with groups and favorites. Enable template mode to use dynamic placeholders like `{{customer_name}}`—fill variables once and preview the merged result before copying or pasting.
 - **Focus-Checked Direct Paste**: Restores previous window focus and pastes directly into the target input field when Accessibility permissions are granted.
 
 ### ⚙️ Performance & Low-Power Architecture
 - **Idle Power Saving**: Pauses 3D rendering and flowing light while the cube is stationary (defaults to enabled on macOS).
 - **Resource Reuse**: Unchanged textures are cached across refreshes, empty faces allocate no texture atlases, and Windows application-picker icon retention is strictly bounded. On macOS, hidden or occluded cubes defer theme texture updates until shown, applying only the latest theme.
-- **Refined Modular Settings**: Appearance, Desktop & Performance, Shortcut Groups, Maintenance, and Lifecycle are organized into clear tabs with instant-save feedback.
-- **Lightweight Release Reminders**: Anonymous 6-hour check for GitHub Releases (opt-in, default off) with manual check cooldown, opening the release page for manual download.
-- **Login Startup**: Enabled by default when the installed app first starts. Turn it off in settings; the choice is remembered across restarts. System approval requirements and disabled login items are respected.
+- **Modular Settings**: macOS has five pages: **Cube Entries**, **Appearance**, **Desktop & Performance**, **Configuration & Backup**, and **Startup & Updates**. Windows has six: **Cube Entries**, **Appearance & Themes**, **Interaction & Placement**, **Performance**, **Configuration & Backup**, and **Startup & Updates**. Settings changes save immediately.
+- **Lightweight Release Reminders**: Anonymous 6-hour check for GitHub Releases (opt-in, default off) with a one-minute manual-check cooldown, opening the release page for manual download.
+- **Login Startup**: Enabled by default when the installed app first starts. On macOS, the app must be installed in `/Applications` to register a login item; running `build/T-Cube.app` directly cannot enable it. Turn it off in settings; the choice is remembered across restarts. System approval requirements and disabled login items are respected.
 
 ---
 
@@ -158,10 +158,10 @@ A lighter glass shell lets the desktop show through. Hover to reveal icons that 
 
 Settings open automatically on first launch, or reopen them anytime by right-clicking the cube or using the menu-bar icon.
 
-1. **Cube Entries**: Assign apps, folders, files, websites, or system settings to each face. Drag-and-drop from Finder / Explorer is fully supported.
-2. **Appearance**: Choose materials (**Glass** or **Slime**), color themes, hover zoom scale, and theme cycling intervals. Changes take effect and save immediately; **Restore Default Appearance** resets only the appearance page.
-3. **Launch Behavior**: On macOS, open **Appearance → Interaction & Animation**; on Windows, open **Interaction & Placement**. Toggle **Expand faces on click** to choose panel expansion or direct launching.
-4. **Desktop & Placement**: Configure **Edge Auto-Collapse**, **Fullscreen Auto-Hide**, or use **Quick Placement** to position the cube at screen corners or center.
+1. **Cube Entries**: Assign apps, folders, files, websites, or system settings to each face. On macOS, drag apps, folders, or files from Finder onto the 3D cube to add them to its front-facing group; the settings list does not accept file drops. On Windows, drag them from Explorer onto a slot in **Cube Entries** settings. Dropping plain text onto the Windows cube opens a reusable-content draft.
+2. **Appearance**: Choose materials (**Glass** or **Slime**), color themes, and theme cycling under **Appearance** on macOS or **Appearance & Themes** on Windows. Hover zoom is under **Appearance → Interaction & Animation** on macOS or **Interaction & Placement** on Windows. Changes take effect and save immediately; **Restore Default Appearance** resets only the appearance page.
+3. **Launch Behavior**: On macOS, open **Appearance → Interaction & Animation** and toggle **Expand faces on click (点击面展开放大)**; on Windows, open **Interaction & Placement** and toggle **Expand face on click (点击展开面)**. Choose panel expansion or direct launching.
+4. **Desktop & Placement**: Open **Desktop & Performance** on macOS or **Interaction & Placement** on Windows to configure edge collapse and fullscreen hiding, or use the placement buttons to position the cube at screen corners or center.
 5. **Display Input**: Open the input controls from the macOS status menu or Windows tray menu, then identify the intended monitor by name and displayed ID. On macOS, open the monitor’s **Settings…** and choose **How to obtain input codes**; on Windows, expand that help in the input panel. Follow these steps: enable DDC/CI, physically activate Type-C and HDMI in turn, and refresh T-Cube on each active host to record its current decimal code. Save two distinct codes locally on each host; saving does not switch inputs. If you previously relied on the automatic preset without saving a mapping, calibrate once using this procedure. Reconnection refreshes detection without transferring mappings to a different screen. If switching loses readback, selection clears and the result remains unconfirmed; use the active host or the monitor’s physical menu to switch back.
 
 ---
@@ -179,9 +179,23 @@ Settings open automatically on first launch, or reopen them anytime by right-cli
 git clone --branch master https://github.com/gd0306/t-cube.git
 cd t-cube
 
-# Compile and launch the app
+# Compile the app
 bash scripts/build-app.sh
-open build/T-Cube.app
+
+# Quit the running T-Cube from its menu before continuing.
+# Back up user data and preserve the previous installed app.
+tcube_backup="build/install-backups/$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$tcube_backup"
+if [ -d "$HOME/Library/Application Support/T-Cube" ]; then
+    ditto "$HOME/Library/Application Support/T-Cube" "$tcube_backup/user-data"
+fi
+if [ -d /Applications/T-Cube.app ]; then
+    mv /Applications/T-Cube.app "$tcube_backup/T-Cube.app"
+fi
+
+# Install and launch; keep the original user-data directory in place.
+ditto build/T-Cube.app /Applications/T-Cube.app
+open /Applications/T-Cube.app
 
 # (Optional) Package a drag-to-install DMG installer
 bash scripts/build-dmg.sh
@@ -191,7 +205,7 @@ open build/T-Cube-0.22.12.dmg
 ### Windows (Electron + Three.js)
 
 - **Runtime**: Windows 10 (22H2) or Windows 11, x64.
-- **Build Requirements**: Node.js 22 LTS or newer, Git, and PowerShell.
+- **Build Requirements**: Node.js 22.12 or newer, Git, and PowerShell.
 
 ```powershell
 # Clone the repository
@@ -250,7 +264,8 @@ swift test --scratch-path .build/tests --no-parallel
 # Compile debug bundle
 bash scripts/build-app.sh --debug
 
-# Verify DMG signature, layout, and links
+# Build the DMG before verifying its signature, layout, and links
+bash scripts/build-dmg.sh
 bash scripts/verify-dmg.sh
 
 # Check git whitespace
@@ -265,6 +280,6 @@ env TCUBE_RENDER_PREVIEWS=1 TCUBE_README_THEME_PREVIEWS=1 TCUBE_WEBSITE_PREVIEWS
 
 - `Sources/CubeCore`: Reusable data models, geometry, hit testing, rotation, and theme engines (framework-independent).
 - `Sources/TCube`: macOS application lifecycle, RealityKit 3D rendering, floating windows, display brightness bridges, and SwiftUI settings.
-- `windows/src/`: Windows Electron main process, Win32 native bridge, and Three.js rendering pipelines.
+- `windows/src/`: Reusable TypeScript logic in `core/`, the Electron main process in `main/`, the Win32 bridge in `native/`, and Three.js/widget/settings UI in `renderer/`.
 
 Refer to [AGENTS.md](AGENTS.md) for contribution conventions, [the release checklist](docs/releasing.md) for delivery requirements, and [docs/verification/](docs/verification/) for test records and hardware validation boundaries.
